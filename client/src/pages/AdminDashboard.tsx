@@ -129,7 +129,7 @@ export default function AdminDashboard() {
               <Home className="w-4 h-4" />
             </button>
             <div className="flex items-center gap-3">
-              <img src={LOGO_IMG} alt="All Ways Transfers" className="h-12 w-auto" />
+              <img src={LOGO_IMG} alt="All Ways Transfers" className="h-16 w-auto" />
             </div>
           </div>
           <div className="flex items-center gap-3">

@@ -52,7 +52,7 @@ export default function BookingConfirmation() {
       <div className="border-b border-border/50 bg-background/90 backdrop-blur-md sticky top-0 z-50">
         <div className="container flex items-center justify-center h-20">
           <div className="flex items-center gap-3">
-            <img src={LOGO_IMG} alt="All Ways Transfers" className="h-12 w-auto" />
+            <img src={LOGO_IMG} alt="All Ways Transfers" className="h-16 w-auto" />
           </div>
         </div>
       </div>

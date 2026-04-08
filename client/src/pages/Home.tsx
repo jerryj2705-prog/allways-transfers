@@ -56,7 +56,7 @@ export default function Home() {
       <nav className="fixed top-0 left-0 right-0 z-50 bg-background/90 backdrop-blur-md border-b border-border/50">
         <div className="container flex items-center justify-between h-20">
           <div className="flex items-center gap-3">
-            <img src={LOGO_IMG} alt="All Ways Transfers" className="h-12 w-auto" />
+            <img src={LOGO_IMG} alt="All Ways Transfers" className="h-16 w-auto" />
           </div>
           <div className="hidden md:flex items-center gap-8 text-sm text-muted-foreground">
             <a href="#services" className="hover:text-primary transition-colors">Services</a>

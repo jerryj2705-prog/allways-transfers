@@ -149,7 +149,7 @@ export default function BookingForm() {
             {step > 0 ? "Back" : "Home"}
           </button>
           <div className="flex items-center gap-3">
-            <img src={LOGO_IMG} alt="All Ways Transfers" className="h-12 w-auto" />
+            <img src={LOGO_IMG} alt="All Ways Transfers" className="h-16 w-auto" />
           </div>
           <div className="w-16" />
         </div>

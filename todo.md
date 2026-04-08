@@ -64,3 +64,4 @@
 - [x] Make header logo bigger
 - [x] Make footer logo bigger
 - [x] Create sticky bar matching header style on all pages
+- [x] Make header logo even bigger (h-12 -> h-16) across all pages
