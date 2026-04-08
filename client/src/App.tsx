@@ -9,6 +9,7 @@ import BookingForm from "./pages/BookingForm";
 import BookingConfirmation from "./pages/BookingConfirmation";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminBookingDetail from "./pages/AdminBookingDetail";
+import AdminPricing from "./pages/AdminPricing";
 
 function Router() {
   return (
@@ -18,6 +19,7 @@ function Router() {
       <Route path="/confirmation/:ref" component={BookingConfirmation} />
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/admin/booking/:id" component={AdminBookingDetail} />
+      <Route path="/admin/pricing" component={AdminPricing} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>

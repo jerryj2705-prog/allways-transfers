@@ -1,6 +1,6 @@
 import { eq, desc, and, or, like, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, vehicles, bookings, type InsertBooking, type Booking } from "../drizzle/schema";
+import { InsertUser, users, vehicles, bookings, pricingSettings, type InsertBooking, type Booking, type PricingSetting } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -223,6 +223,110 @@ export async function getBookingByStripeSession(stripeSessionId: string) {
   if (!db) return undefined;
   const result = await db.select().from(bookings).where(eq(bookings.stripeSessionId, stripeSessionId)).limit(1);
   return result.length > 0 ? result[0] : undefined;
+}
+
+// ─── Pricing Settings Queries ───
+
+export async function getAllPricingSettings() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(pricingSettings);
+}
+
+export async function getPricingSettingByKey(key: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(pricingSettings).where(eq(pricingSettings.settingKey, key)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function updatePricingSetting(id: number, value: string, isActive?: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const updateData: Record<string, unknown> = { settingValue: value };
+  if (isActive !== undefined) {
+    updateData.isActive = isActive;
+  }
+  await db.update(pricingSettings).set(updateData).where(eq(pricingSettings.id, id));
+  return db.select().from(pricingSettings).where(eq(pricingSettings.id, id)).then(r => r[0]);
+}
+
+export interface PriceBreakdown {
+  basePrice: number;
+  distanceCharge: number;
+  outOfHoursSurcharge: number;
+  outOfAreaSurcharge: number;
+  fuelLevySurcharge: number;
+  supportVanPrice: number;
+  squareSurcharge: number;
+  subtotal: number;
+  totalPrice: number;
+}
+
+export async function calculatePrice(params: {
+  serviceType: string;
+  distanceKm: number;
+  pickupHour: number; // 0-23 in local time
+  isOutOfArea: boolean;
+  needsSupportVan: boolean;
+  paymentMethod: string;
+}): Promise<PriceBreakdown> {
+  const settings = await getAllPricingSettings();
+  const getVal = (key: string) => {
+    const s = settings.find(s => s.settingKey === key);
+    return s ? parseFloat(s.settingValue) : 0;
+  };
+  const isActive = (key: string) => {
+    const s = settings.find(s => s.settingKey === key);
+    return s ? s.isActive === 1 : false;
+  };
+
+  // Base price for selected service
+  const serviceKeyMap: Record<string, string> = {
+    airport_transfer: "base_airport_transfer",
+    hourly_hire: "base_hourly_hire",
+    point_to_point: "base_point_to_point",
+    special_events: "base_special_events",
+  };
+  const basePrice = getVal(serviceKeyMap[params.serviceType] || "base_point_to_point");
+
+  // Distance charge
+  const perKmRate = getVal("rate_per_km");
+  const distanceCharge = Math.round(params.distanceKm * perKmRate * 100) / 100;
+
+  // Out-of-hours surcharge (8pm-6am)
+  const isOutOfHours = params.pickupHour >= 20 || params.pickupHour < 6;
+  const outOfHoursSurcharge = (isOutOfHours && isActive("surcharge_out_of_hours")) ? getVal("surcharge_out_of_hours") : 0;
+
+  // Out-of-area surcharge
+  const outOfAreaSurcharge = (params.isOutOfArea && isActive("surcharge_out_of_area")) ? getVal("surcharge_out_of_area") : 0;
+
+  // Fuel levy (percentage of base + distance)
+  const fuelLevyPercent = isActive("surcharge_fuel_levy") ? getVal("surcharge_fuel_levy") : 0;
+  const fuelLevySurcharge = Math.round((basePrice + distanceCharge) * (fuelLevyPercent / 100) * 100) / 100;
+
+  // Support van
+  const supportVanPrice = params.needsSupportVan ? getVal("rate_support_van") : 0;
+
+  // Subtotal before payment surcharge
+  const subtotal = Math.round((basePrice + distanceCharge + outOfHoursSurcharge + outOfAreaSurcharge + fuelLevySurcharge + supportVanPrice) * 100) / 100;
+
+  // Square 2% surcharge
+  const squareSurcharge = params.paymentMethod === "square_postpay" ? Math.round(subtotal * 0.02 * 100) / 100 : 0;
+
+  const totalPrice = Math.round((subtotal + squareSurcharge) * 100) / 100;
+
+  return {
+    basePrice,
+    distanceCharge,
+    outOfHoursSurcharge,
+    outOfAreaSurcharge,
+    fuelLevySurcharge,
+    supportVanPrice,
+    squareSurcharge,
+    subtotal,
+    totalPrice,
+  };
 }
 
 export async function getBookingStats() {

@@ -13,6 +13,9 @@ import {
   updateBookingStatus,
   updateBookingStripeSession,
   getBookingStats,
+  getAllPricingSettings,
+  updatePricingSetting,
+  calculatePrice,
 } from "./db";
 import { createCheckoutSession } from "./stripe";
 import { notifyOwner } from "./_core/notification";
@@ -173,6 +176,42 @@ export const appRouter = router({
     stats: adminProcedure.query(async () => {
       return getBookingStats();
     }),
+  }),
+
+  pricing: router({
+    // Public: get all pricing settings (for displaying base prices on cards)
+    getAll: publicProcedure.query(async () => {
+      return getAllPricingSettings();
+    }),
+
+    // Public: calculate price for a booking
+    calculate: publicProcedure
+      .input(
+        z.object({
+          serviceType: z.string(),
+          distanceKm: z.number().min(0),
+          pickupHour: z.number().min(0).max(23),
+          isOutOfArea: z.boolean().default(false),
+          needsSupportVan: z.boolean().default(false),
+          paymentMethod: z.string().default("cash_postpay"),
+        })
+      )
+      .query(async ({ input }) => {
+        return calculatePrice(input);
+      }),
+
+    // Admin: update a pricing setting
+    update: adminProcedure
+      .input(
+        z.object({
+          id: z.number(),
+          value: z.string(),
+          isActive: z.number().optional(),
+        })
+      )
+      .mutation(async ({ input }) => {
+        return updatePricingSetting(input.id, input.value, input.isActive);
+      }),
   }),
 });
 

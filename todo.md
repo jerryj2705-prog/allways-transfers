@@ -114,3 +114,15 @@
 - [x] Add lady in limo photo to Hourly Hire card
 - [x] Add roads spaghetti photo to Point to Point card
 - [x] Add crowd/event photo to Special Events card
+
+## Admin Pricing System
+- [x] Create pricing_settings table with base prices per service, surcharges, per-km rate
+- [x] Seed default placeholder pricing values
+- [x] Admin page to edit/update base prices for each service
+- [x] Admin page to edit Out-of-Hours pickup surcharge
+- [x] Admin page to edit Out-of-Area surcharge
+- [x] Admin toggle for Fuel Levy surcharge
+- [x] Dynamic pricing engine: calculate final price from base + distance + surcharges
+- [x] Display base price on each service card (landing page and booking form)
+- [x] Booking form shows price breakdown with all applicable surcharges
+- [x] Store calculated price and breakdown on booking record

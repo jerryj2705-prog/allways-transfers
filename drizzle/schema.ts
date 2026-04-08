@@ -78,3 +78,17 @@ export const bookings = mysqlTable("bookings", {
 
 export type Booking = typeof bookings.$inferSelect;
 export type InsertBooking = typeof bookings.$inferInsert;
+
+export const pricingSettings = mysqlTable("pricing_settings", {
+  id: int("id").autoincrement().primaryKey(),
+  settingKey: varchar("settingKey", { length: 100 }).notNull().unique(),
+  settingValue: decimal("settingValue", { precision: 10, scale: 2 }).notNull().default("0"),
+  label: varchar("label", { length: 200 }).notNull(),
+  description: text("description"),
+  category: mysqlEnum("category", ["base_price", "surcharge", "rate", "toggle"]).notNull(),
+  isActive: int("isActive").notNull().default(1),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type PricingSetting = typeof pricingSettings.$inferSelect;
+export type InsertPricingSetting = typeof pricingSettings.$inferInsert;

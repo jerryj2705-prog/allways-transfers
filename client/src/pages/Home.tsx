@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useLocation } from "wouter";
 import { Plane, Clock, MapPin, Star, Shield, Award, Phone, Baby, PawPrint, DollarSign, Mail } from "lucide-react";
+import { trpc } from "@/lib/trpc";
 
 const HERO_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/hero-suv_ee8b3ffa.jpg";
 const LOGO_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/logo-white_476df209.png";
@@ -24,24 +25,29 @@ const services = [
     title: "Airport Transfer",
     description: "Seamless pickup and drop-off to and from Sunshine Coast and Brisbane airports with flight tracking.",
     image: AIRPORT_IMG,
+    priceKey: "base_airport_transfer",
   },
   {
     icon: Clock,
     title: "Hourly Hire",
     description: "Flexible chauffeur service by the hour for meetings, tours, or errands across the region.",
     image: CHAUFFEUR_IMG,
+    priceKey: "base_hourly_hire",
+    priceLabel: "per hour",
   },
   {
     icon: MapPin,
     title: "Point to Point",
     description: "Direct, comfortable transfers between any two locations \u2014 including long-distance rides.",
     image: P2P_IMG,
+    priceKey: "base_point_to_point",
   },
   {
     icon: Star,
     title: "Special Events",
     description: "Weddings, corporate events, funerals, and other special occasions with impeccable service.",
     image: WEDDING_IMG,
+    priceKey: "base_special_events",
   },
 ];
 
@@ -86,6 +92,14 @@ const features = [
 
 export default function Home() {
   const [, setLocation] = useLocation();
+  const { data: pricingSettings } = trpc.pricing.getAll.useQuery();
+
+  const getBasePrice = (key: string) => {
+    const setting = pricingSettings?.find(s => s.settingKey === key);
+    if (!setting) return null;
+    const val = parseFloat(setting.settingValue);
+    return val % 1 === 0 ? val.toFixed(0) : val.toFixed(2);
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -205,6 +219,16 @@ export default function Home() {
                   <p className="text-sm text-muted-foreground leading-relaxed">
                     {service.description}
                   </p>
+                  {getBasePrice(service.priceKey) && (
+                    <div className="pt-2 border-t border-border/30">
+                      <span className="text-primary font-heading text-lg font-bold">
+                        From ${getBasePrice(service.priceKey)}
+                      </span>
+                      {service.priceLabel && (
+                        <span className="text-xs text-muted-foreground ml-1">/{service.priceLabel}</span>
+                      )}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ))}

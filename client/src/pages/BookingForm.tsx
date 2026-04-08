@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import {
   Plane, Clock, MapPin, Star, ArrowLeft, ArrowRight, Check,
   Users, Briefcase, Truck, ChevronLeft, CreditCard, Banknote, Wallet,
+  AlertTriangle,
 } from "lucide-react";
 import { SERVICE_TYPES, SUV_CAPACITY, PAYMENT_METHODS } from "@shared/types";
 import type { PaymentMethod } from "@shared/types";
@@ -61,6 +62,8 @@ export default function BookingForm() {
   const [pickupTime, setPickupTime] = useState("");
   const [passengerCount, setPassengerCount] = useState(1);
   const [needsSupportVan, setNeedsSupportVan] = useState(false);
+  const [estimatedDistance, setEstimatedDistance] = useState(0);
+  const [isOutOfArea, setIsOutOfArea] = useState(false);
   const [clientName, setClientName] = useState("");
   const [clientEmail, setClientEmail] = useState("");
   const [clientPhone, setClientPhone] = useState("");
@@ -73,10 +76,64 @@ export default function BookingForm() {
   const suv = vehicles.find((v) => v.type === "suv");
   const van = vehicles.find((v) => v.type === "van");
 
+  // Fetch pricing settings for base prices on service cards
+  const { data: pricingSettings } = trpc.pricing.getAll.useQuery();
+
+  const getBasePrice = (key: string) => {
+    const setting = pricingSettings?.find(s => s.settingKey === key);
+    if (!setting) return null;
+    const val = parseFloat(setting.settingValue);
+    return val % 1 === 0 ? val.toFixed(0) : val.toFixed(2);
+  };
+
+  const SERVICE_PRICE_KEYS: Record<string, string> = {
+    airport_transfer: "base_airport_transfer",
+    hourly_hire: "base_hourly_hire",
+    point_to_point: "base_point_to_point",
+    special_events: "base_special_events",
+  };
+
+  // Derive pickup hour from time input
+  const pickupHour = useMemo(() => {
+    if (!pickupTime) return 12;
+    return parseInt(pickupTime.split(":")[0], 10);
+  }, [pickupTime]);
+
+  // Calculate price using server-side pricing engine
+  const priceInput = useMemo(() => {
+    if (!serviceType) return null;
+    return {
+      serviceType,
+      distanceKm: estimatedDistance,
+      pickupHour,
+      isOutOfArea,
+      needsSupportVan,
+      paymentMethod: paymentMethod || "cash_postpay",
+    };
+  }, [serviceType, estimatedDistance, pickupHour, isOutOfArea, needsSupportVan, paymentMethod]);
+
+  const { data: priceBreakdown } = trpc.pricing.calculate.useQuery(
+    priceInput!,
+    { enabled: !!priceInput }
+  );
+
+  const pricing = priceBreakdown ?? {
+    basePrice: 0,
+    distanceCharge: 0,
+    outOfHoursSurcharge: 0,
+    outOfAreaSurcharge: 0,
+    fuelLevySurcharge: 0,
+    supportVanPrice: 0,
+    squareSurcharge: 0,
+    subtotal: 0,
+    totalPrice: 0,
+  };
+
+  const isOutOfHours = pickupHour >= 20 || pickupHour < 6;
+
   const createBooking = trpc.bookings.create.useMutation({
     onSuccess: (data) => {
       if (data.checkoutUrl) {
-        // Redirect to Stripe checkout
         toast.info("Redirecting to payment...");
         window.open(data.checkoutUrl, "_blank");
         setLocation(`/confirmation/${data.referenceNumber}`);
@@ -88,44 +145,6 @@ export default function BookingForm() {
       toast.error(err.message || "Failed to create booking");
     },
   });
-
-  // Dynamic pricing
-  const pricing = useMemo(() => {
-    if (!suv) return { basePrice: 0, supportVanPrice: 0, surcharge: 0, totalPrice: 0 };
-
-    const baseRate = parseFloat(suv.baseRate ?? "65");
-    const perHourRate = parseFloat(suv.perHourRate ?? "95");
-    const perKmRate = parseFloat(suv.perKmRate ?? "3.50");
-
-    let basePrice = baseRate;
-    if (serviceType === "hourly_hire") {
-      basePrice = baseRate + perHourRate * 2;
-    } else if (serviceType === "airport_transfer") {
-      basePrice = baseRate + perKmRate * 30;
-    } else if (serviceType === "point_to_point") {
-      basePrice = baseRate + perKmRate * 25;
-    } else if (serviceType === "special_events") {
-      basePrice = baseRate + perHourRate * 4;
-    }
-
-    let supportVanPrice = 0;
-    if (needsSupportVan && van) {
-      const vanBase = parseFloat(van.baseRate ?? "50");
-      const vanPerKm = parseFloat(van.perKmRate ?? "2.50");
-      supportVanPrice = vanBase + vanPerKm * 25;
-    }
-
-    const subtotal = basePrice + supportVanPrice;
-    const surchargeRate = paymentMethod ? PAYMENT_METHODS[paymentMethod].surcharge : 0;
-    const surcharge = Math.round(subtotal * surchargeRate * 100) / 100;
-
-    return {
-      basePrice: Math.round(basePrice * 100) / 100,
-      supportVanPrice: Math.round(supportVanPrice * 100) / 100,
-      surcharge,
-      totalPrice: Math.round((subtotal + surcharge) * 100) / 100,
-    };
-  }, [suv, van, serviceType, needsSupportVan, paymentMethod]);
 
   const canProceed = () => {
     switch (step) {
@@ -158,6 +177,7 @@ export default function BookingForm() {
       vehicleName: suv.name,
       needsSupportVan,
       supportVanPrice: pricing.supportVanPrice,
+      estimatedDistance,
       basePrice: pricing.basePrice,
       totalPrice: pricing.totalPrice,
       specialRequests: specialRequests || undefined,
@@ -183,21 +203,19 @@ export default function BookingForm() {
             <ChevronLeft className="w-4 h-4" />
             {step > 0 ? "Back" : "Home"}
           </button>
-          <div className="flex items-center gap-3">
-            <img src={LOGO_IMG} alt="All Ways Transfers" className="h-16 w-auto" />
-          </div>
+          <img src={LOGO_IMG} alt="All Ways Transfers" className="h-16 w-auto" />
           <div className="w-16" />
         </div>
       </div>
 
-      <div className="container py-8 max-w-3xl mx-auto">
-        {/* Progress Steps */}
-        <div className="mb-10">
-          <div className="flex items-center justify-between mb-4">
+      <div className="container max-w-3xl py-10 space-y-8">
+        {/* Step Indicator */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-center gap-1 md:gap-2">
             {STEPS.map((label, i) => (
-              <div key={label} className="flex items-center gap-2">
+              <div key={label} className="flex items-center gap-1 md:gap-2">
                 <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium transition-all ${
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
                     i < step
                       ? "gold-gradient text-gold-foreground"
                       : i === step
@@ -235,6 +253,8 @@ export default function BookingForm() {
                   const Icon = SERVICE_ICONS[svc.icon] || Star;
                   const selected = serviceType === key;
                   const svcImage = SERVICE_IMAGES[key];
+                  const priceKey = SERVICE_PRICE_KEYS[key];
+                  const basePrice = priceKey ? getBasePrice(priceKey) : null;
                   return (
                     <Card
                       key={key}
@@ -270,6 +290,16 @@ export default function BookingForm() {
                         )}
                         <h3 className="font-heading text-lg font-semibold">{svc.label}</h3>
                         <p className="text-sm text-muted-foreground">{svc.description}</p>
+                        {basePrice && (
+                          <div className="pt-2 border-t border-border/30">
+                            <span className="text-primary font-heading text-lg font-bold">
+                              From ${basePrice}
+                            </span>
+                            {key === "hourly_hire" && (
+                              <span className="text-xs text-muted-foreground ml-1">/per hour</span>
+                            )}
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
                   );
@@ -318,7 +348,6 @@ export default function BookingForm() {
                     value={pickupDate}
                     onChange={(e) => setPickupDate(e.target.value)}
                     className="h-12"
-                    min={new Date().toISOString().split("T")[0]}
                   />
                 </div>
                 <div className="space-y-2">
@@ -332,72 +361,107 @@ export default function BookingForm() {
                   />
                 </div>
               </div>
+              {/* Out-of-hours notice */}
+              {pickupTime && isOutOfHours && (
+                <div className="flex items-start gap-3 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                  <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                  <div className="text-sm">
+                    <p className="font-medium text-amber-400">Out-of-Hours Pickup</p>
+                    <p className="text-muted-foreground">Pickups between 8pm and 6am may incur an out-of-hours surcharge.</p>
+                  </div>
+                </div>
+              )}
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Number of Passengers</Label>
+                <Label htmlFor="passengers" className="text-sm font-medium">Number of Passengers</Label>
                 <div className="flex items-center gap-4">
                   <Button
                     type="button"
                     variant="outline"
-                    size="sm"
-                    className="bg-background"
+                    size="icon"
                     onClick={() => setPassengerCount(Math.max(1, passengerCount - 1))}
-                    disabled={passengerCount <= 1}
+                    className="bg-background"
                   >
                     -
                   </Button>
                   <div className="flex items-center gap-2">
-                    <Users className="w-5 h-5 text-muted-foreground" />
-                    <span className="text-xl font-semibold w-8 text-center">{passengerCount}</span>
+                    <Users className="w-5 h-5 text-primary" />
+                    <span className="text-xl font-heading font-bold w-8 text-center">{passengerCount}</span>
                   </div>
                   <Button
                     type="button"
                     variant="outline"
-                    size="sm"
-                    className="bg-background"
+                    size="icon"
                     onClick={() => setPassengerCount(Math.min(SUV_CAPACITY.limitedLuggage, passengerCount + 1))}
-                    disabled={passengerCount >= SUV_CAPACITY.limitedLuggage}
+                    className="bg-background"
                   >
                     +
                   </Button>
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">{passengerNote}</p>
+                <p className="text-xs text-muted-foreground">{passengerNote}</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="distance" className="text-sm font-medium">Estimated Distance (km)</Label>
+                <Input
+                  id="distance"
+                  type="number"
+                  min={0}
+                  step={1}
+                  placeholder="Approximate distance in kilometres"
+                  value={estimatedDistance || ""}
+                  onChange={(e) => setEstimatedDistance(Math.max(0, parseFloat(e.target.value) || 0))}
+                  className="h-12"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Enter the approximate distance for your trip. This helps us calculate your fare estimate.
+                </p>
+              </div>
+              {/* Out-of-area checkbox */}
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-secondary/50">
+                <Checkbox
+                  id="outOfArea"
+                  checked={isOutOfArea}
+                  onCheckedChange={(checked) => setIsOutOfArea(!!checked)}
+                  className="mt-0.5"
+                />
+                <label htmlFor="outOfArea" className="text-sm text-muted-foreground leading-relaxed cursor-pointer">
+                  <span className="font-medium text-foreground">Out-of-area pickup/drop-off</span>
+                  <br />
+                  Check this if your pickup or drop-off is outside the Sunshine Coast / Brisbane primary service area.
+                  An additional surcharge may apply.
+                </label>
               </div>
             </div>
           </div>
         )}
 
         {/* Step 2: Vehicle & Options */}
-        {step === 2 && suv && (
+        {step === 2 && (
           <div className="space-y-6">
             <div className="space-y-2">
               <h2 className="font-heading text-2xl font-bold">Vehicle & Options</h2>
-              <p className="text-muted-foreground">Your vehicle and any additional services.</p>
+              <p className="text-muted-foreground">Your vehicle and optional add-ons.</p>
             </div>
 
-            {/* SUV Card */}
-            <Card className="border-2 border-primary shadow-lg">
+            {/* Primary Vehicle */}
+            <Card className="ring-2 ring-primary shadow-lg">
               <CardContent className="p-6">
-                <div className="flex items-start justify-between">
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <div className="w-10 h-10 rounded-lg gold-gradient flex items-center justify-center">
-                        <Briefcase className="w-5 h-5 text-gold-foreground" />
-                      </div>
-                      <div>
-                        <h3 className="font-heading text-xl font-semibold">{suv.name}</h3>
-                        <p className="text-xs text-primary font-medium">Selected</p>
-                      </div>
-                    </div>
-                    <p className="text-sm text-muted-foreground max-w-md">{suv.description}</p>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-lg gold-gradient flex items-center justify-center shrink-0">
+                    <Briefcase className="w-6 h-6 text-gold-foreground" />
+                  </div>
+                  <div className="flex-1 space-y-2">
+                    <h3 className="font-heading text-lg font-semibold">{suv?.name ?? "Luxury SUV"}</h3>
+                    <p className="text-sm text-muted-foreground">{suv?.description}</p>
+                    <div className="flex items-center gap-4 text-sm">
                       <span className="flex items-center gap-1">
-                        <Users className="w-4 h-4" /> Up to {SUV_CAPACITY.limitedLuggage} passengers
+                        <Users className="w-4 h-4 text-primary" />
+                        Up to {SUV_CAPACITY.withLuggage} pax (with luggage)
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Users className="w-4 h-4 text-primary" />
+                        Up to {SUV_CAPACITY.limitedLuggage} pax (limited luggage)
                       </span>
                     </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-2xl font-heading font-bold">${pricing.basePrice.toFixed(2)}</p>
-                    <p className="text-xs text-muted-foreground">estimated</p>
                   </div>
                 </div>
               </CardContent>
@@ -504,9 +568,6 @@ export default function BookingForm() {
                 ([key, method]) => {
                   const Icon = PAYMENT_ICONS[key];
                   const selected = paymentMethod === key;
-                  const surchargeAmount = method.surcharge > 0
-                    ? Math.round((pricing.basePrice + pricing.supportVanPrice) * method.surcharge * 100) / 100
-                    : 0;
 
                   return (
                     <Card
@@ -533,11 +594,6 @@ export default function BookingForm() {
                               )}
                             </div>
                             <p className="text-sm text-muted-foreground">{method.description}</p>
-                            {method.surcharge > 0 && surchargeAmount > 0 && (
-                              <p className="text-xs text-amber-400/80 mt-1">
-                                Surcharge: +${surchargeAmount.toFixed(2)} on your estimated total
-                              </p>
-                            )}
                             {key === "stripe_prepay" && selected && (
                               <p className="text-xs text-primary mt-1">
                                 You will be redirected to a secure Stripe checkout page after confirming your booking.
@@ -597,6 +653,18 @@ export default function BookingForm() {
                       <p className="text-muted-foreground">Passengers</p>
                       <p className="font-medium">{passengerCount}</p>
                     </div>
+                    {estimatedDistance > 0 && (
+                      <div>
+                        <p className="text-muted-foreground">Est. Distance</p>
+                        <p className="font-medium">{estimatedDistance} km</p>
+                      </div>
+                    )}
+                    {isOutOfArea && (
+                      <div>
+                        <p className="text-muted-foreground">Area</p>
+                        <p className="font-medium text-amber-400">Out of primary area</p>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -655,24 +723,48 @@ export default function BookingForm() {
                   )}
                 </div>
 
-                {/* Pricing */}
+                {/* Pricing Breakdown */}
                 <div className="space-y-3 border-t border-border/50 pt-4">
-                  <p className="text-xs font-medium tracking-widest uppercase text-primary">Pricing</p>
+                  <p className="text-xs font-medium tracking-widest uppercase text-primary">Pricing Breakdown</p>
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span>Luxury SUV</span>
+                      <span>{serviceType ? SERVICE_TYPES[serviceType].label : "Service"} – Base</span>
                       <span>${pricing.basePrice.toFixed(2)}</span>
                     </div>
-                    {needsSupportVan && (
+                    {pricing.distanceCharge > 0 && (
                       <div className="flex justify-between text-sm">
-                        <span>Support Van</span>
-                        <span>${pricing.supportVanPrice.toFixed(2)}</span>
+                        <span>Distance ({estimatedDistance} km)</span>
+                        <span>${pricing.distanceCharge.toFixed(2)}</span>
                       </div>
                     )}
-                    {pricing.surcharge > 0 && (
+                    {pricing.outOfHoursSurcharge > 0 && (
+                      <div className="flex justify-between text-sm text-amber-400">
+                        <span>Out-of-Hours Surcharge</span>
+                        <span>+${pricing.outOfHoursSurcharge.toFixed(2)}</span>
+                      </div>
+                    )}
+                    {pricing.outOfAreaSurcharge > 0 && (
+                      <div className="flex justify-between text-sm text-amber-400">
+                        <span>Out-of-Area Surcharge</span>
+                        <span>+${pricing.outOfAreaSurcharge.toFixed(2)}</span>
+                      </div>
+                    )}
+                    {pricing.fuelLevySurcharge > 0 && (
+                      <div className="flex justify-between text-sm text-amber-400">
+                        <span>Fuel Levy</span>
+                        <span>+${pricing.fuelLevySurcharge.toFixed(2)}</span>
+                      </div>
+                    )}
+                    {needsSupportVan && pricing.supportVanPrice > 0 && (
+                      <div className="flex justify-between text-sm">
+                        <span>Support Van</span>
+                        <span>+${pricing.supportVanPrice.toFixed(2)}</span>
+                      </div>
+                    )}
+                    {pricing.squareSurcharge > 0 && (
                       <div className="flex justify-between text-sm text-amber-400">
                         <span>Card Surcharge (2%)</span>
-                        <span>+${pricing.surcharge.toFixed(2)}</span>
+                        <span>+${pricing.squareSurcharge.toFixed(2)}</span>
                       </div>
                     )}
                     <div className="flex justify-between font-heading text-lg font-bold border-t border-border/50 pt-2">
