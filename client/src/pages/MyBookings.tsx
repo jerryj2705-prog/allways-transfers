@@ -400,7 +400,7 @@ export default function MyBookings() {
                 {cancellationPolicy.tier === "partial_charge" && (
                   <div className="bg-amber-500/10 border border-amber-500/20 rounded-md p-3 mt-2">
                     <p className="text-sm text-amber-300 font-medium">
-                      You are cancelling less than 24 hours before your scheduled pickup. A portion of the booking fee may be charged.
+                      You are cancelling less than 24 hours before your scheduled pickup. A {cancellationPolicy.chargePercent}% charge of the booking fee (${cancelBooking ? (parseFloat(cancelBooking.totalPrice) * cancellationPolicy.chargePercent / 100).toFixed(2) : "0.00"}) will apply.
                     </p>
                   </div>
                 )}
@@ -437,7 +437,7 @@ export default function MyBookings() {
               />
               <label htmlFor="cancel-terms" className="text-sm text-muted-foreground leading-relaxed cursor-pointer">
                 I understand and accept the cancellation policy{" "}
-                {cancellationPolicy?.tier === "partial_charge" && "including that a partial charge may apply"}
+                {cancellationPolicy?.tier === "partial_charge" && `including that a ${cancellationPolicy.chargePercent}% charge of the booking fee will apply`}
                 {cancellationPolicy?.tier === "no_refund" && "including that no refund will be provided"}
                 . I agree to the Terms and Conditions.
               </label>

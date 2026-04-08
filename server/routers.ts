@@ -216,15 +216,20 @@ export const appRouter = router({
         if (!booking) throw new Error("Booking not found");
         if (booking.clientEmail !== ctx.user?.email) throw new Error("Unauthorized");
 
+        // Fetch the configured late cancellation charge percentage
+        const settings = await getAllPricingSettings();
+        const chargeSetting = settings.find(s => s.settingKey === "late_cancel_charge_pct");
+        const chargePercent = chargeSetting ? parseFloat(chargeSetting.settingValue) : 50;
+
         const now = Date.now();
         const hoursUntilPickup = (booking.pickupDate - now) / (1000 * 60 * 60);
 
         if (hoursUntilPickup < 4) {
-          return { tier: "no_refund" as const, hoursUntilPickup, message: "Cancellations less than 4 hours before pickup are not eligible for a refund." };
+          return { tier: "no_refund" as const, hoursUntilPickup, chargePercent, message: "Cancellations less than 4 hours before pickup are not eligible for a refund." };
         } else if (hoursUntilPickup < 24) {
-          return { tier: "partial_charge" as const, hoursUntilPickup, message: "Cancellations less than 24 hours before pickup may incur a partial charge of the booking fee." };
+          return { tier: "partial_charge" as const, hoursUntilPickup, chargePercent, message: `Cancellations less than 24 hours before pickup will incur a ${chargePercent}% charge of the booking fee.` };
         } else {
-          return { tier: "free" as const, hoursUntilPickup, message: "Free cancellation — more than 24 hours before pickup." };
+          return { tier: "free" as const, hoursUntilPickup, chargePercent: 0, message: "Free cancellation — more than 24 hours before pickup." };
         }
       }),
 
@@ -246,13 +251,18 @@ export const appRouter = router({
         if (booking.status === "cancelled") throw new Error("Booking is already cancelled");
         if (booking.status === "completed") throw new Error("Cannot cancel a completed booking");
 
+        // Fetch the configured late cancellation charge percentage
+        const settings = await getAllPricingSettings();
+        const chargeSetting = settings.find(s => s.settingKey === "late_cancel_charge_pct");
+        const chargePercent = chargeSetting ? parseFloat(chargeSetting.settingValue) : 50;
+
         const now = Date.now();
         const hoursUntilPickup = (booking.pickupDate - now) / (1000 * 60 * 60);
         let cancellationNote = "Cancelled by client.";
         if (hoursUntilPickup < 4) {
           cancellationNote = "Cancelled by client (less than 4 hours before pickup — no refund).";
         } else if (hoursUntilPickup < 24) {
-          cancellationNote = "Cancelled by client (less than 24 hours before pickup — partial charge may apply).";
+          cancellationNote = `Cancelled by client (less than 24 hours before pickup — ${chargePercent}% charge applies).`;
         } else {
           cancellationNote = "Cancelled by client (free cancellation).";
         }

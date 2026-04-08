@@ -193,3 +193,9 @@
 - [x] Require terms acceptance before cancellation
 - [x] Add cancel button to upcoming booking cards
 - [x] Test cancellation flow end-to-end
+
+## Late Cancellation Charge Percentage
+- [x] Add late_cancel_charge_pct pricing setting (default 50%)
+- [x] Update cancellation policy endpoint to return the configured percentage
+- [x] Display percentage in cancellation dialog warning message
+- [x] Add icon/label for late_cancel_charge_pct on Admin Pricing page

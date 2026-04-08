@@ -26,6 +26,7 @@ const CATEGORY_ICONS: Record<string, React.ElementType> = {
   surcharge_out_of_area: MapPin,
   surcharge_fuel_levy: Fuel,
   min_hourly_hours: Clock,
+  late_cancel_charge_pct: Percent,
 };
 
 export default function AdminPricing() {
@@ -102,7 +103,7 @@ export default function AdminPricing() {
     const edit = getEditValue(setting.id, { settingValue: setting.settingValue, isActive: setting.isActive });
     const Icon = CATEGORY_ICONS[setting.settingKey] || DollarSign;
     const isToggle = setting.category === "toggle";
-    const isPercent = setting.settingKey === "surcharge_fuel_levy";
+    const isPercent = setting.settingKey === "surcharge_fuel_levy" || setting.settingKey === "late_cancel_charge_pct";
     const isHours = setting.settingKey === "min_hourly_hours";
     const changed = hasChanges(setting.id, { settingValue: setting.settingValue, isActive: setting.isActive });
 
