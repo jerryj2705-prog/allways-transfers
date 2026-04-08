@@ -176,3 +176,6 @@
 ## Minimum Hours Note on All Cards
 - [x] Add minimum hours note on Hourly Hire card in booking form service selection (step 0)
 - [x] Verify minimum hours note already present on Home page service card
+
+## Admin Footer Link
+- [x] Add admin-only "Admin Dashboard" link to Quick Links in footer (visible only for admin users)

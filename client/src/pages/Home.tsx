@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useLocation } from "wouter";
 import { Plane, Clock, MapPin, Star, Shield, Award, Phone, Baby, PawPrint, DollarSign, Mail } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import { useAuth } from "@/_core/hooks/useAuth";
 
 const HERO_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/hero-suv_ee8b3ffa.jpg";
 const LOGO_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/logo-white_476df209.png";
@@ -93,6 +94,7 @@ const features = [
 
 export default function Home() {
   const [, setLocation] = useLocation();
+  const { user } = useAuth();
   const { data: pricingSettings } = trpc.pricing.getAll.useQuery();
 
   const getBasePrice = (key: string) => {
@@ -468,6 +470,9 @@ export default function Home() {
                 <a href="#fleet" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">Our Fleet</a>
                 <a href="#why-us" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">Why Choose Us</a>
                 <a href="/book" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">Book a Transfer</a>
+                {user?.role === "admin" && (
+                  <a href="/admin" className="block text-sm text-amber-400 hover:text-amber-300 transition-colors">Admin Dashboard</a>
+                )}
               </div>
             </div>
 
