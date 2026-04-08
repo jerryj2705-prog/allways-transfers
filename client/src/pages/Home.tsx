@@ -6,27 +6,34 @@ import { Plane, Clock, MapPin, Star, Shield, Award, Phone, Baby, PawPrint, Dolla
 const HERO_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/hero-suv_ee8b3ffa.jpg";
 const LOGO_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/logo-white_476df209.png";
 const FLEET_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/fleet-kia-carnival_d4324bff.webp";
+const AIRPORT_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/plane-tarmac_12935ebb.png";
+const CHAUFFEUR_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/chauffeur_433d77f4.jpg";
+const WEDDING_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/wedding_92293137.png";
 
 const services = [
   {
     icon: Plane,
     title: "Airport Transfer",
     description: "Seamless pickup and drop-off to and from Sunshine Coast and Brisbane airports with flight tracking.",
+    image: AIRPORT_IMG,
   },
   {
     icon: Clock,
     title: "Hourly Hire",
     description: "Flexible chauffeur service by the hour for meetings, tours, or errands across the region.",
+    image: CHAUFFEUR_IMG,
   },
   {
     icon: MapPin,
     title: "Point to Point",
-    description: "Direct, comfortable transfers between any two locations — including long-distance rides.",
+    description: "Direct, comfortable transfers between any two locations \u2014 including long-distance rides.",
+    image: null,
   },
   {
     icon: Star,
     title: "Special Events",
     description: "Weddings, corporate events, funerals, and other special occasions with impeccable service.",
+    image: WEDDING_IMG,
   },
 ];
 
@@ -163,9 +170,19 @@ export default function Home() {
             {services.map((service) => (
               <Card
                 key={service.title}
-                className="group hover:shadow-lg hover:shadow-primary/10 transition-all duration-300 border-border/50 cursor-pointer bg-card hover:border-primary/30"
+                className="group hover:shadow-lg hover:shadow-primary/10 transition-all duration-300 border-border/50 cursor-pointer bg-card hover:border-primary/30 overflow-hidden"
                 onClick={() => setLocation("/book")}
               >
+                {service.image && (
+                  <div className="relative h-40 overflow-hidden">
+                    <img
+                      src={service.image}
+                      alt={service.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-card to-transparent" />
+                  </div>
+                )}
                 <CardContent className="p-6 space-y-4">
                   <div className="w-12 h-12 rounded-lg gold-gradient flex items-center justify-center group-hover:scale-110 transition-transform">
                     <service.icon className="w-6 h-6 text-gold-foreground" />

@@ -75,3 +75,8 @@
 ## Fleet Photo Update
 - [x] Download Kia Carnival exterior photo and upload to CDN
 - [x] Replace Fleet section image with the new exterior photo
+
+## Service Card Photos
+- [x] Add plane photo to Airport Transfer service card
+- [x] Add chauffeur photo to Hourly Hire service card
+- [x] Add wedding photo to Special Events service card
