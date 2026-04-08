@@ -16,6 +16,7 @@ const DOG_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZK
 const PRO_DRIVER_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/chauffeur3_288d11fa.jpg";
 const LUXURY_VEHICLE_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/kia-interior_5a5efadf.jpg";
 const NIGHT_OUT_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/night-out_4b4fa337.png";
+const AREAS_MAP_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/areas-of-operation_8de5f5bd.jpg";
 
 const services = [
   {
@@ -304,6 +305,72 @@ export default function Home() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Areas of Operation Section */}
+      <section id="areas" className="py-24">
+        <div className="container">
+          <div className="text-center mb-16 space-y-4">
+            <p className="text-sm font-medium tracking-[0.25em] uppercase text-primary">
+              Coverage
+            </p>
+            <h2 className="font-heading text-3xl md:text-4xl tracking-tight text-offwhite">
+              Areas of Operation
+            </h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Servicing South-East Queensland with primary coverage across the Sunshine Coast and Noosa,
+              and secondary coverage extending to Brisbane, Moreton Bay, and the Fraser Coast region.
+            </p>
+          </div>
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            <div className="rounded-2xl overflow-hidden border border-border/50 shadow-2xl">
+              <img
+                src={AREAS_MAP_IMG}
+                alt="Areas of Operation - South-East Queensland"
+                className="w-full h-auto"
+              />
+            </div>
+            <div className="space-y-8">
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-4 h-4 rounded-full bg-emerald-500" />
+                  <h3 className="font-heading text-xl text-offwhite">Primary Area</h3>
+                </div>
+                <p className="text-muted-foreground leading-relaxed pl-7">
+                  Sunshine Coast and Noosa — our home base. Regular daily services including
+                  airport transfers, hourly hire, and event transport.
+                </p>
+              </div>
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-4 h-4 rounded-full bg-blue-500" />
+                  <h3 className="font-heading text-xl text-offwhite">Secondary Area</h3>
+                </div>
+                <p className="text-muted-foreground leading-relaxed pl-7">
+                  Brisbane, Moreton Bay, Fraser Coast, and Gympie regions. Available for
+                  prebooked transfers, airport runs, and long-distance rides.
+                </p>
+              </div>
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-4 h-4 rounded-full border-2 border-primary" />
+                  <h3 className="font-heading text-xl text-offwhite">Other Areas</h3>
+                </div>
+                <p className="text-muted-foreground leading-relaxed pl-7">
+                  Additional regions considered upon request. Contact us for long-distance
+                  transfers to Gold Coast, Toowoomba, Bundaberg, and beyond.
+                </p>
+              </div>
+              <Button
+                size="lg"
+                onClick={() => setLocation("/book")}
+                className="gold-gradient text-gold-foreground border-0 hover:opacity-90 transition-opacity font-semibold"
+              >
+                Book a Transfer
+              </Button>
+            </div>
           </div>
         </div>
       </section>

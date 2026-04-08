@@ -89,3 +89,6 @@
 - [x] Add chauffeur photo to Professional Drivers card
 - [x] Add Kia Carnival interior photo to Luxury Vehicles card
 - [x] Add night out photo to 24/7 Availability card
+
+## Areas of Operation Section
+- [x] Add Areas of Operation section with map photo to landing page
