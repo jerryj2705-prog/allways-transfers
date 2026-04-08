@@ -447,7 +447,7 @@ export default function Home() {
               &copy; {new Date().getFullYear()} All Ways Transfers. All rights reserved.
             </p>
             <p className="text-xs text-muted-foreground">
-              ABN pending &middot; Queensland, Australia
+              ABN 18 715 944 056 &middot; Queensland, Australia
             </p>
           </div>
         </div>
