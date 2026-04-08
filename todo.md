@@ -92,3 +92,13 @@
 
 ## Areas of Operation Section
 - [x] Add Areas of Operation section with map photo to landing page
+
+## Payment Methods
+- [x] Set up Stripe integration for pre-pay by credit card
+- [x] Add payment method column to bookings table (stripe_prepay, square_postpay, cash_postpay)
+- [x] Add payment method selection step to booking form with 3 options
+- [x] Show 2% surcharge for Square post-pay option
+- [x] Show exact change note for cash post-pay option
+- [x] Implement Stripe checkout for pre-pay option
+- [x] Update booking confirmation to show selected payment method
+- [x] Update admin dashboard to display payment method

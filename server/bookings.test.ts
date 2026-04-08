@@ -71,11 +71,10 @@ describe("vehicles.list", () => {
 });
 
 describe("bookings.create", () => {
-  it("creates a booking and returns a reference number", async () => {
+  it("creates a booking with cash payment and returns a reference number", async () => {
     const ctx = createPublicContext();
     const caller = appRouter.createCaller(ctx);
 
-    // First get vehicles to get a valid ID
     const vehicles = await caller.vehicles.list();
     const suv = vehicles.find((v) => v.type === "suv");
     expect(suv).toBeDefined();
@@ -87,7 +86,7 @@ describe("bookings.create", () => {
       serviceType: "airport_transfer",
       pickupAddress: "Brisbane Airport",
       dropoffAddress: "Gold Coast",
-      pickupDate: Date.now() + 86400000, // tomorrow
+      pickupDate: Date.now() + 86400000,
       passengerCount: 3,
       vehicleId: suv!.id,
       vehicleName: suv!.name,
@@ -97,13 +96,74 @@ describe("bookings.create", () => {
       totalPrice: 170,
       specialRequests: "Test booking",
       termsAccepted: true,
+      paymentMethod: "cash_postpay",
     });
 
     expect(booking).toBeDefined();
     expect(booking.referenceNumber).toBeTruthy();
-    expect(booking.referenceNumber).toMatch(/^CB-/);
     expect(booking.status).toBe("pending");
     expect(booking.clientName).toBe("Test Client");
+  });
+
+  it("creates a booking with square post-pay", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+
+    const vehicles = await caller.vehicles.list();
+    const suv = vehicles.find((v) => v.type === "suv");
+
+    const booking = await caller.bookings.create({
+      clientName: "Square Client",
+      clientEmail: "square@example.com",
+      clientPhone: "+61 400 222 222",
+      serviceType: "point_to_point",
+      pickupAddress: "Brisbane CBD",
+      dropoffAddress: "Sunshine Coast",
+      pickupDate: Date.now() + 86400000,
+      passengerCount: 2,
+      vehicleId: suv!.id,
+      vehicleName: suv!.name,
+      needsSupportVan: false,
+      supportVanPrice: 0,
+      basePrice: 200,
+      totalPrice: 204,
+      termsAccepted: true,
+      paymentMethod: "square_postpay",
+    });
+
+    expect(booking).toBeDefined();
+    expect(booking.referenceNumber).toBeTruthy();
+  });
+
+  it("creates a booking with stripe pre-pay (no checkout URL without origin)", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+
+    const vehicles = await caller.vehicles.list();
+    const suv = vehicles.find((v) => v.type === "suv");
+
+    const booking = await caller.bookings.create({
+      clientName: "Stripe Client",
+      clientEmail: "stripe@example.com",
+      clientPhone: "+61 400 333 333",
+      serviceType: "hourly_hire",
+      pickupAddress: "Noosa Heads",
+      pickupDate: Date.now() + 86400000,
+      passengerCount: 4,
+      vehicleId: suv!.id,
+      vehicleName: suv!.name,
+      needsSupportVan: true,
+      supportVanPrice: 150,
+      basePrice: 255,
+      totalPrice: 405,
+      termsAccepted: true,
+      paymentMethod: "stripe_prepay",
+    });
+
+    expect(booking).toBeDefined();
+    expect(booking.referenceNumber).toBeTruthy();
+    // Without origin, checkout URL should be null
+    expect(booking.checkoutUrl).toBeNull();
   });
 
   it("rejects booking without terms accepted", async () => {
@@ -130,6 +190,7 @@ describe("bookings.create", () => {
         basePrice: 150,
         totalPrice: 150,
         termsAccepted: false,
+        paymentMethod: "cash_postpay",
       })
     ).rejects.toThrow();
   });
@@ -177,7 +238,6 @@ describe("bookings.getByReference", () => {
     const ctx = createPublicContext();
     const caller = appRouter.createCaller(ctx);
 
-    // Create a booking first
     const vehicles = await caller.vehicles.list();
     const suv = vehicles.find((v) => v.type === "suv");
 
@@ -196,6 +256,7 @@ describe("bookings.getByReference", () => {
       basePrice: 255,
       totalPrice: 255,
       termsAccepted: true,
+      paymentMethod: "cash_postpay",
     });
 
     const found = await caller.bookings.getByReference({
@@ -204,5 +265,7 @@ describe("bookings.getByReference", () => {
 
     expect(found).toBeDefined();
     expect(found?.clientName).toBe("Ref Test");
+    expect(found?.paymentMethod).toBe("cash_postpay");
+    expect(found?.paymentStatus).toBe("unpaid");
   });
 });

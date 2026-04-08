@@ -60,6 +60,10 @@ export const bookings = mysqlTable("bookings", {
   estimatedDuration: int("estimatedDuration"),
   basePrice: decimal("basePrice", { precision: 10, scale: 2 }).notNull(),
   totalPrice: decimal("totalPrice", { precision: 10, scale: 2 }).notNull(),
+  // Payment
+  paymentMethod: mysqlEnum("paymentMethod", ["stripe_prepay", "square_postpay", "cash_postpay"]).notNull().default("cash_postpay"),
+  paymentStatus: mysqlEnum("paymentStatus", ["unpaid", "paid", "refunded"]).notNull().default("unpaid"),
+  stripeSessionId: varchar("stripeSessionId", { length: 255 }),
   // Status
   status: mysqlEnum("status", ["pending", "confirmed", "completed", "cancelled"]).default("pending").notNull(),
   // Notes

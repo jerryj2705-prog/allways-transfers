@@ -11,8 +11,10 @@ import {
   getBookingById,
   listBookings,
   updateBookingStatus,
+  updateBookingStripeSession,
   getBookingStats,
 } from "./db";
+import { createCheckoutSession } from "./stripe";
 import { notifyOwner } from "./_core/notification";
 
 export const appRouter = router({
@@ -59,6 +61,8 @@ export const appRouter = router({
           totalPrice: z.number(),
           specialRequests: z.string().optional(),
           termsAccepted: z.boolean(),
+          paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay"]),
+          origin: z.string().optional(),
         })
       )
       .mutation(async ({ input }) => {
@@ -88,6 +92,8 @@ export const appRouter = router({
           estimatedDuration: input.estimatedDuration ?? null,
           basePrice: input.basePrice.toFixed(2),
           totalPrice: input.totalPrice.toFixed(2),
+          paymentMethod: input.paymentMethod,
+          paymentStatus: "unpaid",
           specialRequests: input.specialRequests ?? null,
           adminNotes: null,
           termsAccepted: 1,
@@ -103,7 +109,27 @@ export const appRouter = router({
           console.warn("Failed to send owner notification:", e);
         }
 
-        return booking;
+        // If Stripe pre-pay, create checkout session
+        let checkoutUrl: string | null = null;
+        if (input.paymentMethod === "stripe_prepay" && input.origin) {
+          try {
+            const serviceLabel = input.serviceType.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+            checkoutUrl = await createCheckoutSession({
+              bookingReference: booking.referenceNumber,
+              bookingId: booking.id,
+              amount: input.totalPrice,
+              customerEmail: input.clientEmail,
+              customerName: input.clientName,
+              serviceDescription: serviceLabel,
+              origin: input.origin,
+            });
+            await updateBookingStripeSession(booking.id, checkoutUrl.split('/').pop()?.split('?')[0] ?? "");
+          } catch (e) {
+            console.warn("Failed to create Stripe checkout session:", e);
+          }
+        }
+
+        return { ...booking, checkoutUrl };
       }),
 
     getByReference: publicProcedure

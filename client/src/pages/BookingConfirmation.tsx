@@ -2,10 +2,10 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useLocation, useParams } from "wouter";
-import { CheckCircle, Copy, Home, Calendar, MapPin, Users, Car } from "lucide-react";
+import { CheckCircle, Copy, Home, Calendar, MapPin, Users, Car, CreditCard, Wallet, Banknote } from "lucide-react";
 import { toast } from "sonner";
-import { SERVICE_TYPES } from "@shared/types";
-import type { ServiceType } from "@shared/types";
+import { SERVICE_TYPES, PAYMENT_METHODS } from "@shared/types";
+import type { ServiceType, PaymentMethod } from "@shared/types";
 
 const LOGO_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/logo-white_476df209.png";
 
@@ -144,6 +144,22 @@ export default function BookingConfirmation() {
                   <p className="font-medium">Included</p>
                 </div>
               )}
+              <div>
+                <p className="text-muted-foreground">Payment Method</p>
+                <p className="font-medium">
+                  {booking.paymentMethod ? PAYMENT_METHODS[booking.paymentMethod as PaymentMethod]?.label : "Not specified"}
+                </p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Payment Status</p>
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                  booking.paymentStatus === "paid" ? "bg-emerald-100 text-emerald-800" :
+                  booking.paymentStatus === "refunded" ? "bg-blue-100 text-blue-800" :
+                  "bg-amber-100 text-amber-800"
+                }`}>
+                  {booking.paymentStatus === "paid" ? "Paid" : booking.paymentStatus === "refunded" ? "Refunded" : "Unpaid"}
+                </span>
+              </div>
             </div>
 
             <div className="border-t border-border/50 pt-4">

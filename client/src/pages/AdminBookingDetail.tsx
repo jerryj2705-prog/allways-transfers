@@ -15,8 +15,8 @@ import {
   ChevronLeft, MapPin, Calendar, Users, Car, Truck, Phone, Mail, User,
   Clock, CheckCircle, XCircle, AlertCircle,
 } from "lucide-react";
-import { SERVICE_TYPES, BOOKING_STATUSES } from "@shared/types";
-import type { ServiceType, BookingStatus } from "@shared/types";
+import { SERVICE_TYPES, BOOKING_STATUSES, PAYMENT_METHODS } from "@shared/types";
+import type { ServiceType, BookingStatus, PaymentMethod } from "@shared/types";
 
 const LOGO_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/logo-white_476df209.png";
 
@@ -261,6 +261,29 @@ export default function AdminBookingDetail() {
                   <div className="flex justify-between font-heading text-lg font-bold border-t border-border/50 pt-2">
                     <span>Total</span>
                     <span className="gold-text">${parseFloat(booking.totalPrice ?? "0").toFixed(2)}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Payment Info */}
+            <Card className="border-border/50">
+              <CardContent className="p-6 space-y-3">
+                <p className="text-xs font-medium tracking-widest uppercase text-primary">Payment</p>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Method</span>
+                    <span className="font-medium">{booking.paymentMethod ? PAYMENT_METHODS[booking.paymentMethod as PaymentMethod]?.label : "—"}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Status</span>
+                    <Badge variant="outline" className={`text-xs ${
+                      booking.paymentStatus === "paid" ? "bg-emerald-100 text-emerald-800 border-emerald-200" :
+                      booking.paymentStatus === "refunded" ? "bg-blue-100 text-blue-800 border-blue-200" :
+                      "bg-amber-100 text-amber-800 border-amber-200"
+                    }`}>
+                      {booking.paymentStatus === "paid" ? "Paid" : booking.paymentStatus === "refunded" ? "Refunded" : "Unpaid"}
+                    </Badge>
                   </div>
                 </div>
               </CardContent>

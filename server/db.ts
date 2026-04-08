@@ -205,6 +205,26 @@ export async function updateBookingStatus(id: number, status: Booking["status"],
   return getBookingById(id);
 }
 
+export async function updateBookingPaymentStatus(id: number, paymentStatus: "unpaid" | "paid" | "refunded") {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(bookings).set({ paymentStatus }).where(eq(bookings.id, id));
+  return getBookingById(id);
+}
+
+export async function updateBookingStripeSession(id: number, stripeSessionId: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(bookings).set({ stripeSessionId }).where(eq(bookings.id, id));
+}
+
+export async function getBookingByStripeSession(stripeSessionId: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(bookings).where(eq(bookings.stripeSessionId, stripeSessionId)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
 export async function getBookingStats() {
   const db = await getDb();
   if (!db) return { total: 0, pending: 0, confirmed: 0, completed: 0, cancelled: 0 };

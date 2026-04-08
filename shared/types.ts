@@ -42,6 +42,26 @@ export const BOOKING_STATUSES = {
 
 export type BookingStatus = keyof typeof BOOKING_STATUSES;
 
+export const PAYMENT_METHODS = {
+  stripe_prepay: {
+    label: "Pre-pay by Credit Card",
+    description: "Pay securely online via Stripe. Your booking is confirmed immediately upon payment.",
+    surcharge: 0,
+  },
+  square_postpay: {
+    label: "Pay Driver by Card",
+    description: "Pay the driver directly by credit card on the day. A 2% card processing surcharge applies.",
+    surcharge: 0.02,
+  },
+  cash_postpay: {
+    label: "Pay Driver by Cash",
+    description: "Pay the driver in cash on the day. Please ensure the correct amount is prepared, as the driver is not required to carry change.",
+    surcharge: 0,
+  },
+} as const;
+
+export type PaymentMethod = keyof typeof PAYMENT_METHODS;
+
 export const SUV_CAPACITY = {
   withLuggage: 5,
   limitedLuggage: 7,

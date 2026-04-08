@@ -10,9 +10,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import {
   Plane, Clock, MapPin, Star, ArrowLeft, ArrowRight, Check,
-  Users, Briefcase, Truck, ChevronLeft,
+  Users, Briefcase, Truck, ChevronLeft, CreditCard, Banknote, Wallet,
 } from "lucide-react";
-import { SERVICE_TYPES, SUV_CAPACITY } from "@shared/types";
+import { SERVICE_TYPES, SUV_CAPACITY, PAYMENT_METHODS } from "@shared/types";
+import type { PaymentMethod } from "@shared/types";
 
 const LOGO_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/logo-white_476df209.png";
 
@@ -22,11 +23,18 @@ const SERVICE_ICONS: Record<string, React.ElementType> = {
   Plane, Clock, MapPin, Star,
 };
 
+const PAYMENT_ICONS: Record<PaymentMethod, React.ElementType> = {
+  stripe_prepay: CreditCard,
+  square_postpay: Wallet,
+  cash_postpay: Banknote,
+};
+
 const STEPS = [
   "Service Type",
   "Trip Details",
   "Vehicle & Options",
   "Your Details",
+  "Payment",
   "Review & Confirm",
 ];
 
@@ -47,6 +55,7 @@ export default function BookingForm() {
   const [clientPhone, setClientPhone] = useState("");
   const [specialRequests, setSpecialRequests] = useState("");
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | "">("");
 
   const { data: vehiclesData } = trpc.vehicles.list.useQuery();
   const vehicles = vehiclesData ?? [];
@@ -55,7 +64,14 @@ export default function BookingForm() {
 
   const createBooking = trpc.bookings.create.useMutation({
     onSuccess: (data) => {
-      setLocation(`/confirmation/${data.referenceNumber}`);
+      if (data.checkoutUrl) {
+        // Redirect to Stripe checkout
+        toast.info("Redirecting to payment...");
+        window.open(data.checkoutUrl, "_blank");
+        setLocation(`/confirmation/${data.referenceNumber}`);
+      } else {
+        setLocation(`/confirmation/${data.referenceNumber}`);
+      }
     },
     onError: (err) => {
       toast.error(err.message || "Failed to create booking");
@@ -64,7 +80,7 @@ export default function BookingForm() {
 
   // Dynamic pricing
   const pricing = useMemo(() => {
-    if (!suv) return { basePrice: 0, supportVanPrice: 0, totalPrice: 0 };
+    if (!suv) return { basePrice: 0, supportVanPrice: 0, surcharge: 0, totalPrice: 0 };
 
     const baseRate = parseFloat(suv.baseRate ?? "65");
     const perHourRate = parseFloat(suv.perHourRate ?? "95");
@@ -72,13 +88,13 @@ export default function BookingForm() {
 
     let basePrice = baseRate;
     if (serviceType === "hourly_hire") {
-      basePrice = baseRate + perHourRate * 2; // Minimum 2 hours
+      basePrice = baseRate + perHourRate * 2;
     } else if (serviceType === "airport_transfer") {
-      basePrice = baseRate + perKmRate * 30; // Estimated 30km
+      basePrice = baseRate + perKmRate * 30;
     } else if (serviceType === "point_to_point") {
-      basePrice = baseRate + perKmRate * 25; // Estimated 25km
+      basePrice = baseRate + perKmRate * 25;
     } else if (serviceType === "special_events") {
-      basePrice = baseRate + perHourRate * 4; // Minimum 4 hours
+      basePrice = baseRate + perHourRate * 4;
     }
 
     let supportVanPrice = 0;
@@ -88,12 +104,17 @@ export default function BookingForm() {
       supportVanPrice = vanBase + vanPerKm * 25;
     }
 
+    const subtotal = basePrice + supportVanPrice;
+    const surchargeRate = paymentMethod ? PAYMENT_METHODS[paymentMethod].surcharge : 0;
+    const surcharge = Math.round(subtotal * surchargeRate * 100) / 100;
+
     return {
       basePrice: Math.round(basePrice * 100) / 100,
       supportVanPrice: Math.round(supportVanPrice * 100) / 100,
-      totalPrice: Math.round((basePrice + supportVanPrice) * 100) / 100,
+      surcharge,
+      totalPrice: Math.round((subtotal + surcharge) * 100) / 100,
     };
-  }, [suv, van, serviceType, needsSupportVan]);
+  }, [suv, van, serviceType, needsSupportVan, paymentMethod]);
 
   const canProceed = () => {
     switch (step) {
@@ -102,13 +123,14 @@ export default function BookingForm() {
         (serviceType === "hourly_hire" || dropoffAddress);
       case 2: return !!suv;
       case 3: return clientName && clientEmail && clientPhone;
-      case 4: return termsAccepted;
+      case 4: return paymentMethod !== "";
+      case 5: return termsAccepted;
       default: return false;
     }
   };
 
   const handleSubmit = () => {
-    if (!suv || !serviceType) return;
+    if (!suv || !serviceType || !paymentMethod) return;
 
     const dateTime = new Date(`${pickupDate}T${pickupTime}`).getTime();
 
@@ -129,6 +151,8 @@ export default function BookingForm() {
       totalPrice: pricing.totalPrice,
       specialRequests: specialRequests || undefined,
       termsAccepted,
+      paymentMethod,
+      origin: window.location.origin,
     });
   };
 
@@ -174,7 +198,7 @@ export default function BookingForm() {
                 </div>
                 <span className="hidden md:inline text-xs text-muted-foreground">{label}</span>
                 {i < STEPS.length - 1 && (
-                  <div className={`hidden md:block w-8 lg:w-16 h-px ${i < step ? "bg-primary" : "bg-border"}`} />
+                  <div className={`hidden md:block w-6 lg:w-12 h-px ${i < step ? "bg-primary" : "bg-border"}`} />
                 )}
               </div>
             ))}
@@ -439,8 +463,75 @@ export default function BookingForm() {
           </div>
         )}
 
-        {/* Step 4: Review & Confirm */}
+        {/* Step 4: Payment Method */}
         {step === 4 && (
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <h2 className="font-heading text-2xl font-bold">Payment Method</h2>
+              <p className="text-muted-foreground">Choose how you would like to pay for your transfer.</p>
+            </div>
+            <div className="space-y-4">
+              {(Object.entries(PAYMENT_METHODS) as [PaymentMethod, typeof PAYMENT_METHODS[PaymentMethod]][]).map(
+                ([key, method]) => {
+                  const Icon = PAYMENT_ICONS[key];
+                  const selected = paymentMethod === key;
+                  const surchargeAmount = method.surcharge > 0
+                    ? Math.round((pricing.basePrice + pricing.supportVanPrice) * method.surcharge * 100) / 100
+                    : 0;
+
+                  return (
+                    <Card
+                      key={key}
+                      className={`cursor-pointer transition-all duration-200 ${
+                        selected
+                          ? "ring-2 ring-primary shadow-lg"
+                          : "hover:shadow-md border-border/50"
+                      }`}
+                      onClick={() => setPaymentMethod(key)}
+                    >
+                      <CardContent className="p-6">
+                        <div className="flex items-start gap-4">
+                          <div className={`w-12 h-12 rounded-lg flex items-center justify-center shrink-0 ${
+                            selected ? "gold-gradient" : "bg-muted"
+                          }`}>
+                            <Icon className={`w-6 h-6 ${selected ? "text-gold-foreground" : "text-muted-foreground"}`} />
+                          </div>
+                          <div className="flex-1 space-y-1">
+                            <div className="flex items-center justify-between">
+                              <h3 className="font-heading text-lg font-semibold">{method.label}</h3>
+                              {method.surcharge > 0 && (
+                                <span className="text-sm text-amber-400 font-medium">+{(method.surcharge * 100).toFixed(0)}% surcharge</span>
+                              )}
+                            </div>
+                            <p className="text-sm text-muted-foreground">{method.description}</p>
+                            {method.surcharge > 0 && surchargeAmount > 0 && (
+                              <p className="text-xs text-amber-400/80 mt-1">
+                                Surcharge: +${surchargeAmount.toFixed(2)} on your estimated total
+                              </p>
+                            )}
+                            {key === "stripe_prepay" && selected && (
+                              <p className="text-xs text-primary mt-1">
+                                You will be redirected to a secure Stripe checkout page after confirming your booking.
+                              </p>
+                            )}
+                          </div>
+                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 mt-1 ${
+                            selected ? "border-primary bg-primary" : "border-muted-foreground/30"
+                          }`}>
+                            {selected && <Check className="w-3 h-3 text-primary-foreground" />}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                }
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Step 5: Review & Confirm */}
+        {step === 5 && (
           <div className="space-y-6">
             <div className="space-y-2">
               <h2 className="font-heading text-2xl font-bold">Review Your Booking</h2>
@@ -514,6 +605,27 @@ export default function BookingForm() {
                   )}
                 </div>
 
+                {/* Payment Method */}
+                <div className="space-y-3 border-t border-border/50 pt-4">
+                  <p className="text-xs font-medium tracking-widest uppercase text-primary">Payment</p>
+                  <div className="flex items-center gap-2">
+                    {paymentMethod && (() => {
+                      const Icon = PAYMENT_ICONS[paymentMethod];
+                      return <Icon className="w-5 h-5 text-primary" />;
+                    })()}
+                    <p className="font-medium">{paymentMethod ? PAYMENT_METHODS[paymentMethod].label : ""}</p>
+                  </div>
+                  {paymentMethod === "square_postpay" && (
+                    <p className="text-xs text-amber-400">Includes 2% card processing surcharge</p>
+                  )}
+                  {paymentMethod === "cash_postpay" && (
+                    <p className="text-xs text-muted-foreground">Please prepare the exact amount</p>
+                  )}
+                  {paymentMethod === "stripe_prepay" && (
+                    <p className="text-xs text-primary">You will be redirected to Stripe for secure payment</p>
+                  )}
+                </div>
+
                 {/* Pricing */}
                 <div className="space-y-3 border-t border-border/50 pt-4">
                   <p className="text-xs font-medium tracking-widest uppercase text-primary">Pricing</p>
@@ -526,6 +638,12 @@ export default function BookingForm() {
                       <div className="flex justify-between text-sm">
                         <span>Support Van</span>
                         <span>${pricing.supportVanPrice.toFixed(2)}</span>
+                      </div>
+                    )}
+                    {pricing.surcharge > 0 && (
+                      <div className="flex justify-between text-sm text-amber-400">
+                        <span>Card Surcharge (2%)</span>
+                        <span>+${pricing.surcharge.toFixed(2)}</span>
                       </div>
                     )}
                     <div className="flex justify-between font-heading text-lg font-bold border-t border-border/50 pt-2">
@@ -582,7 +700,7 @@ export default function BookingForm() {
               disabled={!canProceed() || createBooking.isPending}
               className="gap-2 gold-gradient text-gold-foreground border-0 hover:opacity-90"
             >
-              {createBooking.isPending ? "Submitting..." : "Confirm Booking"}
+              {createBooking.isPending ? "Submitting..." : paymentMethod === "stripe_prepay" ? "Confirm & Pay" : "Confirm Booking"}
               <Check className="w-4 h-4" />
             </Button>
           )}

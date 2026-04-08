@@ -7,6 +7,8 @@ import { registerOAuthRoutes } from "./oauth";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
+import { constructWebhookEvent } from "../stripe";
+import { getBookingByStripeSession, updateBookingPaymentStatus } from "../db";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -30,6 +32,35 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 async function startServer() {
   const app = express();
   const server = createServer(app);
+
+  // Stripe webhook must be registered BEFORE express.json() for raw body access
+  app.post("/api/stripe/webhook", express.raw({ type: "application/json" }), async (req, res) => {
+    const signature = req.headers["stripe-signature"] as string;
+    try {
+      const event = constructWebhookEvent(req.body, signature);
+
+      // Handle test events
+      if (event.id.startsWith("evt_test_")) {
+        console.log("[Webhook] Test event detected, returning verification response");
+        return res.json({ verified: true });
+      }
+
+      if (event.type === "checkout.session.completed") {
+        const session = event.data.object as any;
+        const bookingId = session.metadata?.booking_id;
+        if (bookingId) {
+          await updateBookingPaymentStatus(parseInt(bookingId), "paid");
+          console.log(`[Webhook] Payment completed for booking ${bookingId}`);
+        }
+      }
+
+      res.json({ received: true });
+    } catch (err: any) {
+      console.error("[Webhook] Error:", err.message);
+      res.status(400).send(`Webhook Error: ${err.message}`);
+    }
+  });
+
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));

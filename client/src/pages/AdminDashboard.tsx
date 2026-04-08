@@ -17,8 +17,8 @@ import {
   Search, LayoutDashboard, Clock, CheckCircle, XCircle, AlertCircle,
   ChevronLeft, ChevronRight, LogOut, Home,
 } from "lucide-react";
-import { SERVICE_TYPES, BOOKING_STATUSES } from "@shared/types";
-import type { ServiceType, BookingStatus } from "@shared/types";
+import { SERVICE_TYPES, BOOKING_STATUSES, PAYMENT_METHODS } from "@shared/types";
+import type { ServiceType, BookingStatus, PaymentMethod } from "@shared/types";
 
 const LOGO_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/logo-white_476df209.png";
 
@@ -204,19 +204,20 @@ export default function AdminDashboard() {
                   <TableHead className="hidden lg:table-cell">Pickup Date</TableHead>
                   <TableHead className="hidden lg:table-cell">Passengers</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead className="hidden xl:table-cell">Payment</TableHead>
                   <TableHead className="text-right">Total</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {bookingsLoading ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
+                    <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
                       Loading bookings...
                     </TableCell>
                   </TableRow>
                 ) : !bookingsData?.bookings.length ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
+                    <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
                       No bookings found.
                     </TableCell>
                   </TableRow>
@@ -258,6 +259,18 @@ export default function AdminDashboard() {
                             <StatusIcon className="w-3 h-3 mr-1" />
                             {BOOKING_STATUSES[booking.status as BookingStatus]?.label ?? booking.status}
                           </Badge>
+                        </TableCell>
+                        <TableCell className="hidden xl:table-cell">
+                          <div className="space-y-1">
+                            <p className="text-xs">{booking.paymentMethod ? PAYMENT_METHODS[booking.paymentMethod as PaymentMethod]?.label : "—"}</p>
+                            <Badge variant="outline" className={`text-xs ${
+                              booking.paymentStatus === "paid" ? "bg-emerald-100 text-emerald-800 border-emerald-200" :
+                              booking.paymentStatus === "refunded" ? "bg-blue-100 text-blue-800 border-blue-200" :
+                              "bg-amber-100 text-amber-800 border-amber-200"
+                            }`}>
+                              {booking.paymentStatus === "paid" ? "Paid" : booking.paymentStatus === "refunded" ? "Refunded" : "Unpaid"}
+                            </Badge>
+                          </div>
                         </TableCell>
                         <TableCell className="text-right font-medium text-sm">
                           ${parseFloat(booking.totalPrice ?? "0").toFixed(2)}
