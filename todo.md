@@ -80,3 +80,4 @@
 - [x] Add plane photo to Airport Transfer service card
 - [x] Add chauffeur photo to Hourly Hire service card
 - [x] Add wedding photo to Special Events service card
+- [x] Add private jet photo to Point to Point service card
