@@ -317,8 +317,8 @@ export default function MyBookings() {
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-xs text-muted-foreground">
                     {paymentInfo?.label ?? booking.paymentMethod} &middot;{" "}
-                    <span className={booking.paymentStatus === "paid" ? "text-emerald-400" : "text-amber-400"}>
-                      {booking.paymentStatus === "paid" ? "Paid" : "Unpaid"}
+                    <span className={booking.paymentStatus === "paid" ? "text-emerald-400" : booking.paymentStatus === "refunded" ? "text-blue-400" : "text-amber-400"}>
+                      {booking.paymentStatus === "paid" ? "Paid" : booking.paymentStatus === "refunded" ? "Refunded" : "Unpaid"}
                     </span>
                   </span>
                   {canModify && (

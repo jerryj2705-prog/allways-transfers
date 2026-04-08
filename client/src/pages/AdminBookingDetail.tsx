@@ -55,6 +55,17 @@ export default function AdminBookingDetail() {
     },
   });
 
+  const updatePaymentStatus = trpc.bookings.updatePaymentStatus.useMutation({
+    onSuccess: () => {
+      toast.success("Payment status updated successfully");
+      utils.bookings.getById.invalidate({ id: bookingId });
+      utils.bookings.list.invalidate();
+    },
+    onError: (err) => {
+      toast.error(err.message || "Failed to update payment status");
+    },
+  });
+
   if (authLoading || isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -304,6 +315,38 @@ export default function AdminBookingDetail() {
                     }`}>
                       {booking.paymentStatus === "paid" ? "Paid" : booking.paymentStatus === "refunded" ? "Refunded" : "Unpaid"}
                     </Badge>
+                  </div>
+                </div>
+                <div className="border-t border-border/50 pt-3 space-y-2">
+                  <p className="text-xs text-muted-foreground">Update Payment Status</p>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant={booking.paymentStatus === "unpaid" ? "default" : "outline"}
+                      className={`flex-1 text-xs ${booking.paymentStatus === "unpaid" ? "bg-amber-600 hover:bg-amber-700 text-white border-0" : "bg-transparent"}`}
+                      disabled={booking.paymentStatus === "unpaid" || updatePaymentStatus.isPending}
+                      onClick={() => updatePaymentStatus.mutate({ id: bookingId, paymentStatus: "unpaid" })}
+                    >
+                      Unpaid
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={booking.paymentStatus === "paid" ? "default" : "outline"}
+                      className={`flex-1 text-xs ${booking.paymentStatus === "paid" ? "bg-emerald-600 hover:bg-emerald-700 text-white border-0" : "bg-transparent"}`}
+                      disabled={booking.paymentStatus === "paid" || updatePaymentStatus.isPending}
+                      onClick={() => updatePaymentStatus.mutate({ id: bookingId, paymentStatus: "paid" })}
+                    >
+                      Paid
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={booking.paymentStatus === "refunded" ? "default" : "outline"}
+                      className={`flex-1 text-xs ${booking.paymentStatus === "refunded" ? "bg-blue-600 hover:bg-blue-700 text-white border-0" : "bg-transparent"}`}
+                      disabled={booking.paymentStatus === "refunded" || updatePaymentStatus.isPending}
+                      onClick={() => updatePaymentStatus.mutate({ id: bookingId, paymentStatus: "refunded" })}
+                    >
+                      Refunded
+                    </Button>
                   </div>
                 </div>
               </CardContent>

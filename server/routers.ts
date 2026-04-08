@@ -23,6 +23,7 @@ import {
   getEnquiryById,
   updateEnquiryStatus,
   getEnquiryStats,
+  updateBookingPaymentStatus,
 } from "./db";
 import { createCheckoutSession } from "./stripe";
 import { notifyOwner } from "./_core/notification";
@@ -200,6 +201,19 @@ export const appRouter = router({
       )
       .mutation(async ({ input }) => {
         return updateBookingStatus(input.id, input.status, input.adminNotes);
+      }),
+
+    updatePaymentStatus: adminProcedure
+      .input(
+        z.object({
+          id: z.number(),
+          paymentStatus: z.enum(["unpaid", "paid", "refunded"]),
+        })
+      )
+      .mutation(async ({ input }) => {
+        const booking = await getBookingById(input.id);
+        if (!booking) throw new Error("Booking not found");
+        return updateBookingPaymentStatus(input.id, input.paymentStatus);
       }),
 
     stats: adminProcedure.query(async () => {

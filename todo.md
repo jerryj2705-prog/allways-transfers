@@ -227,3 +227,13 @@
 - [x] Add Contact link to header navigation and footer
 - [x] Notify admin on new enquiry submission
 - [x] Add admin view to see and manage enquiries
+
+## Payment Status Tracking
+- [x] Add paymentStatus column (PAID/UNPAID/REFUNDED) to bookings schema (already existed)
+- [x] Default new bookings to UNPAID
+- [x] Auto-set PAID on successful Stripe prepay (webhook checkout.session.completed)
+- [x] Add admin toggle to set payment status to UNPAID/PAID/REFUNDED on booking detail page
+- [x] Display payment status badge on admin dashboard booking list
+- [x] Display payment status on admin booking detail page
+- [x] Display payment status on booking confirmation page
+- [x] Display payment status on My Bookings page (including Refunded)
