@@ -108,3 +108,9 @@
 - [x] Add bookings email bookings@allwaystransfers.com.au to footer
 - [x] Add general enquiries email admin@allwaystransfers.com.au to footer
 - [x] Update ABN from "pending" to 18 715 944 056
+
+## Booking Form Service Card Photos
+- [x] Add aircraft over highway photo to Airport Transfer card
+- [x] Add lady in limo photo to Hourly Hire card
+- [x] Add roads spaghetti photo to Point to Point card
+- [x] Add crowd/event photo to Special Events card

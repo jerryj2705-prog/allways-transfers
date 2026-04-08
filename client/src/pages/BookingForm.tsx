@@ -16,6 +16,17 @@ import { SERVICE_TYPES, SUV_CAPACITY, PAYMENT_METHODS } from "@shared/types";
 import type { PaymentMethod } from "@shared/types";
 
 const LOGO_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/logo-white_476df209.png";
+const SVC_AIRPORT_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/aircraft-highway_9944f3aa.png";
+const SVC_HOURLY_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/lady-in-limo_de251852.png";
+const SVC_P2P_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/roads-spaghetti_814c9a5d.png";
+const SVC_EVENTS_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/crowd-event_baea8a77.jpg";
+
+const SERVICE_IMAGES: Record<string, string> = {
+  airport_transfer: SVC_AIRPORT_IMG,
+  hourly_hire: SVC_HOURLY_IMG,
+  point_to_point: SVC_P2P_IMG,
+  special_events: SVC_EVENTS_IMG,
+};
 
 type ServiceType = keyof typeof SERVICE_TYPES;
 
@@ -223,22 +234,40 @@ export default function BookingForm() {
                 ([key, svc]) => {
                   const Icon = SERVICE_ICONS[svc.icon] || Star;
                   const selected = serviceType === key;
+                  const svcImage = SERVICE_IMAGES[key];
                   return (
                     <Card
                       key={key}
-                      className={`cursor-pointer transition-all duration-200 ${
+                      className={`cursor-pointer transition-all duration-200 overflow-hidden ${
                         selected
                           ? "ring-2 ring-primary shadow-lg"
                           : "hover:shadow-md border-border/50"
                       }`}
                       onClick={() => setServiceType(key)}
                     >
-                      <CardContent className="p-6 space-y-3">
-                        <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                          selected ? "gold-gradient" : "bg-muted"
-                        }`}>
-                          <Icon className={`w-6 h-6 ${selected ? "text-gold-foreground" : "text-muted-foreground"}`} />
+                      {svcImage && (
+                        <div className="relative h-36 overflow-hidden">
+                          <img
+                            src={svcImage}
+                            alt={svc.label}
+                            className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-card via-card/60 to-transparent" />
+                          <div className={`absolute top-3 right-3 w-10 h-10 rounded-full flex items-center justify-center ${
+                            selected ? "gold-gradient" : "bg-background/80 backdrop-blur-sm"
+                          }`}>
+                            <Icon className={`w-5 h-5 ${selected ? "text-gold-foreground" : "text-muted-foreground"}`} />
+                          </div>
                         </div>
+                      )}
+                      <CardContent className={`${svcImage ? "p-4 pt-2" : "p-6"} space-y-2`}>
+                        {!svcImage && (
+                          <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
+                            selected ? "gold-gradient" : "bg-muted"
+                          }`}>
+                            <Icon className={`w-6 h-6 ${selected ? "text-gold-foreground" : "text-muted-foreground"}`} />
+                          </div>
+                        )}
                         <h3 className="font-heading text-lg font-semibold">{svc.label}</h3>
                         <p className="text-sm text-muted-foreground">{svc.description}</p>
                       </CardContent>
