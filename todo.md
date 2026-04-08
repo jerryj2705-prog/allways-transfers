@@ -48,3 +48,10 @@
 - [x] Admin booking list access control tests
 - [x] Booking stats test
 - [x] Booking reference lookup test
+
+## Rebranding - All Ways Transfers
+- [x] Update business name to "All Ways Transfers" across all pages
+- [x] Download and use custom logo (white version from Dropbox)
+- [x] Switch to dark theme: black background, gold accents, charcoal and off-white inserts
+- [x] Update fonts: Archivo Black for page titles, Manrope for all other headings and body text
+- [x] Update favicon and app title

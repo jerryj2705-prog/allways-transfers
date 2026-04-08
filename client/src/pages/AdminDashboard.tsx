@@ -20,6 +20,8 @@ import {
 import { SERVICE_TYPES, BOOKING_STATUSES } from "@shared/types";
 import type { ServiceType, BookingStatus } from "@shared/types";
 
+const LOGO_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/logo-white_476df209.png";
+
 const STATUS_STYLES: Record<string, string> = {
   pending: "bg-amber-100 text-amber-800 border-amber-200",
   confirmed: "bg-blue-100 text-blue-800 border-blue-200",
@@ -126,9 +128,9 @@ export default function AdminDashboard() {
             >
               <Home className="w-4 h-4" />
             </button>
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded gold-gradient" />
-              <span className="font-heading text-lg font-semibold">Admin Dashboard</span>
+            <div className="flex items-center gap-3">
+              <img src={LOGO_IMG} alt="All Ways Transfers" className="h-6 w-auto" />
+              <span className="text-sm text-muted-foreground">Admin Dashboard</span>
             </div>
           </div>
           <div className="flex items-center gap-3">

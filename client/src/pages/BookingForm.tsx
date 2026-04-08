@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 import { SERVICE_TYPES, SUV_CAPACITY } from "@shared/types";
 
+const LOGO_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/logo-white_476df209.png";
+
 type ServiceType = keyof typeof SERVICE_TYPES;
 
 const SERVICE_ICONS: Record<string, React.ElementType> = {
@@ -146,9 +148,9 @@ export default function BookingForm() {
             <ChevronLeft className="w-4 h-4" />
             {step > 0 ? "Back" : "Home"}
           </button>
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded gold-gradient" />
-            <span className="font-heading text-lg font-semibold">Book a Ride</span>
+          <div className="flex items-center gap-3">
+            <img src={LOGO_IMG} alt="All Ways Transfers" className="h-6 w-auto" />
+            <span className="text-sm text-muted-foreground">Book a Ride</span>
           </div>
           <div className="w-16" />
         </div>

@@ -7,6 +7,8 @@ import { toast } from "sonner";
 import { SERVICE_TYPES } from "@shared/types";
 import type { ServiceType } from "@shared/types";
 
+const LOGO_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/logo-white_476df209.png";
+
 export default function BookingConfirmation() {
   const params = useParams<{ ref: string }>();
   const [, setLocation] = useLocation();
@@ -49,9 +51,9 @@ export default function BookingConfirmation() {
       {/* Header */}
       <div className="border-b border-border/50 bg-background/80 backdrop-blur-md">
         <div className="container flex items-center justify-center h-16">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded gold-gradient" />
-            <span className="font-heading text-lg font-semibold">Booking Confirmed</span>
+          <div className="flex items-center gap-3">
+            <img src={LOGO_IMG} alt="All Ways Transfers" className="h-6 w-auto" />
+            <span className="text-sm text-muted-foreground">Booking Confirmed</span>
           </div>
         </div>
       </div>
