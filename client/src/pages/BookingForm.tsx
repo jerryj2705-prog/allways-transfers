@@ -622,7 +622,16 @@ export default function BookingForm() {
                   <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
                   <div className="text-sm">
                     <p className="font-medium text-amber-400">Out-of-Hours Pickup</p>
-                    <p className="text-muted-foreground">Pickups between 7pm and 7am incur an out-of-hours surcharge.</p>
+                    <p className="text-muted-foreground">
+                      Pickups between 7pm and 7am incur an out-of-hours surcharge
+                      {(() => {
+                        const setting = pricingSettings?.find(s => s.settingKey === "surcharge_out_of_hours");
+                        if (setting && setting.isActive) {
+                          return ` of $${parseFloat(setting.settingValue).toFixed(2)}`;
+                        }
+                        return "";
+                      })()}.
+                    </p>
                   </div>
                 </div>
               )}

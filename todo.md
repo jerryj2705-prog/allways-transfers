@@ -160,3 +160,6 @@
 
 ## Out-of-Hours Time Range
 - [x] Change out-of-hours time from 20:00–06:00 to 19:00–07:00
+
+## Out-of-Hours Surcharge Display
+- [x] Show admin-configured surcharge dollar amount in out-of-hours notice
