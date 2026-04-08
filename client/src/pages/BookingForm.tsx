@@ -583,15 +583,7 @@ export default function BookingForm() {
                         }`}
                       >
                         <Clock className="mr-2 h-4 w-4" />
-                        {pickupTime
-                          ? (() => {
-                              const [h, m] = pickupTime.split(":");
-                              const hour = parseInt(h, 10);
-                              const ampm = hour >= 12 ? "PM" : "AM";
-                              const h12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
-                              return `${h12}:${m} ${ampm}`;
-                            })()
-                          : "Select time"}
+                        {pickupTime || "Select time"}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-48 p-0" align="start">
@@ -600,9 +592,7 @@ export default function BookingForm() {
                           const hour = Math.floor(i / 4);
                           const minute = (i % 4) * 15;
                           const value = `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
-                          const ampm = hour >= 12 ? "PM" : "AM";
-                          const h12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
-                          const label = `${h12}:${String(minute).padStart(2, "0")} ${ampm}`;
+                          const label = `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
                           return (
                             <button
                               key={value}
@@ -1038,15 +1028,7 @@ export default function BookingForm() {
                             })
                           : pickupDate}
                         {" at "}
-                        {pickupTime
-                          ? (() => {
-                              const [h, m] = pickupTime.split(":");
-                              const hour = parseInt(h, 10);
-                              const ampm = hour >= 12 ? "PM" : "AM";
-                              const h12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
-                              return `${h12}:${m} ${ampm}`;
-                            })()
-                          : pickupTime}
+                        {pickupTime}
                       </p>
                     </div>
                     <div>

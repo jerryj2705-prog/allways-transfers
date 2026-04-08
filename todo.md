@@ -154,3 +154,6 @@
 
 ## Clickable Time Selector
 - [x] Replace native time input with clickable time selector (15-minute intervals)
+
+## Time Format
+- [x] Change time selector and displays to 24-hour format
