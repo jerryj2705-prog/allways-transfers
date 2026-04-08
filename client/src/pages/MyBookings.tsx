@@ -126,6 +126,7 @@ export default function MyBookings() {
       bookingId: cancelBookingId,
       reason: cancelReason || undefined,
       termsAccepted: cancelTermsAccepted,
+      origin: window.location.origin,
     });
   };
 

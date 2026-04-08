@@ -237,3 +237,10 @@
 - [x] Display payment status on admin booking detail page
 - [x] Display payment status on booking confirmation page
 - [x] Display payment status on My Bookings page (including Refunded)
+## Email Confirmations
+- [x] Send booking confirmation email after successful booking submission
+- [x] Include booking summary (reference, service type, date/time, pickup/dropoff, vehicle, passengers, price)
+- [x] Include link to My Bookings page with explanation of how to view/manage bookings
+- [x] Send cancellation confirmation email when booking is cancelled
+- [x] Include cancellation details (reference, cancellation policy applied, any charges)
+- [x] Include link to My Bookings page with explanation

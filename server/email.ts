@@ -1,0 +1,407 @@
+import { Resend } from "resend";
+import { ENV } from "./_core/env";
+
+let _resend: Resend | null = null;
+
+function getResend(): Resend {
+  if (!_resend) {
+    if (!ENV.resendApiKey) {
+      throw new Error("RESEND_API_KEY is not configured");
+    }
+    _resend = new Resend(ENV.resendApiKey);
+  }
+  return _resend;
+}
+
+const LOGO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/logo-white_476df209.png";
+
+// ─── Helpers ───
+
+function formatDate(timestamp: number): string {
+  return new Date(timestamp).toLocaleDateString("en-AU", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: "Australia/Brisbane",
+  });
+}
+
+function formatTime(timestamp: number): string {
+  return new Date(timestamp).toLocaleTimeString("en-AU", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: "Australia/Brisbane",
+  });
+}
+
+function formatServiceType(serviceType: string): string {
+  return serviceType
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function formatPaymentMethod(method: string): string {
+  const labels: Record<string, string> = {
+    stripe_prepay: "Pre-pay by Credit Card",
+    square_postpay: "Pay Driver by Card",
+    cash_postpay: "Pay Driver by Cash",
+  };
+  return labels[method] ?? method;
+}
+
+function formatPaymentStatus(status: string): string {
+  const labels: Record<string, string> = {
+    paid: "Paid",
+    unpaid: "Unpaid",
+    refunded: "Refunded",
+  };
+  return labels[status] ?? status;
+}
+
+// ─── Email Template Wrapper ───
+
+function wrapInTemplate(bodyContent: string): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>All Ways Transfers</title>
+</head>
+<body style="margin:0;padding:0;background-color:#0a0a0a;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;color:#e5e5e5;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0a0a0a;">
+    <tr>
+      <td align="center" style="padding:24px 16px;">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+          <!-- Header -->
+          <tr>
+            <td align="center" style="padding:24px 0 16px;">
+              <img src="${LOGO_URL}" alt="All Ways Transfers" width="180" style="display:block;max-width:180px;height:auto;" />
+            </td>
+          </tr>
+          <!-- Body -->
+          <tr>
+            <td style="background-color:#1a1a1a;border-radius:12px;padding:32px 28px;">
+              ${bodyContent}
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td align="center" style="padding:24px 0 8px;font-size:13px;color:#737373;">
+              <p style="margin:0 0 4px;">All Ways Transfers</p>
+              <p style="margin:0 0 4px;">Phone: 0466 544 068</p>
+              <p style="margin:0 0 4px;">Email: bookings@allwaystransfers.com.au</p>
+              <p style="margin:0;color:#525252;font-size:11px;">ABN 18 715 944 056</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+
+// ─── Booking Confirmation Email ───
+
+export interface BookingEmailData {
+  referenceNumber: string;
+  clientName: string;
+  clientEmail: string;
+  serviceType: string;
+  pickupAddress: string;
+  dropoffAddress: string | null;
+  pickupDate: number;
+  passengerCount: number;
+  vehicleName: string;
+  rearFacingSeats?: number;
+  forwardFacingSeats?: number;
+  boosterSeats?: number;
+  isPetFriendly?: boolean;
+  petDescription?: string | null;
+  totalPrice: string;
+  paymentMethod: string;
+  paymentStatus: string;
+  specialRequests?: string | null;
+  origin: string;
+}
+
+export async function sendBookingConfirmationEmail(data: BookingEmailData): Promise<boolean> {
+  const resend = getResend();
+
+  const myBookingsUrl = `${data.origin}/my-bookings`;
+  const confirmationUrl = `${data.origin}/confirmation/${data.referenceNumber}`;
+
+  // Build child seat info
+  const childSeats: string[] = [];
+  if (data.rearFacingSeats && data.rearFacingSeats > 0) childSeats.push(`${data.rearFacingSeats}× Rear-facing`);
+  if (data.forwardFacingSeats && data.forwardFacingSeats > 0) childSeats.push(`${data.forwardFacingSeats}× Forward-facing`);
+  if (data.boosterSeats && data.boosterSeats > 0) childSeats.push(`${data.boosterSeats}× Booster`);
+
+  const bodyContent = `
+    <h1 style="margin:0 0 8px;font-size:24px;color:#d4a843;font-weight:700;">Booking Confirmed</h1>
+    <p style="margin:0 0 24px;font-size:15px;color:#a3a3a3;">Thank you for booking with All Ways Transfers, ${data.clientName}.</p>
+
+    <!-- Reference Number -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+      <tr>
+        <td style="background-color:#262626;border-radius:8px;padding:16px;text-align:center;">
+          <p style="margin:0 0 4px;font-size:12px;color:#a3a3a3;text-transform:uppercase;letter-spacing:1px;">Booking Reference</p>
+          <p style="margin:0;font-size:22px;font-weight:700;color:#d4a843;letter-spacing:2px;">${data.referenceNumber}</p>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Booking Details -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+      <tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Service</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${formatServiceType(data.serviceType)}</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Date &amp; Time</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${formatDate(data.pickupDate)} at ${formatTime(data.pickupDate)} (AEST)</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Pickup</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${data.pickupAddress}</span>
+        </td>
+      </tr>
+      ${data.dropoffAddress ? `<tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Drop-off</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${data.dropoffAddress}</span>
+        </td>
+      </tr>` : ""}
+      <tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Passengers</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${data.passengerCount}</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Vehicle</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${data.vehicleName}</span>
+        </td>
+      </tr>
+      ${childSeats.length > 0 ? `<tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Child Seats</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${childSeats.join(", ")}</span>
+        </td>
+      </tr>` : ""}
+      ${data.isPetFriendly ? `<tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Pet</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${data.petDescription ?? "Yes"}</span>
+        </td>
+      </tr>` : ""}
+      ${data.specialRequests ? `<tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Special Requests</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${data.specialRequests}</span>
+        </td>
+      </tr>` : ""}
+      <tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Payment</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${formatPaymentMethod(data.paymentMethod)} — ${formatPaymentStatus(data.paymentStatus)}</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:12px 0 0;">
+          <span style="color:#a3a3a3;font-size:13px;">Total</span><br/>
+          <span style="color:#d4a843;font-size:22px;font-weight:700;">$${data.totalPrice}</span>
+        </td>
+      </tr>
+    </table>
+
+    <!-- My Bookings CTA -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:16px;">
+      <tr>
+        <td align="center" style="padding:16px 0;">
+          <a href="${myBookingsUrl}" style="display:inline-block;background-color:#d4a843;color:#0a0a0a;text-decoration:none;padding:12px 32px;border-radius:8px;font-weight:600;font-size:15px;">View My Bookings</a>
+        </td>
+      </tr>
+    </table>
+
+    <p style="margin:0;font-size:13px;color:#737373;text-align:center;">
+      You can view, modify, or cancel your booking at any time by visiting your
+      <a href="${myBookingsUrl}" style="color:#d4a843;text-decoration:underline;">My Bookings</a> page.
+      You can also view this booking's details at your
+      <a href="${confirmationUrl}" style="color:#d4a843;text-decoration:underline;">confirmation page</a>.
+    </p>
+  `;
+
+  try {
+    const result = await resend.emails.send({
+      from: `All Ways Transfers <${ENV.resendFromEmail}>`,
+      to: [data.clientEmail],
+      subject: `Booking Confirmed — ${data.referenceNumber}`,
+      html: wrapInTemplate(bodyContent),
+    });
+
+    if (result.error) {
+      console.warn("[Email] Failed to send booking confirmation:", result.error);
+      return false;
+    }
+
+    console.log(`[Email] Booking confirmation sent to ${data.clientEmail} for ${data.referenceNumber}`);
+    return true;
+  } catch (error) {
+    console.warn("[Email] Error sending booking confirmation:", error);
+    return false;
+  }
+}
+
+// ─── Cancellation Confirmation Email ───
+
+export interface CancellationEmailData {
+  referenceNumber: string;
+  clientName: string;
+  clientEmail: string;
+  serviceType: string;
+  pickupAddress: string;
+  dropoffAddress: string | null;
+  pickupDate: number;
+  totalPrice: string;
+  cancellationTier: "free" | "partial_charge" | "no_refund";
+  chargePercent: number;
+  reason?: string | null;
+  origin: string;
+}
+
+export async function sendCancellationConfirmationEmail(data: CancellationEmailData): Promise<boolean> {
+  const resend = getResend();
+
+  const myBookingsUrl = `${data.origin}/my-bookings`;
+
+  // Build cancellation policy text
+  let policyText: string;
+  let policyColor: string;
+  if (data.cancellationTier === "free") {
+    policyText = "Your booking has been cancelled at no charge, as it was more than 24 hours before your scheduled pickup.";
+    policyColor = "#22c55e"; // green
+  } else if (data.cancellationTier === "partial_charge") {
+    const chargeAmount = (parseFloat(data.totalPrice) * data.chargePercent / 100).toFixed(2);
+    policyText = `A ${data.chargePercent}% late cancellation fee of $${chargeAmount} applies, as the cancellation was made less than 24 hours before your scheduled pickup.`;
+    policyColor = "#f59e0b"; // amber
+  } else {
+    policyText = "No refund is available for cancellations made less than 4 hours before the scheduled pickup.";
+    policyColor = "#ef4444"; // red
+  }
+
+  const bodyContent = `
+    <h1 style="margin:0 0 8px;font-size:24px;color:#ef4444;font-weight:700;">Booking Cancelled</h1>
+    <p style="margin:0 0 24px;font-size:15px;color:#a3a3a3;">Your booking has been cancelled, ${data.clientName}.</p>
+
+    <!-- Reference Number -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+      <tr>
+        <td style="background-color:#262626;border-radius:8px;padding:16px;text-align:center;">
+          <p style="margin:0 0 4px;font-size:12px;color:#a3a3a3;text-transform:uppercase;letter-spacing:1px;">Booking Reference</p>
+          <p style="margin:0;font-size:22px;font-weight:700;color:#737373;letter-spacing:2px;text-decoration:line-through;">${data.referenceNumber}</p>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Cancellation Policy -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+      <tr>
+        <td style="background-color:#262626;border-left:4px solid ${policyColor};border-radius:4px;padding:16px;">
+          <p style="margin:0 0 4px;font-size:13px;font-weight:600;color:${policyColor};text-transform:uppercase;letter-spacing:0.5px;">Cancellation Policy</p>
+          <p style="margin:0;font-size:14px;color:#d4d4d4;">${policyText}</p>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Cancelled Booking Details -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+      <tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Service</span><br/>
+          <span style="color:#a3a3a3;font-size:15px;">${formatServiceType(data.serviceType)}</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Date &amp; Time</span><br/>
+          <span style="color:#a3a3a3;font-size:15px;">${formatDate(data.pickupDate)} at ${formatTime(data.pickupDate)} (AEST)</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Pickup</span><br/>
+          <span style="color:#a3a3a3;font-size:15px;">${data.pickupAddress}</span>
+        </td>
+      </tr>
+      ${data.dropoffAddress ? `<tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Drop-off</span><br/>
+          <span style="color:#a3a3a3;font-size:15px;">${data.dropoffAddress}</span>
+        </td>
+      </tr>` : ""}
+      <tr>
+        <td style="padding:8px 0;">
+          <span style="color:#a3a3a3;font-size:13px;">Original Total</span><br/>
+          <span style="color:#a3a3a3;font-size:18px;font-weight:600;text-decoration:line-through;">$${data.totalPrice}</span>
+        </td>
+      </tr>
+    </table>
+
+    ${data.reason ? `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+      <tr>
+        <td style="padding:8px 0;">
+          <span style="color:#a3a3a3;font-size:13px;">Your Reason</span><br/>
+          <span style="color:#d4d4d4;font-size:14px;">${data.reason}</span>
+        </td>
+      </tr>
+    </table>` : ""}
+
+    <!-- My Bookings CTA -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:16px;">
+      <tr>
+        <td align="center" style="padding:16px 0;">
+          <a href="${myBookingsUrl}" style="display:inline-block;background-color:#d4a843;color:#0a0a0a;text-decoration:none;padding:12px 32px;border-radius:8px;font-weight:600;font-size:15px;">View My Bookings</a>
+        </td>
+      </tr>
+    </table>
+
+    <p style="margin:0;font-size:13px;color:#737373;text-align:center;">
+      You can view all your bookings, including cancelled ones, on your
+      <a href="${myBookingsUrl}" style="color:#d4a843;text-decoration:underline;">My Bookings</a> page.
+      If you have any questions about this cancellation, please contact us at
+      <a href="mailto:bookings@allwaystransfers.com.au" style="color:#d4a843;text-decoration:underline;">bookings@allwaystransfers.com.au</a>
+      or call 0466 544 068.
+    </p>
+  `;
+
+  try {
+    const result = await resend.emails.send({
+      from: `All Ways Transfers <${ENV.resendFromEmail}>`,
+      to: [data.clientEmail],
+      subject: `Booking Cancelled — ${data.referenceNumber}`,
+      html: wrapInTemplate(bodyContent),
+    });
+
+    if (result.error) {
+      console.warn("[Email] Failed to send cancellation confirmation:", result.error);
+      return false;
+    }
+
+    console.log(`[Email] Cancellation confirmation sent to ${data.clientEmail} for ${data.referenceNumber}`);
+    return true;
+  } catch (error) {
+    console.warn("[Email] Error sending cancellation confirmation:", error);
+    return false;
+  }
+}

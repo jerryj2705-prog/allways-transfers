@@ -27,6 +27,7 @@ import {
 } from "./db";
 import { createCheckoutSession } from "./stripe";
 import { notifyOwner } from "./_core/notification";
+import { sendBookingConfirmationEmail, sendCancellationConfirmationEmail } from "./email";
 import { lookupSuburb, estimateDistance, isOutOfArea, getAllSuburbNames } from "@shared/suburbs";
 
 export const appRouter = router({
@@ -159,6 +160,35 @@ export const appRouter = router({
             await updateBookingStripeSession(booking.id, checkoutUrl.split('/').pop()?.split('?')[0] ?? "");
           } catch (e) {
             console.warn("Failed to create Stripe checkout session:", e);
+          }
+        }
+
+        // Send booking confirmation email
+        if (input.origin) {
+          try {
+            await sendBookingConfirmationEmail({
+              referenceNumber: booking.referenceNumber,
+              clientName: input.clientName,
+              clientEmail: input.clientEmail,
+              serviceType: input.serviceType,
+              pickupAddress: input.pickupAddress,
+              dropoffAddress: input.dropoffAddress ?? null,
+              pickupDate: input.pickupDate,
+              passengerCount: input.passengerCount,
+              vehicleName: input.vehicleName,
+              rearFacingSeats: input.rearFacingSeats,
+              forwardFacingSeats: input.forwardFacingSeats,
+              boosterSeats: input.boosterSeats,
+              isPetFriendly: input.isPetFriendly,
+              petDescription: input.petDescription ?? null,
+              totalPrice: input.totalPrice.toFixed(2),
+              paymentMethod: input.paymentMethod,
+              paymentStatus: input.paymentMethod === "stripe_prepay" ? "unpaid" : "unpaid",
+              specialRequests: input.specialRequests ?? null,
+              origin: input.origin,
+            });
+          } catch (e) {
+            console.warn("Failed to send booking confirmation email:", e);
           }
         }
 
@@ -330,6 +360,7 @@ export const appRouter = router({
         bookingId: z.number(),
         reason: z.string().optional(),
         termsAccepted: z.boolean(),
+        origin: z.string().optional(),
       }))
       .mutation(async ({ input, ctx }) => {
         if (!input.termsAccepted) {
@@ -371,6 +402,29 @@ export const appRouter = router({
           });
         } catch (e) {
           console.warn("Failed to send cancellation notification:", e);
+        }
+
+        // Send cancellation confirmation email
+        if (input.origin) {
+          try {
+            const cancellationTier = hoursUntilPickup < 4 ? "no_refund" as const : hoursUntilPickup < 24 ? "partial_charge" as const : "free" as const;
+            await sendCancellationConfirmationEmail({
+              referenceNumber: booking.referenceNumber,
+              clientName: booking.clientName,
+              clientEmail: booking.clientEmail,
+              serviceType: booking.serviceType,
+              pickupAddress: booking.pickupAddress,
+              dropoffAddress: booking.dropoffAddress,
+              pickupDate: booking.pickupDate,
+              totalPrice: booking.totalPrice,
+              cancellationTier,
+              chargePercent,
+              reason: input.reason ?? null,
+              origin: input.origin,
+            });
+          } catch (e) {
+            console.warn("Failed to send cancellation confirmation email:", e);
+          }
         }
 
         return updated;
