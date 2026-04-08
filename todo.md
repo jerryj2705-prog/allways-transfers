@@ -163,3 +163,6 @@
 
 ## Out-of-Hours Surcharge Display
 - [x] Show admin-configured surcharge dollar amount in out-of-hours notice
+
+## 24/7 Asterisk & Footnote
+- [x] Add asterisk to every 24/7 occurrence and explanatory footnote with surcharge amount

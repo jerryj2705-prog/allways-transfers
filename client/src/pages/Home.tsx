@@ -84,7 +84,7 @@ const features = [
   },
   {
     icon: Phone,
-    title: "24/7 Availability",
+    title: "24/7 Availability*",
     description: "Prebook anytime, day or night. We accommodate early flights and late events.",
     image: NIGHT_OUT_IMG,
   },
@@ -147,7 +147,7 @@ export default function Home() {
                 <span className="gold-text block mt-2">Luxury</span>
               </h1>
               <p className="text-lg md:text-xl text-white/70 max-w-lg leading-relaxed">
-                24/7 prebooked private transfers across the Sunshine Coast and Brisbane.
+                24/7* prebooked private transfers across the Sunshine Coast and Brisbane.
                 Fixed prices, luxury vehicles, child seats, and pet-friendly options.
               </p>
             </div>
@@ -171,7 +171,7 @@ export default function Home() {
             <div className="flex items-center gap-8 pt-4 text-sm text-white/50">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-green-500" />
-                Available 24/7
+                Available 24/7*
               </div>
               <div>Sunshine Coast &amp; Brisbane</div>
             </div>
@@ -420,6 +420,23 @@ export default function Home() {
               </Button>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Out-of-hours footnote */}
+      <section className="pb-8 pt-0">
+        <div className="container">
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            * An out-of-hours surcharge
+            {(() => {
+              const setting = pricingSettings?.find(s => s.settingKey === "surcharge_out_of_hours");
+              if (setting && setting.isActive) {
+                return ` of $${parseFloat(setting.settingValue).toFixed(2)}`;
+              }
+              return "";
+            })()}{" "}
+            applies to pickups between 19:00 and 07:00.
+          </p>
         </div>
       </section>
 
