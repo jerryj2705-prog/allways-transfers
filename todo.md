@@ -206,3 +206,9 @@
 - [x] Update calculatePrice in server/db.ts to use tiered distance logic
 - [x] Update booking form to display distance surcharge breakdown
 - [x] Update Admin Pricing page icon/label for new setting
+
+## Booking Modification
+- [x] Add server-side modify mutation (update pickup date, time, address, passengers)
+- [x] Add modification UI dialog on My Bookings page for upcoming bookings
+- [x] Validate that modifications are only allowed for pending/confirmed bookings
+- [x] Notify admin when a booking is modified

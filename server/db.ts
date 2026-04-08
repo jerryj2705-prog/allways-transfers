@@ -225,6 +225,26 @@ export async function getBookingByStripeSession(stripeSessionId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
+export async function updateBookingDetails(id: number, data: {
+  pickupAddress?: string;
+  dropoffAddress?: string;
+  pickupDate?: number;
+  passengerCount?: number;
+  specialRequests?: string | null;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const updateData: Record<string, unknown> = {};
+  if (data.pickupAddress !== undefined) updateData.pickupAddress = data.pickupAddress;
+  if (data.dropoffAddress !== undefined) updateData.dropoffAddress = data.dropoffAddress;
+  if (data.pickupDate !== undefined) updateData.pickupDate = data.pickupDate;
+  if (data.passengerCount !== undefined) updateData.passengerCount = data.passengerCount;
+  if (data.specialRequests !== undefined) updateData.specialRequests = data.specialRequests;
+  if (Object.keys(updateData).length === 0) throw new Error("No fields to update");
+  await db.update(bookings).set(updateData).where(eq(bookings.id, id));
+  return getBookingById(id);
+}
+
 export async function getBookingsByEmail(email: string) {
   const db = await getDb();
   if (!db) return [];

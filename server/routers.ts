@@ -17,6 +17,7 @@ import {
   updatePricingSetting,
   calculatePrice,
   getBookingsByEmail,
+  updateBookingDetails,
 } from "./db";
 import { createCheckoutSession } from "./stripe";
 import { notifyOwner } from "./_core/notification";
@@ -207,6 +208,77 @@ export const appRouter = router({
       }
       return getBookingsByEmail(ctx.user.email);
     }),
+
+    // Authenticated user: modify their own upcoming booking
+    modify: protectedProcedure
+      .input(z.object({
+        bookingId: z.number(),
+        pickupAddress: z.string().optional(),
+        dropoffAddress: z.string().optional(),
+        pickupDate: z.number().optional(),
+        passengerCount: z.number().min(1).max(7).optional(),
+        specialRequests: z.string().optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const booking = await getBookingById(input.bookingId);
+        if (!booking) throw new Error("Booking not found");
+        if (booking.clientEmail !== ctx.user?.email) throw new Error("Unauthorized");
+        if (booking.status === "cancelled") throw new Error("Cannot modify a cancelled booking");
+        if (booking.status === "completed") throw new Error("Cannot modify a completed booking");
+
+        // Must be in the future
+        if (booking.pickupDate < Date.now()) {
+          throw new Error("Cannot modify a past booking");
+        }
+
+        // If changing pickup date, must be in the future
+        if (input.pickupDate && input.pickupDate < Date.now()) {
+          throw new Error("New pickup date must be in the future");
+        }
+
+        const changes: string[] = [];
+        if (input.pickupAddress && input.pickupAddress !== booking.pickupAddress) {
+          changes.push(`Pickup: ${booking.pickupAddress} → ${input.pickupAddress}`);
+        }
+        if (input.dropoffAddress && input.dropoffAddress !== booking.dropoffAddress) {
+          changes.push(`Drop-off: ${booking.dropoffAddress ?? "N/A"} → ${input.dropoffAddress}`);
+        }
+        if (input.pickupDate && input.pickupDate !== booking.pickupDate) {
+          const oldDate = new Date(booking.pickupDate).toLocaleString("en-AU", { timeZone: "Australia/Brisbane" });
+          const newDate = new Date(input.pickupDate).toLocaleString("en-AU", { timeZone: "Australia/Brisbane" });
+          changes.push(`Date/Time: ${oldDate} → ${newDate}`);
+        }
+        if (input.passengerCount && input.passengerCount !== booking.passengerCount) {
+          changes.push(`Passengers: ${booking.passengerCount} → ${input.passengerCount}`);
+        }
+        if (input.specialRequests !== undefined && input.specialRequests !== booking.specialRequests) {
+          changes.push(`Special requests updated`);
+        }
+
+        if (changes.length === 0) {
+          return booking;
+        }
+
+        const updated = await updateBookingDetails(input.bookingId, {
+          pickupAddress: input.pickupAddress,
+          dropoffAddress: input.dropoffAddress,
+          pickupDate: input.pickupDate,
+          passengerCount: input.passengerCount,
+          specialRequests: input.specialRequests,
+        });
+
+        // Notify owner about modification
+        try {
+          await notifyOwner({
+            title: `Booking Modified: ${booking.referenceNumber}`,
+            content: `Booking ${booking.referenceNumber} modified by ${booking.clientName}.\nChanges:\n${changes.join("\n")}`,
+          });
+        } catch (e) {
+          console.warn("Failed to send modification notification:", e);
+        }
+
+        return updated;
+      }),
 
     // Authenticated user: get cancellation policy for a booking
     cancellationPolicy: protectedProcedure
