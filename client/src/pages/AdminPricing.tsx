@@ -25,6 +25,7 @@ const CATEGORY_ICONS: Record<string, React.ElementType> = {
   surcharge_out_of_hours: Clock,
   surcharge_out_of_area: MapPin,
   surcharge_fuel_levy: Fuel,
+  min_hourly_hours: Clock,
 };
 
 export default function AdminPricing() {
@@ -102,6 +103,7 @@ export default function AdminPricing() {
     const Icon = CATEGORY_ICONS[setting.settingKey] || DollarSign;
     const isToggle = setting.category === "toggle";
     const isPercent = setting.settingKey === "surcharge_fuel_levy";
+    const isHours = setting.settingKey === "min_hourly_hours";
     const changed = hasChanges(setting.id, { settingValue: setting.settingValue, isActive: setting.isActive });
 
     return (
@@ -132,12 +134,12 @@ export default function AdminPricing() {
           <div className="flex items-center gap-3">
             <div className="relative flex-1">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
-                {isPercent ? "%" : "$"}
+                {isHours ? "hrs" : isPercent ? "%" : "$"}
               </span>
               <Input
                 type="number"
-                step="0.01"
-                min="0"
+                step={isHours ? "1" : "0.01"}
+                min={isHours ? "1" : "0"}
                 value={edit.value}
                 onChange={(e) => handleValueChange(setting.id, e.target.value, edit.isActive)}
                 className="pl-8"

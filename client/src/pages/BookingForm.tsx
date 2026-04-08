@@ -195,7 +195,8 @@ export default function BookingForm() {
   const [clientPhone, setClientPhone] = useState("");
   const [specialRequests, setSpecialRequests] = useState("");
   const [termsAccepted, setTermsAccepted] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | "">("");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | "">("")
+  const [hireHours, setHireHours] = useState(0);
 
   const { data: vehiclesData } = trpc.vehicles.list.useQuery();
   const vehicles = vehiclesData ?? [];
@@ -249,8 +250,9 @@ export default function BookingForm() {
       pickupHour,
       needsSupportVan,
       paymentMethod: paymentMethod || "cash_postpay",
+      hireHours: serviceType === "hourly_hire" ? hireHours : undefined,
     };
-  }, [serviceType, pickupSuburb, dropoffSuburb, pickupHour, needsSupportVan, paymentMethod]);
+  }, [serviceType, pickupSuburb, dropoffSuburb, pickupHour, needsSupportVan, paymentMethod, hireHours]);
 
   const { data: priceBreakdown } = trpc.pricing.calculate.useQuery(
     priceInput!,
@@ -295,8 +297,14 @@ export default function BookingForm() {
   const canProceed = () => {
     switch (step) {
       case 0: return serviceType !== "";
-      case 1: return pickupAddress && pickupSuburb && pickupDate && pickupTime && passengerCount >= 1 &&
-        (serviceType === "hourly_hire" || (dropoffAddress && dropoffSuburb));
+      case 1: {
+        const baseValid = !!(pickupAddress && pickupSuburb && pickupDate && pickupTime && passengerCount >= 1);
+        if (serviceType === "hourly_hire") {
+          const minHrs = parseInt(pricingSettings?.find(s => s.settingKey === "min_hourly_hours")?.settingValue || "3", 10);
+          return baseValid && hireHours >= minHrs;
+        }
+        return baseValid && !!(dropoffAddress && dropoffSuburb);
+      }
       case 2: return !!suv && (!isPetFriendly || petDescription.trim().length > 0);
       case 3: return clientName && clientEmail && clientPhone;
       case 4: return paymentMethod !== "";
@@ -329,6 +337,7 @@ export default function BookingForm() {
       isPetFriendly,
       petDescription: isPetFriendly ? petDescription : undefined,
       estimatedDistance,
+      estimatedDuration: serviceType === "hourly_hire" ? hireHours * 60 : undefined,
       basePrice: pricing.basePrice,
       totalPrice: pricing.totalPrice,
       specialRequests: specialRequests || undefined,
@@ -663,6 +672,45 @@ export default function BookingForm() {
                 </div>
                 <p className="text-xs text-muted-foreground">{passengerNote}</p>
               </div>
+
+              {/* Hours selector for Hourly Hire */}
+              {serviceType === "hourly_hire" && (() => {
+                const minHrs = parseInt(pricingSettings?.find(s => s.settingKey === "min_hourly_hours")?.settingValue || "3", 10);
+                return (
+                  <div className="space-y-2">
+                    <Label htmlFor="hireHours" className="text-sm font-medium">Number of Hours</Label>
+                    <div className="flex items-center gap-4">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={() => setHireHours(Math.max(minHrs, hireHours - 1))}
+                        disabled={hireHours <= minHrs}
+                        className="bg-background"
+                      >
+                        -
+                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-5 h-5 text-primary" />
+                        <span className="text-xl font-heading font-bold w-8 text-center">{hireHours}</span>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={() => setHireHours(hireHours + 1)}
+                        className="bg-background"
+                      >
+                        +
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Minimum {minHrs} hour{minHrs !== 1 ? "s" : ""} required</p>
+                    {hireHours < minHrs && hireHours > 0 && (
+                      <p className="text-xs text-red-400">Please select at least {minHrs} hours.</p>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           </div>
         )}
@@ -1044,6 +1092,12 @@ export default function BookingForm() {
                       <p className="text-muted-foreground">Passengers</p>
                       <p className="font-medium">{passengerCount}</p>
                     </div>
+                    {serviceType === "hourly_hire" && hireHours > 0 && (
+                      <div>
+                        <p className="text-muted-foreground">Hours</p>
+                        <p className="font-medium">{hireHours} hour{hireHours !== 1 ? "s" : ""}</p>
+                      </div>
+                    )}
                     {estimatedDistance > 0 && (
                       <div>
                         <p className="text-muted-foreground">Est. Distance</p>

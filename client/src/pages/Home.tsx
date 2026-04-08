@@ -31,6 +31,7 @@ const services = [
     icon: Clock,
     title: "Hourly Hire",
     description: "Flexible chauffeur service by the hour for meetings, tours, or errands across the region.",
+    minHoursKey: "min_hourly_hours",
     image: CHAUFFEUR_IMG,
     priceKey: "base_hourly_hire",
     priceLabel: "per hour",
@@ -227,6 +228,13 @@ export default function Home() {
                       {service.priceLabel && (
                         <span className="text-xs text-muted-foreground ml-1">/{service.priceLabel}</span>
                       )}
+                      {(service as any).minHoursKey && (() => {
+                        const minSetting = pricingSettings?.find(s => s.settingKey === (service as any).minHoursKey);
+                        const minHrs = minSetting ? parseInt(minSetting.settingValue, 10) : null;
+                        return minHrs ? (
+                          <p className="text-xs text-muted-foreground mt-1">Minimum {minHrs} hour{minHrs !== 1 ? "s" : ""}</p>
+                        ) : null;
+                      })()}
                     </div>
                   )}
                 </CardContent>

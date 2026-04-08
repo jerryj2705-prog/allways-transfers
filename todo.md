@@ -166,3 +166,9 @@
 
 ## 24/7 Asterisk & Footnote
 - [x] Add asterisk to every 24/7 occurrence and explanatory footnote with surcharge amount
+
+## Hourly Hire Minimum
+- [x] Add admin-configurable minimum hours setting for Hourly Hire (pricing_settings row)
+- [x] Enforce minimum hours in booking form UI
+- [x] Enforce minimum hours in server-side validation
+- [x] Display minimum hours info on service card and booking form

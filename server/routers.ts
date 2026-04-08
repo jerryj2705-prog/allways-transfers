@@ -79,6 +79,17 @@ export const appRouter = router({
           throw new Error("You must accept the terms and conditions");
         }
 
+        // Enforce minimum hours for hourly hire
+        if (input.serviceType === "hourly_hire") {
+          const settings = await getAllPricingSettings();
+          const minHoursSetting = settings.find(s => s.settingKey === "min_hourly_hours");
+          const minHours = minHoursSetting ? parseInt(minHoursSetting.settingValue, 10) : 3;
+          const bookingHours = input.estimatedDuration ? Math.round(input.estimatedDuration / 60) : 0;
+          if (bookingHours < minHours) {
+            throw new Error(`Hourly Hire requires a minimum of ${minHours} hours`);
+          }
+        }
+
         const vehicle = await getVehicleById(input.vehicleId);
         if (!vehicle) {
           throw new Error("Selected vehicle not found");
@@ -206,6 +217,7 @@ export const appRouter = router({
           pickupHour: z.number().min(0).max(23),
           needsSupportVan: z.boolean().default(false),
           paymentMethod: z.string().default("cash_postpay"),
+          hireHours: z.number().min(0).optional(),
         })
       )
       .query(async ({ input }) => {
@@ -232,6 +244,7 @@ export const appRouter = router({
           isOutOfArea: outOfArea,
           needsSupportVan: input.needsSupportVan,
           paymentMethod: input.paymentMethod,
+          hireHours: input.hireHours,
         });
 
         return {

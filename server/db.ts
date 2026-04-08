@@ -270,6 +270,7 @@ export async function calculatePrice(params: {
   isOutOfArea: boolean;
   needsSupportVan: boolean;
   paymentMethod: string;
+  hireHours?: number; // for hourly hire
 }): Promise<PriceBreakdown> {
   const settings = await getAllPricingSettings();
   const getVal = (key: string) => {
@@ -288,7 +289,12 @@ export async function calculatePrice(params: {
     point_to_point: "base_point_to_point",
     special_events: "base_special_events",
   };
-  const basePrice = getVal(serviceKeyMap[params.serviceType] || "base_point_to_point");
+  let basePrice = getVal(serviceKeyMap[params.serviceType] || "base_point_to_point");
+
+  // For hourly hire, multiply base rate by number of hours
+  if (params.serviceType === "hourly_hire" && params.hireHours && params.hireHours > 0) {
+    basePrice = Math.round(basePrice * params.hireHours * 100) / 100;
+  }
 
   // Distance charge
   const perKmRate = getVal("rate_per_km");
