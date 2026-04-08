@@ -1,16 +1,29 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
 import { useLocation } from "wouter";
 import {
   Plane, Clock, MapPin, Star, CalendarDays, Users,
-  ArrowRight, Loader2, LogIn, ChevronRight, Car
+  ArrowRight, Loader2, LogIn, ChevronRight, Car,
+  XCircle, AlertTriangle, ShieldAlert, CheckCircle2
 } from "lucide-react";
 import { SERVICE_TYPES, BOOKING_STATUSES, PAYMENT_METHODS } from "@shared/types";
 import type { ServiceType, BookingStatus, PaymentMethod } from "@shared/types";
+import { toast } from "sonner";
 
 const SERVICE_ICONS: Record<string, React.ElementType> = {
   Plane, Clock, MapPin, Star,
@@ -26,9 +39,54 @@ const STATUS_STYLES: Record<string, string> = {
 export default function MyBookings() {
   const { user, loading: authLoading } = useAuth();
   const [, setLocation] = useLocation();
+  const utils = trpc.useUtils();
   const { data: bookings, isLoading } = trpc.bookings.myBookings.useQuery(undefined, {
     enabled: !!user,
   });
+
+  // Cancellation dialog state
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [cancelBookingId, setCancelBookingId] = useState<number | null>(null);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelTermsAccepted, setCancelTermsAccepted] = useState(false);
+
+  const cancelBooking = bookings?.find(b => b.id === cancelBookingId);
+
+  const { data: cancellationPolicy, isLoading: policyLoading } = trpc.bookings.cancellationPolicy.useQuery(
+    { bookingId: cancelBookingId! },
+    { enabled: cancelDialogOpen && cancelBookingId !== null }
+  );
+
+  const cancelMutation = trpc.bookings.cancel.useMutation({
+    onSuccess: () => {
+      toast.success("Booking cancelled successfully");
+      setCancelDialogOpen(false);
+      setCancelBookingId(null);
+      setCancelReason("");
+      setCancelTermsAccepted(false);
+      utils.bookings.myBookings.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to cancel booking");
+    },
+  });
+
+  const handleCancelClick = (e: React.MouseEvent, bookingId: number) => {
+    e.stopPropagation();
+    setCancelBookingId(bookingId);
+    setCancelReason("");
+    setCancelTermsAccepted(false);
+    setCancelDialogOpen(true);
+  };
+
+  const handleConfirmCancel = () => {
+    if (!cancelBookingId || !cancelTermsAccepted) return;
+    cancelMutation.mutate({
+      bookingId: cancelBookingId,
+      reason: cancelReason || undefined,
+      termsAccepted: cancelTermsAccepted,
+    });
+  };
 
   const now = Date.now();
   const upcoming = bookings?.filter(b => b.pickupDate >= now && b.status !== "cancelled") ?? [];
@@ -84,11 +142,12 @@ export default function MyBookings() {
     });
   };
 
-  const renderBookingCard = (booking: NonNullable<typeof bookings>[number]) => {
+  const renderBookingCard = (booking: NonNullable<typeof bookings>[number], showCancel: boolean) => {
     const svcInfo = SERVICE_TYPES[booking.serviceType as ServiceType];
     const statusInfo = BOOKING_STATUSES[booking.status as BookingStatus];
     const paymentInfo = PAYMENT_METHODS[booking.paymentMethod as PaymentMethod];
     const Icon = SERVICE_ICONS[svcInfo?.icon ?? "Star"] || Star;
+    const canCancel = showCancel && booking.status !== "cancelled" && booking.status !== "completed";
 
     return (
       <Card
@@ -151,12 +210,25 @@ export default function MyBookings() {
 
               {/* Footer row */}
               <div className="flex items-center justify-between pt-2 border-t border-border/30">
-                <span className="text-xs text-muted-foreground">
-                  {paymentInfo?.label ?? booking.paymentMethod} &middot;{" "}
-                  <span className={booking.paymentStatus === "paid" ? "text-emerald-400" : "text-amber-400"}>
-                    {booking.paymentStatus === "paid" ? "Paid" : "Unpaid"}
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-muted-foreground">
+                    {paymentInfo?.label ?? booking.paymentMethod} &middot;{" "}
+                    <span className={booking.paymentStatus === "paid" ? "text-emerald-400" : "text-amber-400"}>
+                      {booking.paymentStatus === "paid" ? "Paid" : "Unpaid"}
+                    </span>
                   </span>
-                </span>
+                  {canCancel && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-red-400 border-red-500/30 hover:bg-red-500/10 hover:text-red-300 h-7 text-xs"
+                      onClick={(e) => handleCancelClick(e, booking.id)}
+                    >
+                      <XCircle className="w-3 h-3 mr-1" />
+                      Cancel
+                    </Button>
+                  )}
+                </div>
                 <span className="font-heading font-bold text-lg gold-text">
                   ${parseFloat(booking.totalPrice).toFixed(2)}
                 </span>
@@ -166,6 +238,45 @@ export default function MyBookings() {
         </CardContent>
       </Card>
     );
+  };
+
+  const getPolicyIcon = () => {
+    if (!cancellationPolicy) return null;
+    switch (cancellationPolicy.tier) {
+      case "free":
+        return <CheckCircle2 className="w-10 h-10 text-emerald-400" />;
+      case "partial_charge":
+        return <AlertTriangle className="w-10 h-10 text-amber-400" />;
+      case "no_refund":
+        return <ShieldAlert className="w-10 h-10 text-red-400" />;
+    }
+  };
+
+  const getPolicyBorderColor = () => {
+    if (!cancellationPolicy) return "border-border";
+    switch (cancellationPolicy.tier) {
+      case "free": return "border-emerald-500/30";
+      case "partial_charge": return "border-amber-500/30";
+      case "no_refund": return "border-red-500/30";
+    }
+  };
+
+  const getPolicyBgColor = () => {
+    if (!cancellationPolicy) return "";
+    switch (cancellationPolicy.tier) {
+      case "free": return "bg-emerald-500/5";
+      case "partial_charge": return "bg-amber-500/5";
+      case "no_refund": return "bg-red-500/5";
+    }
+  };
+
+  const getPolicyTitle = () => {
+    if (!cancellationPolicy) return "Cancellation Policy";
+    switch (cancellationPolicy.tier) {
+      case "free": return "Free Cancellation";
+      case "partial_charge": return "Late Cancellation Warning";
+      case "no_refund": return "No Refund Available";
+    }
   };
 
   return (
@@ -227,7 +338,7 @@ export default function MyBookings() {
                   <span className="text-sm text-muted-foreground">({upcoming.length})</span>
                 </div>
                 <div className="space-y-3">
-                  {upcoming.map(renderBookingCard)}
+                  {upcoming.map(b => renderBookingCard(b, true))}
                 </div>
               </section>
             )}
@@ -241,13 +352,125 @@ export default function MyBookings() {
                   <span className="text-sm text-muted-foreground">({past.length})</span>
                 </div>
                 <div className="space-y-3">
-                  {past.map(renderBookingCard)}
+                  {past.map(b => renderBookingCard(b, false))}
                 </div>
               </section>
             )}
           </>
         )}
       </div>
+
+      {/* Cancellation Dialog */}
+      <Dialog open={cancelDialogOpen} onOpenChange={(open) => {
+        if (!open) {
+          setCancelDialogOpen(false);
+          setCancelBookingId(null);
+          setCancelReason("");
+          setCancelTermsAccepted(false);
+        }
+      }}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-xl">Cancel Booking</DialogTitle>
+            {cancelBooking && (
+              <DialogDescription>
+                {cancelBooking.referenceNumber} &middot; {formatDate(cancelBooking.pickupDate)} at {formatTime(cancelBooking.pickupDate)}
+              </DialogDescription>
+            )}
+          </DialogHeader>
+
+          <div className="space-y-5 py-2">
+            {/* Policy tier display */}
+            {policyLoading ? (
+              <div className="flex items-center justify-center py-6">
+                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : cancellationPolicy && (
+              <div className={`rounded-lg border p-4 space-y-3 ${getPolicyBorderColor()} ${getPolicyBgColor()}`}>
+                <div className="flex items-start gap-3">
+                  {getPolicyIcon()}
+                  <div className="space-y-1">
+                    <h4 className="font-heading font-semibold text-base">{getPolicyTitle()}</h4>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      {cancellationPolicy.message}
+                    </p>
+                  </div>
+                </div>
+
+                {cancellationPolicy.tier === "partial_charge" && (
+                  <div className="bg-amber-500/10 border border-amber-500/20 rounded-md p-3 mt-2">
+                    <p className="text-sm text-amber-300 font-medium">
+                      You are cancelling less than 24 hours before your scheduled pickup. A portion of the booking fee may be charged.
+                    </p>
+                  </div>
+                )}
+
+                {cancellationPolicy.tier === "no_refund" && (
+                  <div className="bg-red-500/10 border border-red-500/20 rounded-md p-3 mt-2">
+                    <p className="text-sm text-red-300 font-medium">
+                      You are cancelling less than 4 hours before your scheduled pickup. No refund will be provided for this cancellation.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Reason (optional) */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Reason for cancellation (optional)</label>
+              <Textarea
+                placeholder="Please let us know why you're cancelling..."
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                className="resize-none"
+                rows={3}
+              />
+            </div>
+
+            {/* Terms acceptance */}
+            <div className="flex items-start gap-3 p-3 rounded-lg border border-border/50 bg-card/50">
+              <Checkbox
+                id="cancel-terms"
+                checked={cancelTermsAccepted}
+                onCheckedChange={(checked) => setCancelTermsAccepted(checked === true)}
+                className="mt-0.5"
+              />
+              <label htmlFor="cancel-terms" className="text-sm text-muted-foreground leading-relaxed cursor-pointer">
+                I understand and accept the cancellation policy{" "}
+                {cancellationPolicy?.tier === "partial_charge" && "including that a partial charge may apply"}
+                {cancellationPolicy?.tier === "no_refund" && "including that no refund will be provided"}
+                . I agree to the Terms and Conditions.
+              </label>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => setCancelDialogOpen(false)}
+            >
+              Keep Booking
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmCancel}
+              disabled={!cancelTermsAccepted || cancelMutation.isPending}
+            >
+              {cancelMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Cancelling...
+                </>
+              ) : (
+                <>
+                  <XCircle className="w-4 h-4 mr-2" />
+                  Confirm Cancellation
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

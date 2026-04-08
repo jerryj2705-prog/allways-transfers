@@ -186,3 +186,10 @@
 - [x] Add route in App.tsx for /my-bookings
 - [x] Add navigation link to My Bookings (header/footer) for logged-in users
 - [x] Write tests for the new procedure (covered by existing test suite)
+
+## Booking Cancellation
+- [x] Add server-side cancel mutation with time-based cancellation policy
+- [x] Add cancellation dialog to My Bookings page with tiered warnings (>24h free, <24h partial charge, <4h no refund)
+- [x] Require terms acceptance before cancellation
+- [x] Add cancel button to upcoming booking cards
+- [x] Test cancellation flow end-to-end

@@ -207,6 +207,73 @@ export const appRouter = router({
       }
       return getBookingsByEmail(ctx.user.email);
     }),
+
+    // Authenticated user: get cancellation policy for a booking
+    cancellationPolicy: protectedProcedure
+      .input(z.object({ bookingId: z.number() }))
+      .query(async ({ input, ctx }) => {
+        const booking = await getBookingById(input.bookingId);
+        if (!booking) throw new Error("Booking not found");
+        if (booking.clientEmail !== ctx.user?.email) throw new Error("Unauthorized");
+
+        const now = Date.now();
+        const hoursUntilPickup = (booking.pickupDate - now) / (1000 * 60 * 60);
+
+        if (hoursUntilPickup < 4) {
+          return { tier: "no_refund" as const, hoursUntilPickup, message: "Cancellations less than 4 hours before pickup are not eligible for a refund." };
+        } else if (hoursUntilPickup < 24) {
+          return { tier: "partial_charge" as const, hoursUntilPickup, message: "Cancellations less than 24 hours before pickup may incur a partial charge of the booking fee." };
+        } else {
+          return { tier: "free" as const, hoursUntilPickup, message: "Free cancellation — more than 24 hours before pickup." };
+        }
+      }),
+
+    // Authenticated user: cancel their own booking
+    cancel: protectedProcedure
+      .input(z.object({
+        bookingId: z.number(),
+        reason: z.string().optional(),
+        termsAccepted: z.boolean(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        if (!input.termsAccepted) {
+          throw new Error("You must accept the cancellation terms");
+        }
+
+        const booking = await getBookingById(input.bookingId);
+        if (!booking) throw new Error("Booking not found");
+        if (booking.clientEmail !== ctx.user?.email) throw new Error("Unauthorized");
+        if (booking.status === "cancelled") throw new Error("Booking is already cancelled");
+        if (booking.status === "completed") throw new Error("Cannot cancel a completed booking");
+
+        const now = Date.now();
+        const hoursUntilPickup = (booking.pickupDate - now) / (1000 * 60 * 60);
+        let cancellationNote = "Cancelled by client.";
+        if (hoursUntilPickup < 4) {
+          cancellationNote = "Cancelled by client (less than 4 hours before pickup — no refund).";
+        } else if (hoursUntilPickup < 24) {
+          cancellationNote = "Cancelled by client (less than 24 hours before pickup — partial charge may apply).";
+        } else {
+          cancellationNote = "Cancelled by client (free cancellation).";
+        }
+        if (input.reason) {
+          cancellationNote += ` Reason: ${input.reason}`;
+        }
+
+        const updated = await updateBookingStatus(input.bookingId, "cancelled", cancellationNote);
+
+        // Notify owner
+        try {
+          await notifyOwner({
+            title: `Booking Cancelled: ${booking.referenceNumber}`,
+            content: `Booking ${booking.referenceNumber} cancelled by ${booking.clientName}.\n${cancellationNote}\nPickup was: ${new Date(booking.pickupDate).toLocaleString("en-AU", { timeZone: "Australia/Brisbane" })}`,
+          });
+        } catch (e) {
+          console.warn("Failed to send cancellation notification:", e);
+        }
+
+        return updated;
+      }),
   }),
 
   pricing: router({
