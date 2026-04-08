@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useLocation } from "wouter";
-import { Plane, Clock, MapPin, Star, Shield, Award, Phone, Baby, PawPrint, DollarSign } from "lucide-react";
+import { Plane, Clock, MapPin, Star, Shield, Award, Phone, Baby, PawPrint, DollarSign, Mail } from "lucide-react";
 
 const HERO_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/hero-suv_ee8b3ffa.jpg";
 const LOGO_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/logo-white_476df209.png";
@@ -400,17 +400,54 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-border/50 py-12">
+      <footer className="border-t border-border/50 py-16">
         <div className="container">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <img src={LOGO_IMG} alt="All Ways Transfers" className="h-10 w-auto" />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-10 mb-10">
+            {/* Brand */}
+            <div className="space-y-4">
+              <img src={LOGO_IMG} alt="All Ways Transfers" className="h-12 w-auto" />
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Prebooked private transfers across the Sunshine Coast and Brisbane. Fixed prices, luxury vehicles, child seats, and pet-friendly options.
+              </p>
             </div>
-            <p className="text-sm text-muted-foreground">
-              Prebooked private transfers — Sunshine Coast &amp; Brisbane
-            </p>
+
+            {/* Quick Links */}
+            <div className="space-y-4">
+              <h4 className="font-heading text-sm font-bold tracking-widest uppercase text-primary">Quick Links</h4>
+              <div className="space-y-2">
+                <a href="#services" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">Our Services</a>
+                <a href="#fleet" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">Our Fleet</a>
+                <a href="#why-us" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">Why Choose Us</a>
+                <a href="/book" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">Book a Transfer</a>
+              </div>
+            </div>
+
+            {/* Contact */}
+            <div className="space-y-4">
+              <h4 className="font-heading text-sm font-bold tracking-widest uppercase text-primary">Contact Us</h4>
+              <div className="space-y-3">
+                <a href="tel:0466544068" className="flex items-center gap-3 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  <Phone className="w-4 h-4 text-primary shrink-0" />
+                  0466 544 068
+                </a>
+                <a href="mailto:bookings@allwaystransfers.com.au" className="flex items-center gap-3 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  <Mail className="w-4 h-4 text-primary shrink-0" />
+                  <span>bookings@allwaystransfers.com.au</span>
+                </a>
+                <a href="mailto:admin@allwaystransfers.com.au" className="flex items-center gap-3 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  <Mail className="w-4 h-4 text-primary shrink-0" />
+                  <span>admin@allwaystransfers.com.au</span>
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t border-border/50 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
             <p className="text-xs text-muted-foreground">
               &copy; {new Date().getFullYear()} All Ways Transfers. All rights reserved.
+            </p>
+            <p className="text-xs text-muted-foreground">
+              ABN pending &middot; Queensland, Australia
             </p>
           </div>
         </div>

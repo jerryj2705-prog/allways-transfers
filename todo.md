@@ -102,3 +102,8 @@
 - [x] Implement Stripe checkout for pre-pay option
 - [x] Update booking confirmation to show selected payment method
 - [x] Update admin dashboard to display payment method
+
+## Footer Contact Details
+- [x] Add phone number 0466 544 068 to footer
+- [x] Add bookings email bookings@allwaystransfers.com.au to footer
+- [x] Add general enquiries email admin@allwaystransfers.com.au to footer
