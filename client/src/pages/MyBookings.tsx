@@ -713,6 +713,7 @@ export default function MyBookings() {
                     </ScrollArea>
                   </PopoverContent>
                 </Popover>
+                <p className="text-xs text-muted-foreground mt-1">Times are in Queensland local time (AEST/UTC+10)</p>
               </div>
             </div>
 

@@ -215,3 +215,6 @@
 
 ## Queensland Time Note
 - [x] Add note to time picker that times are in local Queensland time (AEST)
+
+## Queensland Time Note - Modification Dialog
+- [x] Add Queensland time note to modification dialog time picker for consistency
