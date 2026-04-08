@@ -16,6 +16,7 @@ import {
   getAllPricingSettings,
   updatePricingSetting,
   calculatePrice,
+  getBookingsByEmail,
 } from "./db";
 import { createCheckoutSession } from "./stripe";
 import { notifyOwner } from "./_core/notification";
@@ -197,6 +198,14 @@ export const appRouter = router({
 
     stats: adminProcedure.query(async () => {
       return getBookingStats();
+    }),
+
+    // Authenticated user: get my bookings by email
+    myBookings: protectedProcedure.query(async ({ ctx }) => {
+      if (!ctx.user?.email) {
+        return [];
+      }
+      return getBookingsByEmail(ctx.user.email);
     }),
   }),
 

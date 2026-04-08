@@ -225,6 +225,16 @@ export async function getBookingByStripeSession(stripeSessionId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
+export async function getBookingsByEmail(email: string) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(bookings)
+    .where(eq(bookings.clientEmail, email))
+    .orderBy(desc(bookings.pickupDate));
+}
+
 // ─── Pricing Settings Queries ───
 
 export async function getAllPricingSettings() {

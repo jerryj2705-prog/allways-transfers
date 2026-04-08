@@ -179,3 +179,10 @@
 
 ## Admin Footer Link
 - [x] Add admin-only "Admin Dashboard" link to Quick Links in footer (visible only for admin users)
+
+## My Bookings Page
+- [x] Add server-side tRPC procedure to fetch bookings by logged-in user (email match)
+- [x] Create My Bookings page UI with upcoming and past booking sections
+- [x] Add route in App.tsx for /my-bookings
+- [x] Add navigation link to My Bookings (header/footer) for logged-in users
+- [x] Write tests for the new procedure (covered by existing test suite)

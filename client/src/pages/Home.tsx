@@ -116,6 +116,9 @@ export default function Home() {
             <a href="#services" className="hover:text-primary transition-colors">Services</a>
             <a href="#fleet" className="hover:text-primary transition-colors">Our Fleet</a>
             <a href="#why-us" className="hover:text-primary transition-colors">Why Us</a>
+            {user && (
+              <a href="/my-bookings" className="hover:text-primary transition-colors">My Bookings</a>
+            )}
           </div>
           <Button
             onClick={() => setLocation("/book")}
@@ -470,6 +473,9 @@ export default function Home() {
                 <a href="#fleet" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">Our Fleet</a>
                 <a href="#why-us" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">Why Choose Us</a>
                 <a href="/book" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">Book a Transfer</a>
+                {user && (
+                  <a href="/my-bookings" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">My Bookings</a>
+                )}
                 {user?.role === "admin" && (
                   <a href="/admin" className="block text-sm text-amber-400 hover:text-amber-300 transition-colors">Admin Dashboard</a>
                 )}
