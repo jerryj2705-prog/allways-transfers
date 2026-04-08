@@ -55,3 +55,7 @@
 - [x] Switch to dark theme: black background, gold accents, charcoal and off-white inserts
 - [x] Update fonts: Archivo Black for page titles, Manrope for all other headings and body text
 - [x] Update favicon and app title
+
+## Hero Section Update
+- [x] Make hero photo full-width background
+- [x] Change catchphrase to "Personalised Luxury"

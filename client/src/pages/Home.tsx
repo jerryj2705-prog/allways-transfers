@@ -72,70 +72,57 @@ export default function Home() {
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <section className="relative pt-16 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-[oklch(0.15_0.02_85/0.3)]" />
-        <div className="container relative">
-          <div className="grid lg:grid-cols-2 gap-12 items-center min-h-[calc(100vh-4rem)] py-16">
-            <div className="space-y-8">
-              <div className="space-y-4">
-                <p className="text-sm font-medium tracking-[0.25em] uppercase text-primary">
-                  Premium Chauffeur Service
-                </p>
-                <h1 className="font-heading text-4xl md:text-5xl lg:text-6xl leading-tight tracking-tight">
-                  Arrive in
-                  <span className="gold-text block mt-1">Elegance</span>
-                </h1>
-                <p className="text-lg text-muted-foreground max-w-md leading-relaxed">
-                  Experience Queensland's finest chauffeur service. Luxury SUV transport
-                  for discerning travellers who expect nothing but the best.
-                </p>
-              </div>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Button
-                  size="lg"
-                  onClick={() => setLocation("/book")}
-                  className="gold-gradient text-gold-foreground border-0 hover:opacity-90 transition-opacity text-base px-8 py-6 font-semibold"
-                >
-                  Book Your Ride
-                </Button>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  onClick={() => document.getElementById("services")?.scrollIntoView({ behavior: "smooth" })}
-                  className="text-base px-8 py-6 border-border/60 hover:border-primary/50 hover:text-primary transition-colors"
-                >
-                  Explore Services
-                </Button>
-              </div>
-              <div className="flex items-center gap-8 pt-4 text-sm text-muted-foreground">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-green-500" />
-                  Available 24/7
-                </div>
-                <div>Queensland, Australia</div>
-              </div>
+      {/* Hero Section - Full Width */}
+      <section className="relative pt-16 min-h-screen flex items-center">
+        {/* Full-width background image */}
+        <div className="absolute inset-0">
+          <img
+            src={HERO_IMG}
+            alt="Premium chauffeur service"
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/60 to-black/30" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/40" />
+        </div>
+
+        <div className="container relative z-10">
+          <div className="max-w-2xl space-y-8 py-20">
+            <div className="space-y-6">
+              <p className="text-sm font-medium tracking-[0.3em] uppercase text-[oklch(0.82_0.11_85)]">
+                Premium Chauffeur Service
+              </p>
+              <h1 className="font-heading text-5xl md:text-6xl lg:text-7xl leading-[1.05] tracking-tight text-white">
+                Personalised
+                <span className="gold-text block mt-2">Luxury</span>
+              </h1>
+              <p className="text-lg md:text-xl text-white/70 max-w-lg leading-relaxed">
+                Experience Queensland's finest chauffeur service. Luxury SUV transport
+                for discerning travellers who expect nothing but the best.
+              </p>
             </div>
-            <div className="relative hidden lg:block">
-              <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-border/30">
-                <img
-                  src={HERO_IMG}
-                  alt="Premium chauffeur service"
-                  className="w-full h-[500px] object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+            <div className="flex flex-col sm:flex-row gap-4">
+              <Button
+                size="lg"
+                onClick={() => setLocation("/book")}
+                className="gold-gradient text-gold-foreground border-0 hover:opacity-90 transition-opacity text-base px-8 py-6 font-semibold"
+              >
+                Book Your Ride
+              </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                onClick={() => document.getElementById("services")?.scrollIntoView({ behavior: "smooth" })}
+                className="text-base px-8 py-6 border-white/30 text-white hover:border-white/60 hover:bg-white/10 transition-colors bg-transparent"
+              >
+                Explore Services
+              </Button>
+            </div>
+            <div className="flex items-center gap-8 pt-4 text-sm text-white/50">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-green-500" />
+                Available 24/7
               </div>
-              <div className="absolute -bottom-6 -left-6 bg-card rounded-xl shadow-lg p-4 border border-border/50">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full gold-gradient flex items-center justify-center">
-                    <Star className="w-5 h-5 text-gold-foreground" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-card-foreground">5-Star Rated</p>
-                    <p className="text-xs text-muted-foreground">Premium Service</p>
-                  </div>
-                </div>
-              </div>
+              <div>Queensland, Australia</div>
             </div>
           </div>
         </div>
