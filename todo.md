@@ -148,3 +148,6 @@
 - [x] Display child seat and pet-friendly info on admin booking detail page
 - [x] Add compulsory pet description field (appears when pet-friendly checkbox is selected)
 - [x] Add petDescription column to bookings schema
+
+## Clickable Calendar Date Picker
+- [x] Replace native date input with clickable calendar component for Pickup Date

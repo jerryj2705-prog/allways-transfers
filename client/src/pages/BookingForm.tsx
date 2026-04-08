@@ -7,11 +7,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
 import {
   Plane, Clock, MapPin, Star, ArrowLeft, ArrowRight, Check,
   Users, Briefcase, Truck, ChevronLeft, CreditCard, Banknote, Wallet,
-  AlertTriangle, Search, MapPinned, Baby, Dog, Plus, Minus,
+  AlertTriangle, Search, MapPinned, Baby, Dog, Plus, Minus, CalendarIcon,
 } from "lucide-react";
 import { SERVICE_TYPES, SUV_CAPACITY, PAYMENT_METHODS } from "@shared/types";
 import type { PaymentMethod } from "@shared/types";
@@ -178,6 +180,7 @@ export default function BookingForm() {
   const [dropoffAddress, setDropoffAddress] = useState("");
   const [dropoffSuburb, setDropoffSuburb] = useState("");
   const [pickupDate, setPickupDate] = useState("");
+  const [calendarOpen, setCalendarOpen] = useState(false);
   const [pickupTime, setPickupTime] = useState("");
   const [passengerCount, setPassengerCount] = useState(1);
   const [needsSupportVan, setNeedsSupportVan] = useState(false);
@@ -527,14 +530,45 @@ export default function BookingForm() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="date" className="text-sm font-medium">Pickup Date</Label>
-                  <Input
-                    id="date"
-                    type="date"
-                    value={pickupDate}
-                    onChange={(e) => setPickupDate(e.target.value)}
-                    className="h-12"
-                  />
+                  <Label className="text-sm font-medium">Pickup Date</Label>
+                  <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className={`h-12 w-full justify-start text-left font-normal bg-background ${
+                          !pickupDate ? "text-muted-foreground" : ""
+                        }`}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {pickupDate
+                          ? new Date(pickupDate + "T00:00:00").toLocaleDateString("en-AU", {
+                              weekday: "short",
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                            })
+                          : "Select date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={pickupDate ? new Date(pickupDate + "T00:00:00") : undefined}
+                        onSelect={(date) => {
+                          if (date) {
+                            const yyyy = date.getFullYear();
+                            const mm = String(date.getMonth() + 1).padStart(2, "0");
+                            const dd = String(date.getDate()).padStart(2, "0");
+                            setPickupDate(`${yyyy}-${mm}-${dd}`);
+                            setCalendarOpen(false);
+                          }
+                        }}
+                        disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="time" className="text-sm font-medium">Pickup Time</Label>
