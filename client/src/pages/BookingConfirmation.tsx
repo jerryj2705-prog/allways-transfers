@@ -2,7 +2,7 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useLocation, useParams } from "wouter";
-import { CheckCircle, Copy, Home, Calendar, MapPin, Users, Car, CreditCard, Wallet, Banknote } from "lucide-react";
+import { CheckCircle, Copy, Home, Calendar, MapPin, Users, Car, CreditCard, Wallet, Banknote, Baby, Dog } from "lucide-react";
 import { toast } from "sonner";
 import { SERVICE_TYPES, PAYMENT_METHODS } from "@shared/types";
 import type { ServiceType, PaymentMethod } from "@shared/types";
@@ -142,6 +142,20 @@ export default function BookingConfirmation() {
                 <div>
                   <p className="text-muted-foreground">Support Van</p>
                   <p className="font-medium">Included</p>
+                </div>
+              )}
+              {(booking.rearFacingSeats > 0 || booking.forwardFacingSeats > 0 || booking.boosterSeats > 0) && (
+                <div className="col-span-2">
+                  <p className="text-muted-foreground flex items-center gap-1"><Baby className="w-3 h-3" /> Child Seats</p>
+                  <p className="font-medium">
+                    {[booking.rearFacingSeats > 0 && `${booking.rearFacingSeats} Rear-Facing`, booking.forwardFacingSeats > 0 && `${booking.forwardFacingSeats} Forward-Facing`, booking.boosterSeats > 0 && `${booking.boosterSeats} Booster`].filter(Boolean).join(", ")}
+                  </p>
+                </div>
+              )}
+              {booking.isPetFriendly === 1 && (
+                <div className="col-span-2">
+                  <p className="text-muted-foreground flex items-center gap-1"><Dog className="w-3 h-3" /> Pet</p>
+                  <p className="font-medium">{booking.petDescription || "Yes"}</p>
                 </div>
               )}
               <div>

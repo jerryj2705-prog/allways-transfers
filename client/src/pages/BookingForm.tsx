@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import {
   Plane, Clock, MapPin, Star, ArrowLeft, ArrowRight, Check,
   Users, Briefcase, Truck, ChevronLeft, CreditCard, Banknote, Wallet,
-  AlertTriangle,
+  AlertTriangle, Search, MapPinned, Baby, Dog, Plus, Minus,
 } from "lucide-react";
 import { SERVICE_TYPES, SUV_CAPACITY, PAYMENT_METHODS } from "@shared/types";
 import type { PaymentMethod } from "@shared/types";
@@ -50,6 +50,123 @@ const STEPS = [
   "Review & Confirm",
 ];
 
+/* ─── Suburb Autocomplete Component ─── */
+function SuburbAutocomplete({
+  label,
+  placeholder,
+  value,
+  onChange,
+  suburbs,
+  id,
+  areaInfo,
+}: {
+  label: string;
+  placeholder: string;
+  value: string;
+  onChange: (val: string) => void;
+  suburbs: string[];
+  id: string;
+  areaInfo?: { area: string; lga: string } | null;
+}) {
+  const [query, setQuery] = useState(value);
+  const [open, setOpen] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  const filtered = useMemo(() => {
+    if (!query.trim()) return suburbs.slice(0, 20);
+    const q = query.toLowerCase();
+    return suburbs.filter((s) => s.toLowerCase().includes(q)).slice(0, 15);
+  }, [query, suburbs]);
+
+  useEffect(() => {
+    setQuery(value);
+  }, [value]);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const areaColor = areaInfo?.area === "primary"
+    ? "text-emerald-400"
+    : areaInfo?.area === "secondary"
+    ? "text-amber-400"
+    : areaInfo?.area === "other"
+    ? "text-red-400"
+    : "";
+
+  const areaLabel = areaInfo?.area === "primary"
+    ? "Primary Area"
+    : areaInfo?.area === "secondary"
+    ? "Secondary Area"
+    : areaInfo?.area === "other"
+    ? "Out of Service Area"
+    : "";
+
+  return (
+    <div className="space-y-2" ref={ref}>
+      <Label htmlFor={id} className="text-sm font-medium">{label}</Label>
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <Input
+          id={id}
+          placeholder={placeholder}
+          value={query}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setOpen(true);
+            // Clear selection if user types something different
+            if (e.target.value.toLowerCase() !== value.toLowerCase()) {
+              onChange("");
+            }
+          }}
+          onFocus={() => {
+            setFocused(true);
+            setOpen(true);
+          }}
+          onBlur={() => setFocused(false)}
+          className="h-12 pl-10"
+          autoComplete="off"
+        />
+        {open && filtered.length > 0 && (
+          <div className="absolute z-50 top-full mt-1 w-full bg-card border border-border rounded-lg shadow-xl max-h-60 overflow-y-auto">
+            {filtered.map((suburb) => (
+              <button
+                key={suburb}
+                type="button"
+                className={`w-full text-left px-4 py-2.5 text-sm hover:bg-accent/50 transition-colors flex items-center gap-2 ${
+                  value === suburb ? "bg-accent/30 text-primary font-medium" : "text-foreground"
+                }`}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  setQuery(suburb);
+                  onChange(suburb);
+                  setOpen(false);
+                }}
+              >
+                <MapPinned className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                {suburb}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+      {value && areaInfo && (
+        <p className={`text-xs ${areaColor}`}>
+          {areaLabel} — {areaInfo.lga}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/* ─── Main Booking Form ─── */
 export default function BookingForm() {
   const [, setLocation] = useLocation();
   const [step, setStep] = useState(0);
@@ -57,13 +174,18 @@ export default function BookingForm() {
   // Form state
   const [serviceType, setServiceType] = useState<ServiceType | "">("");
   const [pickupAddress, setPickupAddress] = useState("");
+  const [pickupSuburb, setPickupSuburb] = useState("");
   const [dropoffAddress, setDropoffAddress] = useState("");
+  const [dropoffSuburb, setDropoffSuburb] = useState("");
   const [pickupDate, setPickupDate] = useState("");
   const [pickupTime, setPickupTime] = useState("");
   const [passengerCount, setPassengerCount] = useState(1);
   const [needsSupportVan, setNeedsSupportVan] = useState(false);
-  const [estimatedDistance, setEstimatedDistance] = useState(0);
-  const [isOutOfArea, setIsOutOfArea] = useState(false);
+  const [rearFacingSeats, setRearFacingSeats] = useState(0);
+  const [forwardFacingSeats, setForwardFacingSeats] = useState(0);
+  const [boosterSeats, setBoosterSeats] = useState(0);
+  const [isPetFriendly, setIsPetFriendly] = useState(false);
+  const [petDescription, setPetDescription] = useState("");
   const [clientName, setClientName] = useState("");
   const [clientEmail, setClientEmail] = useState("");
   const [clientPhone, setClientPhone] = useState("");
@@ -75,6 +197,10 @@ export default function BookingForm() {
   const vehicles = vehiclesData ?? [];
   const suv = vehicles.find((v) => v.type === "suv");
   const van = vehicles.find((v) => v.type === "van");
+
+  // Fetch suburb list for autocomplete
+  const { data: suburbList } = trpc.pricing.suburbs.useQuery();
+  const suburbs = suburbList ?? [];
 
   // Fetch pricing settings for base prices on service cards
   const { data: pricingSettings } = trpc.pricing.getAll.useQuery();
@@ -93,24 +219,34 @@ export default function BookingForm() {
     special_events: "base_special_events",
   };
 
+  // Lookup suburb info for area detection display
+  const { data: pickupInfo } = trpc.pricing.lookupSuburb.useQuery(
+    { suburb: pickupSuburb },
+    { enabled: !!pickupSuburb }
+  );
+  const { data: dropoffInfo } = trpc.pricing.lookupSuburb.useQuery(
+    { suburb: dropoffSuburb },
+    { enabled: !!dropoffSuburb }
+  );
+
   // Derive pickup hour from time input
   const pickupHour = useMemo(() => {
     if (!pickupTime) return 12;
     return parseInt(pickupTime.split(":")[0], 10);
   }, [pickupTime]);
 
-  // Calculate price using server-side pricing engine
+  // Calculate price using server-side pricing engine (suburb-based)
   const priceInput = useMemo(() => {
-    if (!serviceType) return null;
+    if (!serviceType || !pickupSuburb) return null;
     return {
       serviceType,
-      distanceKm: estimatedDistance,
+      pickupSuburb,
+      destinationSuburb: dropoffSuburb || undefined,
       pickupHour,
-      isOutOfArea,
       needsSupportVan,
       paymentMethod: paymentMethod || "cash_postpay",
     };
-  }, [serviceType, estimatedDistance, pickupHour, isOutOfArea, needsSupportVan, paymentMethod]);
+  }, [serviceType, pickupSuburb, dropoffSuburb, pickupHour, needsSupportVan, paymentMethod]);
 
   const { data: priceBreakdown } = trpc.pricing.calculate.useQuery(
     priceInput!,
@@ -127,8 +263,14 @@ export default function BookingForm() {
     squareSurcharge: 0,
     subtotal: 0,
     totalPrice: 0,
+    distanceKm: 0,
+    isOutOfArea: false,
+    pickupArea: null as string | null,
+    destinationArea: null as string | null,
   };
 
+  const estimatedDistance = priceBreakdown?.distanceKm ?? 0;
+  const isOutOfArea = priceBreakdown?.isOutOfArea ?? false;
   const isOutOfHours = pickupHour >= 20 || pickupHour < 6;
 
   const createBooking = trpc.bookings.create.useMutation({
@@ -149,9 +291,9 @@ export default function BookingForm() {
   const canProceed = () => {
     switch (step) {
       case 0: return serviceType !== "";
-      case 1: return pickupAddress && pickupDate && pickupTime && passengerCount >= 1 &&
-        (serviceType === "hourly_hire" || dropoffAddress);
-      case 2: return !!suv;
+      case 1: return pickupAddress && pickupSuburb && pickupDate && pickupTime && passengerCount >= 1 &&
+        (serviceType === "hourly_hire" || (dropoffAddress && dropoffSuburb));
+      case 2: return !!suv && (!isPetFriendly || petDescription.trim().length > 0);
       case 3: return clientName && clientEmail && clientPhone;
       case 4: return paymentMethod !== "";
       case 5: return termsAccepted;
@@ -169,14 +311,19 @@ export default function BookingForm() {
       clientEmail,
       clientPhone,
       serviceType,
-      pickupAddress,
-      dropoffAddress: dropoffAddress || undefined,
+      pickupAddress: `${pickupAddress} (${pickupSuburb})`,
+      dropoffAddress: dropoffAddress ? `${dropoffAddress} (${dropoffSuburb})` : undefined,
       pickupDate: dateTime,
       passengerCount,
       vehicleId: suv.id,
       vehicleName: suv.name,
       needsSupportVan,
       supportVanPrice: pricing.supportVanPrice,
+      rearFacingSeats,
+      forwardFacingSeats,
+      boosterSeats,
+      isPetFriendly,
+      petDescription: isPetFriendly ? petDescription : undefined,
       estimatedDistance,
       basePrice: pricing.basePrice,
       totalPrice: pricing.totalPrice,
@@ -270,7 +417,7 @@ export default function BookingForm() {
                           <img
                             src={svcImage}
                             alt={svc.label}
-                            className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-card via-card/60 to-transparent" />
                           <div className={`absolute top-3 right-3 w-10 h-10 rounded-full flex items-center justify-center ${
@@ -280,24 +427,19 @@ export default function BookingForm() {
                           </div>
                         </div>
                       )}
-                      <CardContent className={`${svcImage ? "p-4 pt-2" : "p-6"} space-y-2`}>
+                      <CardContent className={`${svcImage ? "pt-2" : "pt-6"} pb-5 px-5 space-y-2`}>
+                        <div className="flex items-center justify-between">
+                          <h3 className="font-heading text-lg font-semibold">{svc.label}</h3>
+                          {basePrice && (
+                            <span className="text-sm gold-text font-bold">from ${basePrice}</span>
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground leading-relaxed">{svc.description}</p>
                         {!svcImage && (
-                          <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
+                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
                             selected ? "gold-gradient" : "bg-muted"
                           }`}>
-                            <Icon className={`w-6 h-6 ${selected ? "text-gold-foreground" : "text-muted-foreground"}`} />
-                          </div>
-                        )}
-                        <h3 className="font-heading text-lg font-semibold">{svc.label}</h3>
-                        <p className="text-sm text-muted-foreground">{svc.description}</p>
-                        {basePrice && (
-                          <div className="pt-2 border-t border-border/30">
-                            <span className="text-primary font-heading text-lg font-bold">
-                              From ${basePrice}
-                            </span>
-                            {key === "hourly_hire" && (
-                              <span className="text-xs text-muted-foreground ml-1">/per hour</span>
-                            )}
+                            <Icon className={`w-5 h-5 ${selected ? "text-gold-foreground" : "text-muted-foreground"}`} />
                           </div>
                         )}
                       </CardContent>
@@ -317,28 +459,72 @@ export default function BookingForm() {
               <p className="text-muted-foreground">Tell us about your journey.</p>
             </div>
             <div className="space-y-5">
+              {/* Pickup Address */}
               <div className="space-y-2">
-                <Label htmlFor="pickup" className="text-sm font-medium">Pickup Location</Label>
+                <Label htmlFor="pickup" className="text-sm font-medium">Pickup Address</Label>
                 <Input
                   id="pickup"
-                  placeholder="Enter pickup address"
+                  placeholder="Enter street address"
                   value={pickupAddress}
                   onChange={(e) => setPickupAddress(e.target.value)}
                   className="h-12"
                 />
               </div>
+
+              {/* Pickup Suburb - Autocomplete */}
+              <SuburbAutocomplete
+                label="Pickup Suburb"
+                placeholder="Start typing suburb name..."
+                value={pickupSuburb}
+                onChange={setPickupSuburb}
+                suburbs={suburbs}
+                id="pickupSuburb"
+                areaInfo={pickupInfo}
+              />
+
+              {/* Drop-off (not for hourly hire) */}
               {serviceType !== "hourly_hire" && (
-                <div className="space-y-2">
-                  <Label htmlFor="dropoff" className="text-sm font-medium">Drop-off Location</Label>
-                  <Input
-                    id="dropoff"
-                    placeholder="Enter drop-off address"
-                    value={dropoffAddress}
-                    onChange={(e) => setDropoffAddress(e.target.value)}
-                    className="h-12"
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="dropoff" className="text-sm font-medium">Drop-off Address</Label>
+                    <Input
+                      id="dropoff"
+                      placeholder="Enter street address"
+                      value={dropoffAddress}
+                      onChange={(e) => setDropoffAddress(e.target.value)}
+                      className="h-12"
+                    />
+                  </div>
+
+                  <SuburbAutocomplete
+                    label="Drop-off Suburb"
+                    placeholder="Start typing suburb name..."
+                    value={dropoffSuburb}
+                    onChange={setDropoffSuburb}
+                    suburbs={suburbs}
+                    id="dropoffSuburb"
+                    areaInfo={dropoffInfo}
                   />
+                </>
+              )}
+
+              {/* Auto-detected area & distance info */}
+              {pickupSuburb && dropoffSuburb && estimatedDistance > 0 && (
+                <div className="p-4 rounded-lg bg-secondary/50 space-y-2">
+                  <div className="flex items-center gap-2 text-sm">
+                    <MapPinned className="w-4 h-4 text-primary" />
+                    <span className="font-medium">Estimated Distance:</span>
+                    <span className="gold-text font-bold">{estimatedDistance} km</span>
+                  </div>
+                  {isOutOfArea && (
+                    <div className="flex items-start gap-2 text-sm text-amber-400">
+                      <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                      <span>One or both locations are in a secondary service area. An out-of-area surcharge will apply.</span>
+                    </div>
+                  )}
                 </div>
               )}
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="date" className="text-sm font-medium">Pickup Date</Label>
@@ -367,7 +553,7 @@ export default function BookingForm() {
                   <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
                   <div className="text-sm">
                     <p className="font-medium text-amber-400">Out-of-Hours Pickup</p>
-                    <p className="text-muted-foreground">Pickups between 8pm and 6am may incur an out-of-hours surcharge.</p>
+                    <p className="text-muted-foreground">Pickups between 8pm and 6am incur an out-of-hours surcharge.</p>
                   </div>
                 </div>
               )}
@@ -398,37 +584,6 @@ export default function BookingForm() {
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground">{passengerNote}</p>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="distance" className="text-sm font-medium">Estimated Distance (km)</Label>
-                <Input
-                  id="distance"
-                  type="number"
-                  min={0}
-                  step={1}
-                  placeholder="Approximate distance in kilometres"
-                  value={estimatedDistance || ""}
-                  onChange={(e) => setEstimatedDistance(Math.max(0, parseFloat(e.target.value) || 0))}
-                  className="h-12"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Enter the approximate distance for your trip. This helps us calculate your fare estimate.
-                </p>
-              </div>
-              {/* Out-of-area checkbox */}
-              <div className="flex items-start gap-3 p-4 rounded-lg bg-secondary/50">
-                <Checkbox
-                  id="outOfArea"
-                  checked={isOutOfArea}
-                  onCheckedChange={(checked) => setIsOutOfArea(!!checked)}
-                  className="mt-0.5"
-                />
-                <label htmlFor="outOfArea" className="text-sm text-muted-foreground leading-relaxed cursor-pointer">
-                  <span className="font-medium text-foreground">Out-of-area pickup/drop-off</span>
-                  <br />
-                  Check this if your pickup or drop-off is outside the Sunshine Coast / Brisbane primary service area.
-                  An additional surcharge may apply.
-                </label>
               </div>
             </div>
           </div>
@@ -499,6 +654,151 @@ export default function BookingForm() {
                 </CardContent>
               </Card>
             )}
+
+            {/* Child Seat Options */}
+            <Card className="border-border/50">
+              <CardContent className="p-6 space-y-5">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                    <Baby className="w-5 h-5 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <h3 className="font-heading text-lg font-semibold">Child Seats</h3>
+                    <p className="text-sm text-muted-foreground">Select the child seats you require (max 2 of each type)</p>
+                  </div>
+                </div>
+
+                {/* Rear-Facing */}
+                <div className="flex items-center justify-between py-2 border-t border-border/30">
+                  <div>
+                    <p className="text-sm font-medium">Rear-Facing Seat</p>
+                    <p className="text-xs text-muted-foreground">For infants (birth to ~12 months)</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Button
+                      type="button" variant="outline" size="icon"
+                      className="h-8 w-8 bg-background"
+                      onClick={() => setRearFacingSeats(Math.max(0, rearFacingSeats - 1))}
+                      disabled={rearFacingSeats === 0}
+                    >
+                      <Minus className="w-3.5 h-3.5" />
+                    </Button>
+                    <span className="text-lg font-heading font-bold w-6 text-center">{rearFacingSeats}</span>
+                    <Button
+                      type="button" variant="outline" size="icon"
+                      className="h-8 w-8 bg-background"
+                      onClick={() => setRearFacingSeats(Math.min(2, rearFacingSeats + 1))}
+                      disabled={rearFacingSeats === 2}
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Forward-Facing */}
+                <div className="flex items-center justify-between py-2 border-t border-border/30">
+                  <div>
+                    <p className="text-sm font-medium">Forward-Facing Seat</p>
+                    <p className="text-xs text-muted-foreground">For toddlers (~1 to 4 years)</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Button
+                      type="button" variant="outline" size="icon"
+                      className="h-8 w-8 bg-background"
+                      onClick={() => setForwardFacingSeats(Math.max(0, forwardFacingSeats - 1))}
+                      disabled={forwardFacingSeats === 0}
+                    >
+                      <Minus className="w-3.5 h-3.5" />
+                    </Button>
+                    <span className="text-lg font-heading font-bold w-6 text-center">{forwardFacingSeats}</span>
+                    <Button
+                      type="button" variant="outline" size="icon"
+                      className="h-8 w-8 bg-background"
+                      onClick={() => setForwardFacingSeats(Math.min(2, forwardFacingSeats + 1))}
+                      disabled={forwardFacingSeats === 2}
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Booster */}
+                <div className="flex items-center justify-between py-2 border-t border-border/30">
+                  <div>
+                    <p className="text-sm font-medium">Booster Seat</p>
+                    <p className="text-xs text-muted-foreground">For children (~4 to 7 years)</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Button
+                      type="button" variant="outline" size="icon"
+                      className="h-8 w-8 bg-background"
+                      onClick={() => setBoosterSeats(Math.max(0, boosterSeats - 1))}
+                      disabled={boosterSeats === 0}
+                    >
+                      <Minus className="w-3.5 h-3.5" />
+                    </Button>
+                    <span className="text-lg font-heading font-bold w-6 text-center">{boosterSeats}</span>
+                    <Button
+                      type="button" variant="outline" size="icon"
+                      className="h-8 w-8 bg-background"
+                      onClick={() => setBoosterSeats(Math.min(2, boosterSeats + 1))}
+                      disabled={boosterSeats === 2}
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Pet-Friendly Option */}
+            <Card className={`transition-all duration-200 ${
+              isPetFriendly ? "ring-2 ring-primary shadow-lg" : "border-border/50 hover:shadow-md"
+            }`}>
+              <CardContent className="p-6 space-y-4">
+                <div
+                  className="flex items-start gap-4 cursor-pointer"
+                  onClick={() => {
+                    setIsPetFriendly(!isPetFriendly);
+                    if (isPetFriendly) setPetDescription("");
+                  }}
+                >
+                  <Checkbox
+                    checked={isPetFriendly}
+                    onCheckedChange={(checked) => {
+                      setIsPetFriendly(!!checked);
+                      if (!checked) setPetDescription("");
+                    }}
+                    className="mt-1"
+                  />
+                  <div className="flex items-center gap-3">
+                    <Dog className="w-5 h-5 text-muted-foreground" />
+                    <div>
+                      <h3 className="font-heading text-lg font-semibold">Pet Friendly</h3>
+                      <p className="text-sm text-muted-foreground">I will be travelling with a pet</p>
+                    </div>
+                  </div>
+                </div>
+                {isPetFriendly && (
+                  <div className="space-y-2 pl-8">
+                    <Label htmlFor="petDesc" className="text-sm font-medium">
+                      Pet Description <span className="text-red-400">*</span>
+                    </Label>
+                    <Textarea
+                      id="petDesc"
+                      placeholder="Please describe your pet (e.g. breed, size, temperament, any special needs)..."
+                      value={petDescription}
+                      onChange={(e) => setPetDescription(e.target.value)}
+                      rows={3}
+                      className={!petDescription.trim() ? "border-red-500/50" : ""}
+                    />
+                    {!petDescription.trim() && (
+                      <p className="text-xs text-red-400">Pet description is required when travelling with a pet.</p>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
         )}
 
@@ -638,11 +938,13 @@ export default function BookingForm() {
                     <div>
                       <p className="text-muted-foreground">Pickup</p>
                       <p className="font-medium">{pickupAddress}</p>
+                      <p className="text-xs text-muted-foreground">{pickupSuburb}{pickupInfo ? ` (${pickupInfo.area === "primary" ? "Primary" : pickupInfo.area === "secondary" ? "Secondary" : "Other"} Area)` : ""}</p>
                     </div>
                     {dropoffAddress && (
                       <div>
                         <p className="text-muted-foreground">Drop-off</p>
                         <p className="font-medium">{dropoffAddress}</p>
+                        <p className="text-xs text-muted-foreground">{dropoffSuburb}{dropoffInfo ? ` (${dropoffInfo.area === "primary" ? "Primary" : dropoffInfo.area === "secondary" ? "Secondary" : "Other"} Area)` : ""}</p>
                       </div>
                     )}
                     <div>
@@ -662,7 +964,7 @@ export default function BookingForm() {
                     {isOutOfArea && (
                       <div>
                         <p className="text-muted-foreground">Area</p>
-                        <p className="font-medium text-amber-400">Out of primary area</p>
+                        <p className="font-medium text-amber-400">Secondary area surcharge applies</p>
                       </div>
                     )}
                   </div>
@@ -676,6 +978,39 @@ export default function BookingForm() {
                     <p className="text-sm text-muted-foreground">+ Support Van for luggage/freight</p>
                   )}
                 </div>
+
+                {/* Options */}
+                {(rearFacingSeats > 0 || forwardFacingSeats > 0 || boosterSeats > 0 || isPetFriendly) && (
+                  <div className="space-y-3 border-t border-border/50 pt-4">
+                    <p className="text-xs font-medium tracking-widest uppercase text-primary">Options</p>
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      {rearFacingSeats > 0 && (
+                        <div>
+                          <p className="text-muted-foreground">Rear-Facing Seats</p>
+                          <p className="font-medium">{rearFacingSeats}</p>
+                        </div>
+                      )}
+                      {forwardFacingSeats > 0 && (
+                        <div>
+                          <p className="text-muted-foreground">Forward-Facing Seats</p>
+                          <p className="font-medium">{forwardFacingSeats}</p>
+                        </div>
+                      )}
+                      {boosterSeats > 0 && (
+                        <div>
+                          <p className="text-muted-foreground">Booster Seats</p>
+                          <p className="font-medium">{boosterSeats}</p>
+                        </div>
+                      )}
+                      {isPetFriendly && (
+                        <div className="col-span-2">
+                          <p className="text-muted-foreground">Pet</p>
+                          <p className="font-medium">{petDescription}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {/* Client */}
                 <div className="space-y-3 border-t border-border/50 pt-4">

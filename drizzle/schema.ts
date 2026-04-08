@@ -55,6 +55,13 @@ export const bookings = mysqlTable("bookings", {
   // Support van add-on
   needsSupportVan: int("needsSupportVan").notNull().default(0),
   supportVanPrice: decimal("supportVanPrice", { precision: 10, scale: 2 }).default("0"),
+  // Child seat options (0, 1, or 2 of each type)
+  rearFacingSeats: int("rearFacingSeats").notNull().default(0),
+  forwardFacingSeats: int("forwardFacingSeats").notNull().default(0),
+  boosterSeats: int("boosterSeats").notNull().default(0),
+  // Pet-friendly
+  isPetFriendly: int("isPetFriendly").notNull().default(0),
+  petDescription: text("petDescription"),
   // Pricing
   estimatedDistance: decimal("estimatedDistance", { precision: 10, scale: 2 }),
   estimatedDuration: int("estimatedDuration"),

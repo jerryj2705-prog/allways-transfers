@@ -13,7 +13,7 @@ import { useLocation, useParams } from "wouter";
 import { toast } from "sonner";
 import {
   ChevronLeft, MapPin, Calendar, Users, Car, Truck, Phone, Mail, User,
-  Clock, CheckCircle, XCircle, AlertCircle,
+  Clock, CheckCircle, XCircle, AlertCircle, Baby, Dog,
 } from "lucide-react";
 import { SERVICE_TYPES, BOOKING_STATUSES, PAYMENT_METHODS } from "@shared/types";
 import type { ServiceType, BookingStatus, PaymentMethod } from "@shared/types";
@@ -227,6 +227,26 @@ export default function AdminBookingDetail() {
                       <div>
                         <p className="text-muted-foreground">Support Van</p>
                         <p className="font-medium">Required (+${parseFloat(booking.supportVanPrice ?? "0").toFixed(2)})</p>
+                      </div>
+                    </div>
+                  )}
+                  {(booking.rearFacingSeats > 0 || booking.forwardFacingSeats > 0 || booking.boosterSeats > 0) && (
+                    <div className="flex items-start gap-3 col-span-2">
+                      <Baby className="w-4 h-4 text-muted-foreground mt-0.5" />
+                      <div>
+                        <p className="text-muted-foreground">Child Seats</p>
+                        <p className="font-medium">
+                          {[booking.rearFacingSeats > 0 && `${booking.rearFacingSeats} Rear-Facing`, booking.forwardFacingSeats > 0 && `${booking.forwardFacingSeats} Forward-Facing`, booking.boosterSeats > 0 && `${booking.boosterSeats} Booster`].filter(Boolean).join(", ")}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  {booking.isPetFriendly === 1 && (
+                    <div className="flex items-start gap-3 col-span-2">
+                      <Dog className="w-4 h-4 text-muted-foreground mt-0.5" />
+                      <div>
+                        <p className="text-muted-foreground">Pet</p>
+                        <p className="font-medium">{booking.petDescription || "Yes"}</p>
                       </div>
                     </div>
                   )}

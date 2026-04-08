@@ -19,6 +19,7 @@ import {
 } from "./db";
 import { createCheckoutSession } from "./stripe";
 import { notifyOwner } from "./_core/notification";
+import { lookupSuburb, estimateDistance, isOutOfArea, getAllSuburbNames } from "@shared/suburbs";
 
 export const appRouter = router({
   system: systemRouter,
@@ -58,6 +59,11 @@ export const appRouter = router({
           vehicleName: z.string(),
           needsSupportVan: z.boolean().default(false),
           supportVanPrice: z.number().default(0),
+          rearFacingSeats: z.number().min(0).max(2).default(0),
+          forwardFacingSeats: z.number().min(0).max(2).default(0),
+          boosterSeats: z.number().min(0).max(2).default(0),
+          isPetFriendly: z.boolean().default(false),
+          petDescription: z.string().optional(),
           estimatedDistance: z.number().optional(),
           estimatedDuration: z.number().optional(),
           basePrice: z.number(),
@@ -91,6 +97,11 @@ export const appRouter = router({
           vehicleName: input.vehicleName,
           needsSupportVan: input.needsSupportVan ? 1 : 0,
           supportVanPrice: input.supportVanPrice.toFixed(2),
+          rearFacingSeats: input.rearFacingSeats,
+          forwardFacingSeats: input.forwardFacingSeats,
+          boosterSeats: input.boosterSeats,
+          isPetFriendly: input.isPetFriendly ? 1 : 0,
+          petDescription: input.isPetFriendly ? (input.petDescription ?? null) : null,
           estimatedDistance: input.estimatedDistance?.toFixed(2) ?? null,
           estimatedDuration: input.estimatedDuration ?? null,
           basePrice: input.basePrice.toFixed(2),
@@ -184,21 +195,65 @@ export const appRouter = router({
       return getAllPricingSettings();
     }),
 
-    // Public: calculate price for a booking
+    // Public: calculate price for a booking (suburb-based)
     calculate: publicProcedure
       .input(
         z.object({
           serviceType: z.string(),
-          distanceKm: z.number().min(0),
+          pickupSuburb: z.string(),
+          destinationSuburb: z.string().optional(),
+          distanceKm: z.number().min(0).optional(),
           pickupHour: z.number().min(0).max(23),
-          isOutOfArea: z.boolean().default(false),
           needsSupportVan: z.boolean().default(false),
           paymentMethod: z.string().default("cash_postpay"),
         })
       )
       .query(async ({ input }) => {
-        return calculatePrice(input);
+        // Auto-detect out-of-area from suburbs
+        const outOfArea = input.pickupSuburb && input.destinationSuburb
+          ? isOutOfArea(input.pickupSuburb, input.destinationSuburb)
+          : input.pickupSuburb
+            ? isOutOfArea(input.pickupSuburb, input.pickupSuburb)
+            : false;
+
+        // Auto-estimate distance from suburbs
+        let distanceKm = input.distanceKm ?? 0;
+        if (input.pickupSuburb && input.destinationSuburb) {
+          const estimated = estimateDistance(input.pickupSuburb, input.destinationSuburb);
+          if (estimated !== null) {
+            distanceKm = estimated;
+          }
+        }
+
+        const breakdown = await calculatePrice({
+          serviceType: input.serviceType,
+          distanceKm,
+          pickupHour: input.pickupHour,
+          isOutOfArea: outOfArea,
+          needsSupportVan: input.needsSupportVan,
+          paymentMethod: input.paymentMethod,
+        });
+
+        return {
+          ...breakdown,
+          distanceKm,
+          isOutOfArea: outOfArea,
+          pickupArea: lookupSuburb(input.pickupSuburb)?.area ?? "other",
+          destinationArea: input.destinationSuburb ? (lookupSuburb(input.destinationSuburb)?.area ?? "other") : null,
+        };
       }),
+
+    // Public: lookup suburb info
+    lookupSuburb: publicProcedure
+      .input(z.object({ suburb: z.string() }))
+      .query(({ input }) => {
+        return lookupSuburb(input.suburb);
+      }),
+
+    // Public: get all suburb names for autocomplete
+    suburbs: publicProcedure.query(() => {
+      return getAllSuburbNames();
+    }),
 
     // Admin: update a pricing setting
     update: adminProcedure

@@ -196,6 +196,85 @@ describe("bookings.create", () => {
   });
 });
 
+describe("bookings.create with child seats and pet", () => {
+  it("creates a booking with child seats and pet description", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+
+    const vehicles = await caller.vehicles.list();
+    const suv = vehicles.find((v) => v.type === "suv");
+    expect(suv).toBeDefined();
+
+    const booking = await caller.bookings.create({
+      clientName: "Pet & Child Client",
+      clientEmail: "petchild@example.com",
+      clientPhone: "+61 400 555 555",
+      serviceType: "airport_transfer",
+      pickupAddress: "Sunshine Coast Airport",
+      dropoffAddress: "Noosa Heads",
+      pickupDate: Date.now() + 86400000,
+      passengerCount: 4,
+      vehicleId: suv!.id,
+      vehicleName: suv!.name,
+      needsSupportVan: false,
+      supportVanPrice: 0,
+      rearFacingSeats: 1,
+      forwardFacingSeats: 2,
+      boosterSeats: 0,
+      isPetFriendly: true,
+      petDescription: "Small Labrador, well-behaved, travels in a crate",
+      basePrice: 170,
+      totalPrice: 170,
+      termsAccepted: true,
+      paymentMethod: "cash_postpay",
+    });
+
+    expect(booking).toBeDefined();
+    expect(booking.referenceNumber).toBeTruthy();
+    expect(booking.rearFacingSeats).toBe(1);
+    expect(booking.forwardFacingSeats).toBe(2);
+    expect(booking.boosterSeats).toBe(0);
+    expect(booking.isPetFriendly).toBe(1);
+    expect(booking.petDescription).toBe("Small Labrador, well-behaved, travels in a crate");
+  });
+
+  it("creates a booking without pet - petDescription should be null", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+
+    const vehicles = await caller.vehicles.list();
+    const suv = vehicles.find((v) => v.type === "suv");
+
+    const booking = await caller.bookings.create({
+      clientName: "No Pet Client",
+      clientEmail: "nopet@example.com",
+      clientPhone: "+61 400 666 666",
+      serviceType: "point_to_point",
+      pickupAddress: "Brisbane CBD",
+      dropoffAddress: "Gold Coast",
+      pickupDate: Date.now() + 86400000,
+      passengerCount: 2,
+      vehicleId: suv!.id,
+      vehicleName: suv!.name,
+      needsSupportVan: false,
+      supportVanPrice: 0,
+      rearFacingSeats: 0,
+      forwardFacingSeats: 0,
+      boosterSeats: 1,
+      isPetFriendly: false,
+      basePrice: 200,
+      totalPrice: 200,
+      termsAccepted: true,
+      paymentMethod: "cash_postpay",
+    });
+
+    expect(booking).toBeDefined();
+    expect(booking.boosterSeats).toBe(1);
+    expect(booking.isPetFriendly).toBe(0);
+    expect(booking.petDescription).toBeNull();
+  });
+});
+
 describe("bookings.list (admin)", () => {
   it("allows admin to list bookings", async () => {
     const ctx = createAdminContext();

@@ -126,3 +126,25 @@
 - [x] Display base price on each service card (landing page and booking form)
 - [x] Booking form shows price breakdown with all applicable surcharges
 - [x] Store calculated price and breakdown on booking record
+
+## Auto Area Detection & Distance Calculation
+- [x] Create suburb-to-LGA lookup data for SE Queensland
+- [x] Define primary area (Sunshine Coast, Noosa) and secondary area (Fraser Coast, Gympie, Somerset, Moreton Bay, Brisbane, Logan, Gold Coast, Redland, Scenic Rim, Ipswich)
+- [x] Auto-detect out-of-area surcharge when pickup or destination suburb is in secondary area
+- [x] Remove manual out-of-area checkbox from booking form
+- [x] Remove manual distance input from booking form
+- [x] Auto-calculate approximate distance between pickup and destination suburbs
+- [x] Include distance × per-km rate in total price calculation
+- [x] Update pricing engine to use auto-detected area and distance
+
+## Child Seat & Pet-Friendly Options
+- [x] Add child seat columns to bookings schema: rearFacingSeats (0/1/2), forwardFacingSeats (0/1/2), boosterSeats (0/1/2)
+- [x] Add isPetFriendly column to bookings schema
+- [x] Run database migration for new columns
+- [x] Add child seat selectors to booking form (rear-facing 1/2, forward-facing 1/2, booster 1/2)
+- [x] Add pet-friendly checkbox to booking form
+- [x] Wire child seat and pet-friendly fields through server routers
+- [x] Display child seat and pet-friendly info on booking confirmation page
+- [x] Display child seat and pet-friendly info on admin booking detail page
+- [x] Add compulsory pet description field (appears when pet-friendly checkbox is selected)
+- [x] Add petDescription column to bookings schema
