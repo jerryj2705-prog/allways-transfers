@@ -182,6 +182,7 @@ export default function BookingForm() {
   const [pickupDate, setPickupDate] = useState("");
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [pickupTime, setPickupTime] = useState("");
+  const [timeOpen, setTimeOpen] = useState(false);
   const [passengerCount, setPassengerCount] = useState(1);
   const [needsSupportVan, setNeedsSupportVan] = useState(false);
   const [rearFacingSeats, setRearFacingSeats] = useState(0);
@@ -571,14 +572,58 @@ export default function BookingForm() {
                   </Popover>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="time" className="text-sm font-medium">Pickup Time</Label>
-                  <Input
-                    id="time"
-                    type="time"
-                    value={pickupTime}
-                    onChange={(e) => setPickupTime(e.target.value)}
-                    className="h-12"
-                  />
+                  <Label className="text-sm font-medium">Pickup Time</Label>
+                  <Popover open={timeOpen} onOpenChange={setTimeOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className={`h-12 w-full justify-start text-left font-normal bg-background ${
+                          !pickupTime ? "text-muted-foreground" : ""
+                        }`}
+                      >
+                        <Clock className="mr-2 h-4 w-4" />
+                        {pickupTime
+                          ? (() => {
+                              const [h, m] = pickupTime.split(":");
+                              const hour = parseInt(h, 10);
+                              const ampm = hour >= 12 ? "PM" : "AM";
+                              const h12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+                              return `${h12}:${m} ${ampm}`;
+                            })()
+                          : "Select time"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-48 p-0" align="start">
+                      <div className="h-64 overflow-y-auto">
+                        {Array.from({ length: 96 }, (_, i) => {
+                          const hour = Math.floor(i / 4);
+                          const minute = (i % 4) * 15;
+                          const value = `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+                          const ampm = hour >= 12 ? "PM" : "AM";
+                          const h12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+                          const label = `${h12}:${String(minute).padStart(2, "0")} ${ampm}`;
+                          return (
+                            <button
+                              key={value}
+                              type="button"
+                              onClick={() => {
+                                setPickupTime(value);
+                                setTimeOpen(false);
+                              }}
+                              className={`w-full px-4 py-2.5 text-left text-sm hover:bg-accent hover:text-accent-foreground transition-colors ${
+                                pickupTime === value
+                                  ? "bg-primary text-primary-foreground font-medium"
+                                  : ""
+                              }`}
+                            >
+                              {label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
                 </div>
               </div>
               {/* Out-of-hours notice */}
@@ -983,7 +1028,26 @@ export default function BookingForm() {
                     )}
                     <div>
                       <p className="text-muted-foreground">Date & Time</p>
-                      <p className="font-medium">{pickupDate} at {pickupTime}</p>
+                      <p className="font-medium">
+                        {pickupDate
+                          ? new Date(pickupDate + "T00:00:00").toLocaleDateString("en-AU", {
+                              weekday: "short",
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                            })
+                          : pickupDate}
+                        {" at "}
+                        {pickupTime
+                          ? (() => {
+                              const [h, m] = pickupTime.split(":");
+                              const hour = parseInt(h, 10);
+                              const ampm = hour >= 12 ? "PM" : "AM";
+                              const h12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+                              return `${h12}:${m} ${ampm}`;
+                            })()
+                          : pickupTime}
+                      </p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">Passengers</p>

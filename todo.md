@@ -151,3 +151,6 @@
 
 ## Clickable Calendar Date Picker
 - [x] Replace native date input with clickable calendar component for Pickup Date
+
+## Clickable Time Selector
+- [x] Replace native time input with clickable time selector (15-minute intervals)
