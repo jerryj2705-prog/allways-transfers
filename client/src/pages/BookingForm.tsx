@@ -448,6 +448,13 @@ export default function BookingForm() {
                           )}
                         </div>
                         <p className="text-sm text-muted-foreground leading-relaxed">{svc.description}</p>
+                        {key === "hourly_hire" && (() => {
+                          const minSetting = pricingSettings?.find(s => s.settingKey === "min_hourly_hours");
+                          const minHrs = minSetting ? parseInt(minSetting.settingValue, 10) : null;
+                          return minHrs ? (
+                            <p className="text-xs text-amber-400 font-medium">Minimum {minHrs} hour{minHrs !== 1 ? "s" : ""}</p>
+                          ) : null;
+                        })()}
                         {!svcImage && (
                           <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
                             selected ? "gold-gradient" : "bg-muted"

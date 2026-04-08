@@ -172,3 +172,7 @@
 - [x] Enforce minimum hours in booking form UI
 - [x] Enforce minimum hours in server-side validation
 - [x] Display minimum hours info on service card and booking form
+
+## Minimum Hours Note on All Cards
+- [x] Add minimum hours note on Hourly Hire card in booking form service selection (step 0)
+- [x] Verify minimum hours note already present on Home page service card
