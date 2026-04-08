@@ -630,6 +630,7 @@ export default function BookingForm() {
                       </div>
                     </PopoverContent>
                   </Popover>
+                  <p className="text-xs text-muted-foreground mt-1">Times are in Queensland local time (AEST/UTC+10)</p>
                 </div>
               </div>
               {/* Out-of-hours notice */}

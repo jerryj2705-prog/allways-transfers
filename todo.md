@@ -212,3 +212,6 @@
 - [x] Add modification UI dialog on My Bookings page for upcoming bookings
 - [x] Validate that modifications are only allowed for pending/confirmed bookings
 - [x] Notify admin when a booking is modified
+
+## Queensland Time Note
+- [x] Add note to time picker that times are in local Queensland time (AEST)
