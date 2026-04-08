@@ -10,6 +10,9 @@ const AIRPORT_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2t
 const CHAUFFEUR_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/chauffeur_433d77f4.jpg";
 const WEDDING_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/wedding_92293137.png";
 const P2P_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/private-jet_ee739796.png";
+const CHILD_SEAT_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/child-seat_8653269a.png";
+const FIXED_PRICES_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/fixed-prices_5453b61b.jpg";
+const DOG_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/dog-in-car_de4ab663.png";
 
 const services = [
   {
@@ -43,31 +46,37 @@ const features = [
     icon: Shield,
     title: "Professional Drivers",
     description: "Experienced, licensed chauffeurs committed to your safety, privacy, and comfort.",
+    image: null,
   },
   {
     icon: DollarSign,
     title: "Fixed Prices",
     description: "No surge pricing, no surprises. Know your fare upfront before you book.",
+    image: FIXED_PRICES_IMG,
   },
   {
     icon: Award,
     title: "Luxury Vehicles",
     description: "Premium SUV with leather interior, climate control, and complimentary amenities.",
+    image: null,
   },
   {
     icon: Baby,
     title: "Child Seats Available",
     description: "Travel safely with your little ones. Child and booster seats provided on request.",
+    image: CHILD_SEAT_IMG,
   },
   {
     icon: PawPrint,
     title: "Pet Friendly",
     description: "Your furry companions are welcome. We accommodate pets with care and comfort.",
+    image: DOG_IMG,
   },
   {
     icon: Phone,
     title: "24/7 Availability",
     description: "Prebook anytime, day or night. We accommodate early flights and late events.",
+    image: null,
   },
 ];
 
@@ -270,14 +279,28 @@ export default function Home() {
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {features.map((feature) => (
-              <div key={feature.title} className="text-center space-y-4">
-                <div className="w-16 h-16 rounded-full gold-gradient flex items-center justify-center mx-auto">
-                  <feature.icon className="w-7 h-7 text-gold-foreground" />
+              <div key={feature.title} className="group text-center space-y-4 rounded-xl border border-border/50 overflow-hidden bg-card hover:border-primary/30 transition-all duration-300">
+                {feature.image ? (
+                  <div className="relative h-44 overflow-hidden">
+                    <img
+                      src={feature.image}
+                      alt={feature.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-card to-transparent" />
+                  </div>
+                ) : (
+                  <div className="pt-8" />
+                )}
+                <div className="px-6 pb-6 space-y-3">
+                  <div className="w-14 h-14 rounded-full gold-gradient flex items-center justify-center mx-auto -mt-7 relative z-10 shadow-lg">
+                    <feature.icon className="w-6 h-6 text-gold-foreground" />
+                  </div>
+                  <h3 className="font-heading text-xl text-offwhite">{feature.title}</h3>
+                  <p className="text-muted-foreground leading-relaxed max-w-sm mx-auto">
+                    {feature.description}
+                  </p>
                 </div>
-                <h3 className="font-heading text-xl text-offwhite">{feature.title}</h3>
-                <p className="text-muted-foreground leading-relaxed max-w-sm mx-auto">
-                  {feature.description}
-                </p>
               </div>
             ))}
           </div>

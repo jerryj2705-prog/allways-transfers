@@ -81,3 +81,8 @@
 - [x] Add chauffeur photo to Hourly Hire service card
 - [x] Add wedding photo to Special Events service card
 - [x] Add private jet photo to Point to Point service card
+
+## Why Choose Us Card Photos
+- [x] Add child seat photo to Child Seats Available card
+- [x] Add fixed prices photo to Fixed Prices card
+- [x] Add dog photo to Pet Friendly card
