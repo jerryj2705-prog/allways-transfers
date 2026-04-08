@@ -86,3 +86,6 @@
 - [x] Add child seat photo to Child Seats Available card
 - [x] Add fixed prices photo to Fixed Prices card
 - [x] Add dog photo to Pet Friendly card
+- [x] Add chauffeur photo to Professional Drivers card
+- [x] Add Kia Carnival interior photo to Luxury Vehicles card
+- [x] Add night out photo to 24/7 Availability card

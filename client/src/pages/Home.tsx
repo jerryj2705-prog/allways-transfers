@@ -13,6 +13,9 @@ const P2P_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZK
 const CHILD_SEAT_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/child-seat_8653269a.png";
 const FIXED_PRICES_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/fixed-prices_5453b61b.jpg";
 const DOG_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/dog-in-car_de4ab663.png";
+const PRO_DRIVER_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/chauffeur3_288d11fa.jpg";
+const LUXURY_VEHICLE_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/kia-interior_5a5efadf.jpg";
+const NIGHT_OUT_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/night-out_4b4fa337.png";
 
 const services = [
   {
@@ -46,7 +49,7 @@ const features = [
     icon: Shield,
     title: "Professional Drivers",
     description: "Experienced, licensed chauffeurs committed to your safety, privacy, and comfort.",
-    image: null,
+    image: PRO_DRIVER_IMG,
   },
   {
     icon: DollarSign,
@@ -58,7 +61,7 @@ const features = [
     icon: Award,
     title: "Luxury Vehicles",
     description: "Premium SUV with leather interior, climate control, and complimentary amenities.",
-    image: null,
+    image: LUXURY_VEHICLE_IMG,
   },
   {
     icon: Baby,
@@ -76,7 +79,7 @@ const features = [
     icon: Phone,
     title: "24/7 Availability",
     description: "Prebook anytime, day or night. We accommodate early flights and late events.",
-    image: null,
+    image: NIGHT_OUT_IMG,
   },
 ];
 
@@ -289,9 +292,7 @@ export default function Home() {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-card to-transparent" />
                   </div>
-                ) : (
-                  <div className="pt-8" />
-                )}
+                ) : null}
                 <div className="px-6 pb-6 space-y-3">
                   <div className="w-14 h-14 rounded-full gold-gradient flex items-center justify-center mx-auto -mt-7 relative z-10 shadow-lg">
                     <feature.icon className="w-6 h-6 text-gold-foreground" />
