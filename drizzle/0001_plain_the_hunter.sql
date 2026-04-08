@@ -1,0 +1,42 @@
+CREATE TABLE `bookings` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`referenceNumber` varchar(20) NOT NULL,
+	`clientName` varchar(200) NOT NULL,
+	`clientEmail` varchar(320) NOT NULL,
+	`clientPhone` varchar(30) NOT NULL,
+	`serviceType` enum('airport_transfer','hourly_hire','point_to_point','special_events') NOT NULL,
+	`pickupAddress` text NOT NULL,
+	`dropoffAddress` text,
+	`pickupDate` bigint NOT NULL,
+	`passengerCount` int NOT NULL DEFAULT 1,
+	`vehicleId` int NOT NULL,
+	`vehicleType` varchar(50) NOT NULL,
+	`vehicleName` varchar(200) NOT NULL,
+	`estimatedDistance` decimal(10,2),
+	`estimatedDuration` int,
+	`totalPrice` decimal(10,2) NOT NULL,
+	`status` enum('pending','confirmed','completed','cancelled') NOT NULL DEFAULT 'pending',
+	`specialRequests` text,
+	`adminNotes` text,
+	`termsAccepted` int NOT NULL DEFAULT 0,
+	`createdAt` timestamp NOT NULL DEFAULT (now()),
+	`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
+	CONSTRAINT `bookings_id` PRIMARY KEY(`id`),
+	CONSTRAINT `bookings_referenceNumber_unique` UNIQUE(`referenceNumber`)
+);
+--> statement-breakpoint
+CREATE TABLE `vehicles` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`name` varchar(200) NOT NULL,
+	`type` enum('sedan','suv','luxury','van') NOT NULL,
+	`description` text,
+	`capacity` int NOT NULL DEFAULT 4,
+	`luggageCapacity` int NOT NULL DEFAULT 2,
+	`baseRate` decimal(10,2) NOT NULL DEFAULT '0',
+	`perKmRate` decimal(10,2) NOT NULL DEFAULT '0',
+	`perHourRate` decimal(10,2) NOT NULL DEFAULT '0',
+	`imageUrl` text,
+	`isActive` int NOT NULL DEFAULT 1,
+	`createdAt` timestamp NOT NULL DEFAULT (now()),
+	CONSTRAINT `vehicles_id` PRIMARY KEY(`id`)
+);

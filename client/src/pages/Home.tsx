@@ -1,31 +1,312 @@
-import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
-import { getLoginUrl } from "@/const";
-import { Streamdown } from 'streamdown';
+import { Card, CardContent } from "@/components/ui/card";
+import { useLocation } from "wouter";
+import { Plane, Clock, MapPin, Star, Shield, Award, Phone } from "lucide-react";
 
-/**
- * All content in this page are only for example, replace with your own feature implementation
- * When building pages, remember your instructions in Frontend Workflow, Frontend Best Practices, Design Guide and Common Pitfalls
- */
+const HERO_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/hero-suv_ee8b3ffa.jpg";
+const FLEET_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/fleet-vehicles_b436c160.jpg";
+
+const services = [
+  {
+    icon: Plane,
+    title: "Airport Transfer",
+    description: "Seamless pickup and drop-off to and from the airport with flight tracking.",
+  },
+  {
+    icon: Clock,
+    title: "Hourly Hire",
+    description: "Flexible chauffeur service by the hour for meetings, tours, or errands.",
+  },
+  {
+    icon: MapPin,
+    title: "Point to Point",
+    description: "Direct, comfortable transfer between any two locations in Queensland.",
+  },
+  {
+    icon: Star,
+    title: "Special Events",
+    description: "Weddings, corporate events, funerals, and other special occasions.",
+  },
+];
+
+const features = [
+  {
+    icon: Shield,
+    title: "Professional & Discreet",
+    description: "Experienced, licensed chauffeurs committed to your privacy and comfort.",
+  },
+  {
+    icon: Award,
+    title: "Luxury Fleet",
+    description: "Premium SUV with leather interior, climate control, and complimentary amenities.",
+  },
+  {
+    icon: Phone,
+    title: "24/7 Availability",
+    description: "Book anytime, day or night. We accommodate early flights and late events.",
+  },
+];
+
 export default function Home() {
-  // The userAuth hooks provides authentication state
-  // To implement login/logout functionality, simply call logout() or redirect to getLoginUrl()
-  let { user, loading, error, isAuthenticated, logout } = useAuth();
-
-  // If theme is switchable in App.tsx, we can implement theme toggling like this:
-  // const { theme, toggleTheme } = useTheme();
+  const [, setLocation] = useLocation();
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <main>
-        {/* Example: lucide-react for icons */}
-        <Loader2 className="animate-spin" />
-        Example Page
-        {/* Example: Streamdown for markdown rendering */}
-        <Streamdown>Any **markdown** content</Streamdown>
-        <Button variant="default">Example Button</Button>
-      </main>
+    <div className="min-h-screen bg-background text-foreground">
+      {/* Navigation */}
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50">
+        <div className="container flex items-center justify-between h-16">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded gold-gradient" />
+            <span className="font-heading text-xl font-semibold tracking-tight">
+              Chauffeur
+            </span>
+          </div>
+          <div className="hidden md:flex items-center gap-8 text-sm text-muted-foreground">
+            <a href="#services" className="hover:text-foreground transition-colors">Services</a>
+            <a href="#fleet" className="hover:text-foreground transition-colors">Our Fleet</a>
+            <a href="#why-us" className="hover:text-foreground transition-colors">Why Us</a>
+          </div>
+          <Button
+            onClick={() => setLocation("/book")}
+            className="gold-gradient text-gold-foreground border-0 hover:opacity-90 transition-opacity font-medium"
+          >
+            Book Now
+          </Button>
+        </div>
+      </nav>
+
+      {/* Hero Section */}
+      <section className="relative pt-16 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-foreground/5 to-transparent" />
+        <div className="container relative">
+          <div className="grid lg:grid-cols-2 gap-12 items-center min-h-[calc(100vh-4rem)] py-16">
+            <div className="space-y-8">
+              <div className="space-y-4">
+                <p className="text-sm font-medium tracking-widest uppercase text-primary">
+                  Premium Chauffeur Service
+                </p>
+                <h1 className="font-heading text-4xl md:text-5xl lg:text-6xl font-bold leading-tight tracking-tight">
+                  Arrive in
+                  <span className="gold-text block">Elegance</span>
+                </h1>
+                <p className="text-lg text-muted-foreground max-w-md leading-relaxed">
+                  Experience Queensland's finest chauffeur service. Luxury SUV transport
+                  for discerning travellers who expect nothing but the best.
+                </p>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Button
+                  size="lg"
+                  onClick={() => setLocation("/book")}
+                  className="gold-gradient text-gold-foreground border-0 hover:opacity-90 transition-opacity text-base px-8 py-6 font-medium"
+                >
+                  Book Your Ride
+                </Button>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  onClick={() => document.getElementById("services")?.scrollIntoView({ behavior: "smooth" })}
+                  className="text-base px-8 py-6 bg-background"
+                >
+                  Explore Services
+                </Button>
+              </div>
+              <div className="flex items-center gap-8 pt-4 text-sm text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-green-500" />
+                  Available 24/7
+                </div>
+                <div>Queensland, Australia</div>
+              </div>
+            </div>
+            <div className="relative hidden lg:block">
+              <div className="relative rounded-2xl overflow-hidden shadow-2xl">
+                <img
+                  src={HERO_IMG}
+                  alt="Premium chauffeur service"
+                  className="w-full h-[500px] object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+              </div>
+              <div className="absolute -bottom-6 -left-6 bg-card rounded-xl shadow-lg p-4 border border-border/50">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full gold-gradient flex items-center justify-center">
+                    <Star className="w-5 h-5 text-gold-foreground" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold">5-Star Rated</p>
+                    <p className="text-xs text-muted-foreground">Premium Service</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Services Section */}
+      <section id="services" className="py-24 bg-secondary/30">
+        <div className="container">
+          <div className="text-center mb-16 space-y-4">
+            <p className="text-sm font-medium tracking-widest uppercase text-primary">
+              Our Services
+            </p>
+            <h2 className="font-heading text-3xl md:text-4xl font-bold tracking-tight">
+              Tailored to Your Journey
+            </h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Whether it's a business trip, airport transfer, or a special celebration,
+              we provide the perfect transport solution.
+            </p>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {services.map((service) => (
+              <Card
+                key={service.title}
+                className="group hover:shadow-lg transition-all duration-300 border-border/50 cursor-pointer bg-card"
+                onClick={() => setLocation("/book")}
+              >
+                <CardContent className="p-6 space-y-4">
+                  <div className="w-12 h-12 rounded-lg gold-gradient flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <service.icon className="w-6 h-6 text-gold-foreground" />
+                  </div>
+                  <h3 className="font-heading text-lg font-semibold">{service.title}</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    {service.description}
+                  </p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Fleet Section */}
+      <section id="fleet" className="py-24">
+        <div className="container">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
+            <div className="relative rounded-2xl overflow-hidden shadow-xl">
+              <img
+                src={FLEET_IMG}
+                alt="Luxury SUV fleet"
+                className="w-full h-[400px] object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+              <div className="absolute bottom-6 left-6 right-6">
+                <p className="text-white font-heading text-xl font-semibold">Luxury SUV</p>
+                <p className="text-white/80 text-sm mt-1">Premium comfort for every journey</p>
+              </div>
+            </div>
+            <div className="space-y-8">
+              <div className="space-y-4">
+                <p className="text-sm font-medium tracking-widest uppercase text-primary">
+                  Our Fleet
+                </p>
+                <h2 className="font-heading text-3xl md:text-4xl font-bold tracking-tight">
+                  Luxury SUV
+                </h2>
+                <p className="text-muted-foreground leading-relaxed">
+                  Our premium luxury SUV offers the perfect blend of comfort, style, and space.
+                  Ideal for both business and leisure travel across Queensland.
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-secondary/50 rounded-lg p-4">
+                  <p className="text-2xl font-heading font-bold">5</p>
+                  <p className="text-sm text-muted-foreground">Passengers + luggage</p>
+                </div>
+                <div className="bg-secondary/50 rounded-lg p-4">
+                  <p className="text-2xl font-heading font-bold">7</p>
+                  <p className="text-sm text-muted-foreground">Passengers, limited luggage</p>
+                </div>
+                <div className="bg-secondary/50 rounded-lg p-4 col-span-2">
+                  <p className="text-sm font-medium">Support Van Available</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    For large or oversized luggage and freight, an additional support van
+                    can be arranged at a separate charge.
+                  </p>
+                </div>
+              </div>
+              <Button
+                size="lg"
+                onClick={() => setLocation("/book")}
+                className="gold-gradient text-gold-foreground border-0 hover:opacity-90 transition-opacity font-medium"
+              >
+                Book This Vehicle
+              </Button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Why Us Section */}
+      <section id="why-us" className="py-24 bg-secondary/30">
+        <div className="container">
+          <div className="text-center mb-16 space-y-4">
+            <p className="text-sm font-medium tracking-widest uppercase text-primary">
+              Why Choose Us
+            </p>
+            <h2 className="font-heading text-3xl md:text-4xl font-bold tracking-tight">
+              The Gold Standard
+            </h2>
+          </div>
+          <div className="grid md:grid-cols-3 gap-8">
+            {features.map((feature) => (
+              <div key={feature.title} className="text-center space-y-4">
+                <div className="w-16 h-16 rounded-full gold-gradient flex items-center justify-center mx-auto">
+                  <feature.icon className="w-7 h-7 text-gold-foreground" />
+                </div>
+                <h3 className="font-heading text-xl font-semibold">{feature.title}</h3>
+                <p className="text-muted-foreground leading-relaxed max-w-sm mx-auto">
+                  {feature.description}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-24">
+        <div className="container">
+          <div className="relative rounded-2xl overflow-hidden gold-gradient p-12 md:p-16 text-center">
+            <div className="relative z-10 space-y-6">
+              <h2 className="font-heading text-3xl md:text-4xl font-bold text-gold-foreground tracking-tight">
+                Ready to Experience Luxury?
+              </h2>
+              <p className="text-gold-foreground/80 max-w-lg mx-auto">
+                Book your premium chauffeur service today and travel in comfort and style
+                across Queensland.
+              </p>
+              <Button
+                size="lg"
+                onClick={() => setLocation("/book")}
+                className="bg-gold-foreground text-primary hover:bg-gold-foreground/90 text-base px-8 py-6 font-medium"
+              >
+                Book Your Ride Now
+              </Button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t border-border/50 py-12">
+        <div className="container">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded gold-gradient" />
+              <span className="font-heading text-lg font-semibold">Chauffeur</span>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Premium chauffeur service — Queensland, Australia
+            </p>
+            <p className="text-xs text-muted-foreground">
+              &copy; {new Date().getFullYear()} All rights reserved.
+            </p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
