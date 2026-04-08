@@ -116,6 +116,7 @@ export default function Home() {
             <a href="#services" className="hover:text-primary transition-colors">Services</a>
             <a href="#fleet" className="hover:text-primary transition-colors">Our Fleet</a>
             <a href="#why-us" className="hover:text-primary transition-colors">Why Us</a>
+            <a href="/contact" className="hover:text-primary transition-colors">Contact</a>
             {user && (
               <a href="/my-bookings" className="hover:text-primary transition-colors">My Bookings</a>
             )}
@@ -473,6 +474,7 @@ export default function Home() {
                 <a href="#fleet" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">Our Fleet</a>
                 <a href="#why-us" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">Why Choose Us</a>
                 <a href="/book" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">Book a Transfer</a>
+                <a href="/contact" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">Contact Us</a>
                 {user && (
                   <a href="/my-bookings" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">My Bookings</a>
                 )}

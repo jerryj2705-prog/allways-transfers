@@ -1,6 +1,6 @@
 import { eq, desc, and, or, like, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, vehicles, bookings, pricingSettings, type InsertBooking, type Booking, type PricingSetting } from "../drizzle/schema";
+import { InsertUser, users, vehicles, bookings, pricingSettings, enquiries, type InsertBooking, type Booking, type PricingSetting, type InsertEnquiry, type Enquiry } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -367,6 +367,86 @@ export async function calculatePrice(params: {
     squareSurcharge,
     subtotal,
     totalPrice,
+  };
+}
+
+// ─── Enquiry Queries ───
+
+export async function createEnquiry(data: Omit<InsertEnquiry, "id" | "createdAt" | "updatedAt" | "status">) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(enquiries).values({ ...data, status: "new" });
+  const result = await db.select().from(enquiries).orderBy(desc(enquiries.id)).limit(1);
+  return result[0];
+}
+
+export async function listEnquiries(params: {
+  status?: string;
+  search?: string;
+  limit?: number;
+  offset?: number;
+}) {
+  const db = await getDb();
+  if (!db) return { enquiries: [], total: 0 };
+
+  const conditions = [];
+  if (params.status && params.status !== "all") {
+    conditions.push(eq(enquiries.status, params.status as Enquiry["status"]));
+  }
+  if (params.search) {
+    const searchTerm = `%${params.search}%`;
+    conditions.push(
+      or(
+        like(enquiries.name, searchTerm),
+        like(enquiries.email, searchTerm),
+        like(enquiries.subject, searchTerm),
+      )!
+    );
+  }
+
+  const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+  const [items, countResult] = await Promise.all([
+    db.select().from(enquiries).where(whereClause).orderBy(desc(enquiries.createdAt)).limit(params.limit ?? 20).offset(params.offset ?? 0),
+    db.select({ count: sql<number>`count(*)` }).from(enquiries).where(whereClause),
+  ]);
+
+  return { enquiries: items, total: countResult[0]?.count ?? 0 };
+}
+
+export async function getEnquiryById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(enquiries).where(eq(enquiries.id, id)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function updateEnquiryStatus(id: number, status: Enquiry["status"], adminNotes?: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const updateData: Record<string, unknown> = { status };
+  if (adminNotes !== undefined) updateData.adminNotes = adminNotes;
+  await db.update(enquiries).set(updateData).where(eq(enquiries.id, id));
+  return getEnquiryById(id);
+}
+
+export async function getEnquiryStats() {
+  const db = await getDb();
+  if (!db) return { total: 0, new: 0, read: 0, replied: 0, archived: 0 };
+  const result = await db.select({
+    total: sql<number>`count(*)`,
+    newCount: sql<number>`sum(case when status = 'new' then 1 else 0 end)`,
+    readCount: sql<number>`sum(case when status = 'read' then 1 else 0 end)`,
+    repliedCount: sql<number>`sum(case when status = 'replied' then 1 else 0 end)`,
+    archivedCount: sql<number>`sum(case when status = 'archived' then 1 else 0 end)`,
+  }).from(enquiries);
+  const row = result[0];
+  return {
+    total: row?.total ?? 0,
+    new: row?.newCount ?? 0,
+    read: row?.readCount ?? 0,
+    replied: row?.repliedCount ?? 0,
+    archived: row?.archivedCount ?? 0,
   };
 }
 

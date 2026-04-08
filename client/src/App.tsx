@@ -11,6 +11,8 @@ import AdminDashboard from "./pages/AdminDashboard";
 import AdminBookingDetail from "./pages/AdminBookingDetail";
 import AdminPricing from "./pages/AdminPricing";
 import MyBookings from "./pages/MyBookings";
+import Contact from "./pages/Contact";
+import AdminEnquiries from "./pages/AdminEnquiries";
 
 function Router() {
   return (
@@ -19,10 +21,12 @@ function Router() {
       <Route path="/book" component={BookingForm} />
       <Route path="/confirmation/:ref" component={BookingConfirmation} />
       <Route path="/my-bookings" component={MyBookings} />
+      <Route path="/contact" component={Contact} />
       <Route path="/booking/:ref" component={BookingConfirmation} />
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/admin/booking/:id" component={AdminBookingDetail} />
       <Route path="/admin/pricing" component={AdminPricing} />
+      <Route path="/admin/enquiries" component={AdminEnquiries} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>

@@ -18,6 +18,11 @@ import {
   calculatePrice,
   getBookingsByEmail,
   updateBookingDetails,
+  createEnquiry,
+  listEnquiries,
+  getEnquiryById,
+  updateEnquiryStatus,
+  getEnquiryStats,
 } from "./db";
 import { createCheckoutSession } from "./stripe";
 import { notifyOwner } from "./_core/notification";
@@ -438,6 +443,79 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         return updatePricingSetting(input.id, input.value, input.isActive);
       }),
+  }),
+
+  enquiries: router({
+    // Public: submit an enquiry (no login required)
+    submit: publicProcedure
+      .input(z.object({
+        name: z.string().min(1, "Name is required"),
+        email: z.string().email("Valid email is required"),
+        phone: z.string().optional(),
+        subject: z.string().min(1, "Subject is required"),
+        message: z.string().min(10, "Message must be at least 10 characters"),
+      }))
+      .mutation(async ({ input }) => {
+        const enquiry = await createEnquiry({
+          name: input.name,
+          email: input.email,
+          phone: input.phone ?? null,
+          subject: input.subject,
+          message: input.message,
+        });
+
+        // Notify owner about new enquiry
+        try {
+          await notifyOwner({
+            title: `New Enquiry: ${input.subject}`,
+            content: `New enquiry from ${input.name} (${input.email})\nSubject: ${input.subject}\n\n${input.message}`,
+          });
+        } catch (e) {
+          console.warn("Failed to send enquiry notification:", e);
+        }
+
+        return { success: true, id: enquiry.id };
+      }),
+
+    // Admin: list all enquiries
+    list: adminProcedure
+      .input(z.object({
+        status: z.string().optional(),
+        search: z.string().optional(),
+        limit: z.number().optional(),
+        offset: z.number().optional(),
+      }))
+      .query(async ({ input }) => {
+        return listEnquiries(input);
+      }),
+
+    // Admin: get single enquiry
+    getById: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        const enquiry = await getEnquiryById(input.id);
+        // Auto-mark as read when admin views it
+        if (enquiry && enquiry.status === "new") {
+          return updateEnquiryStatus(input.id, "read");
+        }
+        return enquiry;
+      }),
+
+    // Admin: update enquiry status
+    updateStatus: adminProcedure
+      .input(z.object({
+        id: z.number(),
+        status: z.enum(["new", "read", "replied", "archived"]),
+        adminNotes: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        return updateEnquiryStatus(input.id, input.status, input.adminNotes);
+      }),
+
+    // Admin: get enquiry stats
+    stats: adminProcedure.query(async () => {
+      return getEnquiryStats();
+    }),
   }),
 });
 

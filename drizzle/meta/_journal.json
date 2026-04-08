@@ -50,6 +50,13 @@
       "when": 1775639517181,
       "tag": "0006_sad_adam_warlock",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1775646060843,
+      "tag": "0007_handy_wasp",
+      "breakpoints": true
     }
   ]
 }

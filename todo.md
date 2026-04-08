@@ -218,3 +218,12 @@
 
 ## Queensland Time Note - Modification Dialog
 - [x] Add Queensland time note to modification dialog time picker for consistency
+
+## Contact / Enquiry Page
+- [x] Create enquiries table in database (name, email, phone, subject, message, status, timestamps)
+- [x] Add server-side tRPC procedures for submitting and listing enquiries
+- [x] Build Contact page UI with enquiry form
+- [x] Add route in App.tsx for /contact
+- [x] Add Contact link to header navigation and footer
+- [x] Notify admin on new enquiry submission
+- [x] Add admin view to see and manage enquiries

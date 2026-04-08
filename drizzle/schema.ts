@@ -99,3 +99,19 @@ export const pricingSettings = mysqlTable("pricing_settings", {
 
 export type PricingSetting = typeof pricingSettings.$inferSelect;
 export type InsertPricingSetting = typeof pricingSettings.$inferInsert;
+
+export const enquiries = mysqlTable("enquiries", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 200 }).notNull(),
+  email: varchar("email", { length: 320 }).notNull(),
+  phone: varchar("phone", { length: 30 }),
+  subject: varchar("subject", { length: 300 }).notNull(),
+  message: text("message").notNull(),
+  status: mysqlEnum("status", ["new", "read", "replied", "archived"]).default("new").notNull(),
+  adminNotes: text("adminNotes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Enquiry = typeof enquiries.$inferSelect;
+export type InsertEnquiry = typeof enquiries.$inferInsert;

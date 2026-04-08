@@ -15,7 +15,7 @@ import { getLoginUrl } from "@/const";
 import { useLocation } from "wouter";
 import {
   Search, LayoutDashboard, Clock, CheckCircle, XCircle, AlertCircle,
-  ChevronLeft, ChevronRight, LogOut, Home, DollarSign,
+  ChevronLeft, ChevronRight, LogOut, Home, DollarSign, MessageSquare,
 } from "lucide-react";
 import { SERVICE_TYPES, BOOKING_STATUSES, PAYMENT_METHODS } from "@shared/types";
 import type { ServiceType, BookingStatus, PaymentMethod } from "@shared/types";
@@ -141,6 +141,15 @@ export default function AdminDashboard() {
             >
               <DollarSign className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Pricing</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setLocation("/admin/enquiries")}
+              className="gap-1 bg-background"
+            >
+              <MessageSquare className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Enquiries</span>
             </Button>
             <span className="text-sm text-muted-foreground hidden sm:inline">{user.name}</span>
             <Button variant="outline" size="sm" onClick={logout} className="gap-1 bg-background">
