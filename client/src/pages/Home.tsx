@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useLocation } from "wouter";
-import { Plane, Clock, MapPin, Star, Shield, Award, Phone } from "lucide-react";
+import { Plane, Clock, MapPin, Star, Shield, Award, Phone, Baby, PawPrint, DollarSign } from "lucide-react";
 
 const HERO_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/hero-suv_ee8b3ffa.jpg";
 const LOGO_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/logo-white_476df209.png";
@@ -10,40 +10,55 @@ const services = [
   {
     icon: Plane,
     title: "Airport Transfer",
-    description: "Seamless pickup and drop-off to and from the airport with flight tracking.",
+    description: "Seamless pickup and drop-off to and from Sunshine Coast and Brisbane airports with flight tracking.",
   },
   {
     icon: Clock,
     title: "Hourly Hire",
-    description: "Flexible chauffeur service by the hour for meetings, tours, or errands.",
+    description: "Flexible chauffeur service by the hour for meetings, tours, or errands across the region.",
   },
   {
     icon: MapPin,
     title: "Point to Point",
-    description: "Direct, comfortable transfer between any two locations in Queensland.",
+    description: "Direct, comfortable transfers between any two locations — including long-distance rides.",
   },
   {
     icon: Star,
     title: "Special Events",
-    description: "Weddings, corporate events, funerals, and other special occasions.",
+    description: "Weddings, corporate events, funerals, and other special occasions with impeccable service.",
   },
 ];
 
 const features = [
   {
     icon: Shield,
-    title: "Professional & Discreet",
-    description: "Experienced, licensed chauffeurs committed to your privacy and comfort.",
+    title: "Professional Drivers",
+    description: "Experienced, licensed chauffeurs committed to your safety, privacy, and comfort.",
+  },
+  {
+    icon: DollarSign,
+    title: "Fixed Prices",
+    description: "No surge pricing, no surprises. Know your fare upfront before you book.",
   },
   {
     icon: Award,
-    title: "Luxury Fleet",
+    title: "Luxury Vehicles",
     description: "Premium SUV with leather interior, climate control, and complimentary amenities.",
+  },
+  {
+    icon: Baby,
+    title: "Child Seats Available",
+    description: "Travel safely with your little ones. Child and booster seats provided on request.",
+  },
+  {
+    icon: PawPrint,
+    title: "Pet Friendly",
+    description: "Your furry companions are welcome. We accommodate pets with care and comfort.",
   },
   {
     icon: Phone,
     title: "24/7 Availability",
-    description: "Book anytime, day or night. We accommodate early flights and late events.",
+    description: "Prebook anytime, day or night. We accommodate early flights and late events.",
   },
 ];
 
@@ -89,15 +104,15 @@ export default function Home() {
           <div className="max-w-2xl space-y-8 py-20">
             <div className="space-y-6">
               <p className="text-sm font-medium tracking-[0.3em] uppercase text-[oklch(0.82_0.11_85)]">
-                Premium Chauffeur Service
+                Prebooked Private Transfers
               </p>
               <h1 className="font-heading text-5xl md:text-6xl lg:text-7xl leading-[1.05] tracking-tight text-white">
                 Personalised
                 <span className="gold-text block mt-2">Luxury</span>
               </h1>
               <p className="text-lg md:text-xl text-white/70 max-w-lg leading-relaxed">
-                Experience Queensland's finest chauffeur service. Luxury SUV transport
-                for discerning travellers who expect nothing but the best.
+                24/7 prebooked private transfers across the Sunshine Coast and Brisbane.
+                Fixed prices, luxury vehicles, child seats, and pet-friendly options.
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-4">
@@ -122,7 +137,7 @@ export default function Home() {
                 <div className="w-2 h-2 rounded-full bg-green-500" />
                 Available 24/7
               </div>
-              <div>Queensland, Australia</div>
+              <div>Sunshine Coast &amp; Brisbane</div>
             </div>
           </div>
         </div>
@@ -139,8 +154,8 @@ export default function Home() {
               Tailored to Your Journey
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Whether it's a business trip, airport transfer, or a special celebration,
-              we provide the perfect transport solution.
+              From airport pickups to corporate events, hotel transfers to long-distance rides —
+              we provide the perfect transport solution across the Sunshine Coast and Brisbane.
             </p>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -191,7 +206,7 @@ export default function Home() {
                 </h2>
                 <p className="text-muted-foreground leading-relaxed">
                   Our premium luxury SUV offers the perfect blend of comfort, style, and space.
-                  Ideal for both business and leisure travel across Queensland.
+                  Ideal for both business and leisure travel across the Sunshine Coast and Brisbane.
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -234,7 +249,7 @@ export default function Home() {
               The Gold Standard
             </h2>
           </div>
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {features.map((feature) => (
               <div key={feature.title} className="text-center space-y-4">
                 <div className="w-16 h-16 rounded-full gold-gradient flex items-center justify-center mx-auto">
@@ -259,8 +274,8 @@ export default function Home() {
                 Ready to Experience Luxury?
               </h2>
               <p className="text-gold-foreground/80 max-w-lg mx-auto">
-                Book your premium chauffeur service today and travel in comfort and style
-                across Queensland.
+                Prebook your private transfer today. Fixed prices, professional drivers,
+                and luxury comfort across the Sunshine Coast and Brisbane.
               </p>
               <Button
                 size="lg"
@@ -282,7 +297,7 @@ export default function Home() {
               <img src={LOGO_IMG} alt="All Ways Transfers" className="h-10 w-auto" />
             </div>
             <p className="text-sm text-muted-foreground">
-              Premium chauffeur service — Queensland, Australia
+              Prebooked private transfers — Sunshine Coast &amp; Brisbane
             </p>
             <p className="text-xs text-muted-foreground">
               &copy; {new Date().getFullYear()} All Ways Transfers. All rights reserved.

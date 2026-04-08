@@ -65,3 +65,9 @@
 - [x] Make footer logo bigger
 - [x] Create sticky bar matching header style on all pages
 - [x] Make header logo even bigger (h-12 -> h-16) across all pages
+
+## Website Title & Description Update
+- [x] Update HTML title to "All Ways Transfers – Prebooked Private Transfers"
+- [x] Add meta description covering full service offering
+- [x] Update VITE_APP_TITLE (built-in, updated via HTML title instead)
+- [x] Update landing page hero text to reflect Sunshine Coast/Brisbane, fixed prices, child seats, pet-friendly
