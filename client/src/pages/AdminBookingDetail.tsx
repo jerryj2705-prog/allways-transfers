@@ -104,9 +104,9 @@ export default function AdminBookingDetail() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      {/* Header */}
-      <div className="border-b border-border/50 bg-background/80 backdrop-blur-md sticky top-0 z-50">
-        <div className="container flex items-center justify-between h-16">
+      {/* Sticky Header */}
+      <div className="border-b border-border/50 bg-background/90 backdrop-blur-md sticky top-0 z-50">
+        <div className="container flex items-center justify-between h-20">
           <button
             onClick={() => setLocation("/admin")}
             className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
@@ -115,8 +115,7 @@ export default function AdminBookingDetail() {
             Back to Dashboard
           </button>
           <div className="flex items-center gap-3">
-            <img src={LOGO_IMG} alt="All Ways Transfers" className="h-6 w-auto" />
-            <span className="text-sm text-muted-foreground">Booking Detail</span>
+            <img src={LOGO_IMG} alt="All Ways Transfers" className="h-12 w-auto" />
           </div>
           <div className="w-32" />
         </div>

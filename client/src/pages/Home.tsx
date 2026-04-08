@@ -52,11 +52,11 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      {/* Navigation */}
+      {/* Sticky Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-background/90 backdrop-blur-md border-b border-border/50">
-        <div className="container flex items-center justify-between h-16">
+        <div className="container flex items-center justify-between h-20">
           <div className="flex items-center gap-3">
-            <img src={LOGO_IMG} alt="All Ways Transfers" className="h-8 w-auto" />
+            <img src={LOGO_IMG} alt="All Ways Transfers" className="h-12 w-auto" />
           </div>
           <div className="hidden md:flex items-center gap-8 text-sm text-muted-foreground">
             <a href="#services" className="hover:text-primary transition-colors">Services</a>
@@ -73,7 +73,7 @@ export default function Home() {
       </nav>
 
       {/* Hero Section - Full Width */}
-      <section className="relative pt-16 min-h-screen flex items-center">
+      <section className="relative pt-20 min-h-screen flex items-center">
         {/* Full-width background image */}
         <div className="absolute inset-0">
           <img
@@ -279,7 +279,7 @@ export default function Home() {
         <div className="container">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <img src={LOGO_IMG} alt="All Ways Transfers" className="h-6 w-auto" />
+              <img src={LOGO_IMG} alt="All Ways Transfers" className="h-10 w-auto" />
             </div>
             <p className="text-sm text-muted-foreground">
               Premium chauffeur service — Queensland, Australia

@@ -48,12 +48,11 @@ export default function BookingConfirmation() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      {/* Header */}
-      <div className="border-b border-border/50 bg-background/80 backdrop-blur-md">
-        <div className="container flex items-center justify-center h-16">
+      {/* Sticky Header */}
+      <div className="border-b border-border/50 bg-background/90 backdrop-blur-md sticky top-0 z-50">
+        <div className="container flex items-center justify-center h-20">
           <div className="flex items-center gap-3">
-            <img src={LOGO_IMG} alt="All Ways Transfers" className="h-6 w-auto" />
-            <span className="text-sm text-muted-foreground">Booking Confirmed</span>
+            <img src={LOGO_IMG} alt="All Ways Transfers" className="h-12 w-auto" />
           </div>
         </div>
       </div>

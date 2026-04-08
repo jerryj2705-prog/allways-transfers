@@ -59,3 +59,8 @@
 ## Hero Section Update
 - [x] Make hero photo full-width background
 - [x] Change catchphrase to "Personalised Luxury"
+
+## Logo & Sticky Bar Update
+- [x] Make header logo bigger
+- [x] Make footer logo bigger
+- [x] Create sticky bar matching header style on all pages
