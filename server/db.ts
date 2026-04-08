@@ -294,8 +294,8 @@ export async function calculatePrice(params: {
   const perKmRate = getVal("rate_per_km");
   const distanceCharge = Math.round(params.distanceKm * perKmRate * 100) / 100;
 
-  // Out-of-hours surcharge (8pm-6am)
-  const isOutOfHours = params.pickupHour >= 20 || params.pickupHour < 6;
+  // Out-of-hours surcharge (7pm-7am)
+  const isOutOfHours = params.pickupHour >= 19 || params.pickupHour < 7;
   const outOfHoursSurcharge = (isOutOfHours && isActive("surcharge_out_of_hours")) ? getVal("surcharge_out_of_hours") : 0;
 
   // Out-of-area surcharge
