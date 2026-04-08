@@ -71,3 +71,7 @@
 - [x] Add meta description covering full service offering
 - [x] Update VITE_APP_TITLE (built-in, updated via HTML title instead)
 - [x] Update landing page hero text to reflect Sunshine Coast/Brisbane, fixed prices, child seats, pet-friendly
+
+## Fleet Photo Update
+- [x] Download Kia Carnival exterior photo and upload to CDN
+- [x] Replace Fleet section image with the new exterior photo

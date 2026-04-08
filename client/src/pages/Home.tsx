@@ -5,6 +5,7 @@ import { Plane, Clock, MapPin, Star, Shield, Award, Phone, Baby, PawPrint, Dolla
 
 const HERO_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/hero-suv_ee8b3ffa.jpg";
 const LOGO_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/logo-white_476df209.png";
+const FLEET_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/fleet-kia-carnival_d4324bff.webp";
 
 const services = [
   {
@@ -186,8 +187,8 @@ export default function Home() {
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <div className="relative rounded-2xl overflow-hidden shadow-xl border border-border/30">
               <img
-                src={HERO_IMG}
-                alt="Luxury SUV fleet"
+                src={FLEET_IMG}
+                alt="Kia Carnival - All Ways Transfers fleet"
                 className="w-full h-[400px] object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
