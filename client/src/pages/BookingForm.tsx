@@ -1218,8 +1218,14 @@ export default function BookingForm() {
                     </div>
                     {pricing.distanceCharge > 0 && (
                       <div className="flex justify-between text-sm">
-                        <span>Distance ({estimatedDistance} km)</span>
+                        <span>Distance surcharge ({Math.ceil((estimatedDistance - 50) / 50)} x 50km block{Math.ceil((estimatedDistance - 50) / 50) > 1 ? "s" : ""})</span>
                         <span>${pricing.distanceCharge.toFixed(2)}</span>
+                      </div>
+                    )}
+                    {estimatedDistance > 0 && pricing.distanceCharge === 0 && (
+                      <div className="flex justify-between text-sm text-muted-foreground">
+                        <span>Distance ({estimatedDistance} km — within 50km, no surcharge)</span>
+                        <span>$0.00</span>
                       </div>
                     )}
                     {pricing.outOfHoursSurcharge > 0 && (

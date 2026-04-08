@@ -306,9 +306,14 @@ export async function calculatePrice(params: {
     basePrice = Math.round(basePrice * params.hireHours * 100) / 100;
   }
 
-  // Distance charge
-  const perKmRate = getVal("rate_per_km");
-  const distanceCharge = Math.round(params.distanceKm * perKmRate * 100) / 100;
+  // Distance surcharge (tiered 50km blocks: $0 for first 50km, then per-50km rate)
+  let distanceCharge = 0;
+  if (params.distanceKm > 50 && isActive("distance_surcharge_per_50km")) {
+    const surchargePerBlock = getVal("distance_surcharge_per_50km");
+    const extraKm = params.distanceKm - 50;
+    const blocks = Math.ceil(extraKm / 50);
+    distanceCharge = Math.round(blocks * surchargePerBlock * 100) / 100;
+  }
 
   // Out-of-hours surcharge (7pm-7am)
   const isOutOfHours = params.pickupHour >= 19 || params.pickupHour < 7;

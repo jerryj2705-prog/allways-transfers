@@ -199,3 +199,10 @@
 - [x] Update cancellation policy endpoint to return the configured percentage
 - [x] Display percentage in cancellation dialog warning message
 - [x] Add icon/label for late_cancel_charge_pct on Admin Pricing page
+
+## Tiered Distance Surcharge (50km blocks)
+- [x] Replace per-km rate with tiered 50km block surcharge ($0 for 1-50km, admin rate per additional 50km)
+- [x] Add/update pricing setting for distance surcharge per 50km block
+- [x] Update calculatePrice in server/db.ts to use tiered distance logic
+- [x] Update booking form to display distance surcharge breakdown
+- [x] Update Admin Pricing page icon/label for new setting

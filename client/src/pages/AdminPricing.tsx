@@ -27,6 +27,7 @@ const CATEGORY_ICONS: Record<string, React.ElementType> = {
   surcharge_fuel_levy: Fuel,
   min_hourly_hours: Clock,
   late_cancel_charge_pct: Percent,
+  distance_surcharge_per_50km: Route,
 };
 
 export default function AdminPricing() {
