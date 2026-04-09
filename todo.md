@@ -244,3 +244,13 @@
 - [x] Send cancellation confirmation email when booking is cancelled
 - [x] Include cancellation details (reference, cancellation policy applied, any charges)
 - [x] Include link to My Bookings page with explanation
+
+## FAQ Section on Contact Page
+- [x] Add FAQ accordion section to Contact page
+- [x] Include questions about services (airport transfers, hourly hire, point-to-point, special events)
+- [x] Include questions about pricing (fixed prices, surcharges, payment methods)
+- [x] Include questions about areas of operation (Sunshine Coast, Brisbane, SE Queensland)
+- [x] Include questions about cancellation policy (free >24h, partial <24h, no refund <4h)
+- [x] Include questions about child seats and pet-friendly options
+- [x] Include questions about booking management (My Bookings, modifications)
+- [x] Style FAQ section to match site's dark/gold theme
