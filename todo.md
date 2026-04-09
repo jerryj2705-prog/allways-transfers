@@ -329,3 +329,13 @@
 - [x] Build admin UI for managing public holidays (add/edit/delete)
 - [x] Update booking form price breakdown to show public holiday surcharge
 - [x] Write tests for public holiday surcharge calculation
+
+## Progressive Web App (PWA)
+- [x] Create web app manifest (manifest.json) with app name, icons, theme colors
+- [x] Generate PWA icons in multiple sizes for Android devices
+- [x] Create service worker for offline caching and app shell
+- [x] Register service worker in the app entry point
+- [ ] Add install prompt/banner for Android users on admin pages
+- [x] Add meta tags for PWA (theme-color, apple-mobile-web-app, viewport)
+- [ ] Optimize admin dashboard pages for mobile/tablet touch experience
+- [ ] Test PWA installability and offline functionality

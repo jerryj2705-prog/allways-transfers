@@ -59,3 +59,17 @@ createRoot(document.getElementById("root")!).render(
     </QueryClientProvider>
   </trpc.Provider>
 );
+
+// Register service worker for PWA support
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').then(
+      (registration) => {
+        console.log('SW registered:', registration.scope);
+      },
+      (error) => {
+        console.log('SW registration failed:', error);
+      }
+    );
+  });
+}
