@@ -107,15 +107,90 @@ function StarRating({ rating, size = "w-4 h-4" }: { rating: number; size?: strin
   );
 }
 
+// Google logo SVG for attribution
+function GoogleLogo({ className = "w-4 h-4" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
+      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+    </svg>
+  );
+}
+
+type UnifiedReview = {
+  id: string;
+  reviewerName: string;
+  rating: number;
+  comment: string | null;
+  source: "inapp" | "google";
+  serviceType?: string;
+  date?: string;
+};
+
 function TestimonialsSection() {
   const { data: approvedReviews } = trpc.reviews.approved.useQuery();
   const { data: reviewStats } = trpc.reviews.publicStats.useQuery();
+  const { data: googleData } = trpc.googleReviews.get.useQuery();
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  const reviews = useMemo(() => approvedReviews ?? [], [approvedReviews]);
+  // Merge in-app and Google reviews into a unified list
+  const allReviews = useMemo(() => {
+    const unified: UnifiedReview[] = [];
 
-  if (!reviews.length) {
-    return null; // Don't render section if no approved reviews
+    // Add in-app approved reviews
+    if (approvedReviews) {
+      for (const r of approvedReviews) {
+        unified.push({
+          id: `inapp-${r.id}`,
+          reviewerName: r.reviewerName,
+          rating: r.rating,
+          comment: r.comment,
+          source: "inapp",
+          serviceType: r.serviceType,
+          date: new Date(r.createdAt).toLocaleDateString("en-AU", { month: "short", year: "numeric" }),
+        });
+      }
+    }
+
+    // Add Google reviews
+    if (googleData?.reviews) {
+      for (const r of googleData.reviews) {
+        unified.push({
+          id: `google-${r.id}`,
+          reviewerName: r.authorName,
+          rating: r.rating,
+          comment: r.text ?? null,
+          source: "google",
+          date: r.publishTime ? new Date(r.publishTime).toLocaleDateString("en-AU", { month: "short", year: "numeric" }) : undefined,
+        });
+      }
+    }
+
+    // Sort by rating descending, then shuffle a bit for variety
+    return unified.sort((a, b) => b.rating - a.rating);
+  }, [approvedReviews, googleData]);
+
+  // Compute combined stats
+  const combinedStats = useMemo(() => {
+    const inAppCount = reviewStats?.approved ?? 0;
+    const inAppAvg = reviewStats?.averageRating ?? 0;
+    const googleCount = googleData?.totalRatings ?? 0;
+    const googleAvg = googleData?.rating ?? 0;
+
+    const totalCount = inAppCount + googleCount;
+    if (totalCount === 0) return { average: 0, count: 0 };
+
+    const weightedAvg = ((inAppAvg * inAppCount) + (googleAvg * googleCount)) / totalCount;
+    return {
+      average: Math.round(weightedAvg * 10) / 10,
+      count: totalCount,
+    };
+  }, [reviewStats, googleData]);
+
+  if (!allReviews.length) {
+    return null;
   }
 
   const serviceLabel = (type: string) => {
@@ -128,15 +203,14 @@ function TestimonialsSection() {
     return map[type] || type;
   };
 
-  const visibleReviews = reviews.slice(currentIndex, currentIndex + 3);
-  // If we don't have 3, wrap around
-  const displayReviews = visibleReviews.length < 3 && reviews.length >= 3
-    ? [...visibleReviews, ...reviews.slice(0, 3 - visibleReviews.length)]
+  const visibleReviews = allReviews.slice(currentIndex, currentIndex + 3);
+  const displayReviews = visibleReviews.length < 3 && allReviews.length >= 3
+    ? [...visibleReviews, ...allReviews.slice(0, 3 - visibleReviews.length)]
     : visibleReviews;
 
-  const canNavigate = reviews.length > 3;
-  const goNext = () => setCurrentIndex((prev) => (prev + 3) % reviews.length);
-  const goPrev = () => setCurrentIndex((prev) => (prev - 3 + reviews.length) % reviews.length);
+  const canNavigate = allReviews.length > 3;
+  const goNext = () => setCurrentIndex((prev) => (prev + 3) % allReviews.length);
+  const goPrev = () => setCurrentIndex((prev) => (prev - 3 + allReviews.length) % allReviews.length);
 
   return (
     <section id="testimonials" className="py-24 charcoal-panel">
@@ -148,11 +222,17 @@ function TestimonialsSection() {
           <h2 className="font-heading text-3xl md:text-4xl tracking-tight text-offwhite">
             What Our Clients Say
           </h2>
-          {reviewStats && reviewStats.approved > 0 && (
+          {combinedStats.count > 0 && (
             <div className="flex items-center justify-center gap-3">
-              <StarRating rating={Math.round(reviewStats.averageRating)} size="w-5 h-5" />
-              <span className="text-lg font-semibold text-offwhite">{reviewStats.averageRating}</span>
-              <span className="text-muted-foreground">from {reviewStats.approved} review{reviewStats.approved !== 1 ? "s" : ""}</span>
+              <StarRating rating={Math.round(combinedStats.average)} size="w-5 h-5" />
+              <span className="text-lg font-semibold text-offwhite">{combinedStats.average}</span>
+              <span className="text-muted-foreground">from {combinedStats.count} review{combinedStats.count !== 1 ? "s" : ""}</span>
+            </div>
+          )}
+          {googleData?.configured && googleData.totalRatings > 0 && (
+            <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+              <GoogleLogo className="w-3.5 h-3.5" />
+              <span>Includes Google reviews</span>
             </div>
           )}
         </div>
@@ -169,20 +249,30 @@ function TestimonialsSection() {
           )}
 
           <div className="grid md:grid-cols-3 gap-6">
-            {(displayReviews.length > 0 ? displayReviews : reviews.slice(0, 3)).map((review, idx) => (
+            {(displayReviews.length > 0 ? displayReviews : allReviews.slice(0, 3)).map((review, idx) => (
               <Card key={`${review.id}-${idx}`} className="bg-card border-border/50 hover:border-primary/30 transition-all duration-300">
                 <CardContent className="p-6 space-y-4">
-                  <Quote className="w-8 h-8 text-primary/30" />
+                  <div className="flex items-center justify-between">
+                    <Quote className="w-8 h-8 text-primary/30" />
+                    {review.source === "google" && (
+                      <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-muted/50 border border-border/30">
+                        <GoogleLogo className="w-3 h-3" />
+                        <span className="text-[10px] font-medium text-muted-foreground">Google</span>
+                      </div>
+                    )}
+                  </div>
                   <StarRating rating={review.rating} />
                   {review.comment && (
-                    <p className="text-muted-foreground leading-relaxed italic">
+                    <p className="text-muted-foreground leading-relaxed italic line-clamp-4">
                       "{review.comment}"
                     </p>
                   )}
                   <div className="pt-2 border-t border-border/30">
                     <p className="font-semibold text-offwhite">{review.reviewerName}</p>
                     <p className="text-xs text-muted-foreground">
-                      {serviceLabel(review.serviceType)} &middot; {new Date(review.createdAt).toLocaleDateString("en-AU", { month: "short", year: "numeric" })}
+                      {review.source === "inapp" && review.serviceType
+                        ? `${serviceLabel(review.serviceType)}${review.date ? ` \u00B7 ${review.date}` : ""}`
+                        : review.date ?? ""}
                     </p>
                   </div>
                 </CardContent>
@@ -204,7 +294,7 @@ function TestimonialsSection() {
         {/* Mobile navigation dots */}
         {canNavigate && (
           <div className="flex justify-center gap-2 mt-8 md:hidden">
-            {Array.from({ length: Math.ceil(reviews.length / 3) }).map((_, i) => (
+            {Array.from({ length: Math.ceil(allReviews.length / 3) }).map((_, i) => (
               <button
                 key={i}
                 onClick={() => setCurrentIndex(i * 3)}

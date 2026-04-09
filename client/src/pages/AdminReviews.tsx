@@ -17,9 +17,10 @@ import {
 import { getLoginUrl } from "@/const";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
+import { Input } from "@/components/ui/input";
 import {
   Star, MessageSquare, CheckCircle2, XCircle, Clock,
-  ChevronLeft, ChevronRight, LogOut, ArrowLeft, Trash2, User,
+  ChevronLeft, ChevronRight, LogOut, ArrowLeft, Trash2, User, RefreshCw, Settings2, ExternalLink,
 } from "lucide-react";
 
 const LOGO_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/logo-white_476df209.png";
@@ -63,6 +64,8 @@ export default function AdminReviews() {
   const [page, setPage] = useState(0);
   const [selectedReviewId, setSelectedReviewId] = useState<number | null>(null);
   const [adminNotes, setAdminNotes] = useState("");
+  const [showGoogleSettings, setShowGoogleSettings] = useState(false);
+  const [placeIdInput, setPlaceIdInput] = useState("");
   const pageSize = 15;
 
   const { data: stats } = trpc.reviews.stats.useQuery(undefined, {
@@ -103,6 +106,32 @@ export default function AdminReviews() {
     onError: (err) => {
       toast.error(err.message);
     },
+  });
+
+  // Google Reviews
+  const { data: googlePlaceId } = trpc.googleReviews.getPlaceId.useQuery(undefined, {
+    enabled: !!user && user.role === "admin",
+    onSuccess: (data: { placeId: string }) => {
+      if (data.placeId && !placeIdInput) setPlaceIdInput(data.placeId);
+    },
+  } as any);
+
+  const { data: googleReviewsData } = trpc.googleReviews.get.useQuery(undefined, {
+    enabled: !!user && user.role === "admin",
+  });
+
+  const setPlaceId = trpc.googleReviews.setPlaceId.useMutation({
+    onSuccess: () => {
+      toast.success("Google Place ID saved. Reviews will be fetched shortly.");
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
+  const refreshGoogle = trpc.googleReviews.refresh.useMutation({
+    onSuccess: (data: any) => {
+      toast.success(`Refreshed ${data.count} Google reviews (${data.rating} avg rating)`);
+    },
+    onError: (err: any) => toast.error(err.message),
   });
 
   const reviews = data?.reviews ?? [];
@@ -187,6 +216,69 @@ export default function AdminReviews() {
             </Card>
           ))}
         </div>
+
+        {/* Google Reviews Settings */}
+        <Card className="mb-6 border-border/50">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Settings2 className="w-4 h-4 text-muted-foreground" />
+                <h3 className="font-semibold text-sm">Google Business Reviews</h3>
+                {googleReviewsData?.configured && googleReviewsData.totalRatings > 0 && (
+                  <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200 text-xs">
+                    {googleReviewsData.totalRatings} reviews &middot; {googleReviewsData.rating} avg
+                  </Badge>
+                )}
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => setShowGoogleSettings(!showGoogleSettings)}>
+                {showGoogleSettings ? "Hide" : "Configure"}
+              </Button>
+            </div>
+            {showGoogleSettings && (
+              <div className="space-y-3 pt-2 border-t border-border/30">
+                <p className="text-xs text-muted-foreground">
+                  Enter your Google Place ID to automatically pull in Google Business reviews. They'll appear alongside in-app reviews on the homepage.
+                  <a href="https://developers.google.com/maps/documentation/places/web-service/place-id" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline ml-1 inline-flex items-center gap-0.5">
+                    Find your Place ID <ExternalLink className="w-3 h-3" />
+                  </a>
+                </p>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="e.g. ChIJ..."
+                    value={placeIdInput}
+                    onChange={(e) => setPlaceIdInput(e.target.value)}
+                    className="flex-1"
+                  />
+                  <Button
+                    size="sm"
+                    onClick={() => setPlaceId.mutate({ placeId: placeIdInput.trim() })}
+                    disabled={setPlaceId.isPending}
+                    className="bg-amber-600 hover:bg-amber-700 text-white"
+                  >
+                    Save
+                  </Button>
+                  {googlePlaceId?.placeId && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => refreshGoogle.mutate()}
+                      disabled={refreshGoogle.isPending}
+                      className="gap-1"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 ${refreshGoogle.isPending ? "animate-spin" : ""}`} />
+                      Refresh
+                    </Button>
+                  )}
+                </div>
+                {googleReviewsData?.configured && googleReviewsData.reviews.length > 0 && (
+                  <div className="text-xs text-muted-foreground">
+                    Currently showing {googleReviewsData.reviews.length} Google reviews. Cache refreshes automatically every 24 hours.
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Filters */}
         <Card className="mb-6 border-border/50">

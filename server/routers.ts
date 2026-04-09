@@ -38,7 +38,14 @@ import {
   updateReviewStatus,
   deleteReview,
   getReviewByBookingId,
+  getCachedGoogleReviews,
+  getGoogleReviewsCacheAge,
+  clearGoogleReviewsCache,
+  insertGoogleReviews,
+  getAppSetting,
+  setAppSetting,
 } from "./db";
+import { makeRequest, type PlaceDetailsResult } from "./_core/map";
 import { createCheckoutSession } from "./stripe";
 import { notifyOwner } from "./_core/notification";
 import { sendBookingConfirmationEmail, sendCancellationConfirmationEmail, sendAdminNewBookingNotification, sendAdminCancellationNotification } from "./email";
@@ -816,6 +823,173 @@ export const appRouter = router({
         await deleteReview(input.id);
         return { success: true };
       }),
+  }),
+
+  googleReviews: router({
+    // Public: get Google reviews (cached, auto-refreshes every 24h)
+    get: publicProcedure.query(async () => {
+      const placeId = await getAppSetting("google_place_id");
+      if (!placeId) return { reviews: [], rating: 0, totalRatings: 0, configured: false };
+
+      const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
+      const cacheAge = await getGoogleReviewsCacheAge(placeId);
+
+      // If cache is fresh, return cached data
+      if (cacheAge !== null && cacheAge < CACHE_TTL) {
+        const cached = await getCachedGoogleReviews(placeId);
+        const avgRating = cached.length > 0 ? Math.round(cached.reduce((sum, r) => sum + r.rating, 0) / cached.length * 10) / 10 : 0;
+        return {
+          reviews: cached.map(r => ({
+            id: r.id,
+            authorName: r.authorName,
+            rating: r.rating,
+            text: r.text,
+            relativeTimeDescription: r.relativeTimeDescription,
+            publishTime: r.publishTime,
+            profilePhotoUrl: r.profilePhotoUrl,
+            source: "google" as const,
+          })),
+          rating: avgRating,
+          totalRatings: cached.length,
+          configured: true,
+        };
+      }
+
+      // Fetch fresh reviews from Google Places API
+      try {
+        const result = await makeRequest<PlaceDetailsResult>(
+          "/maps/api/place/details/json",
+          { place_id: placeId, fields: "reviews,rating,user_ratings_total" }
+        );
+
+        if (result.status !== "OK" || !result.result) {
+          // Return stale cache if available
+          const cached = await getCachedGoogleReviews(placeId);
+          const avgRating = cached.length > 0 ? Math.round(cached.reduce((sum, r) => sum + r.rating, 0) / cached.length * 10) / 10 : 0;
+          return {
+            reviews: cached.map(r => ({
+              id: r.id,
+              authorName: r.authorName,
+              rating: r.rating,
+              text: r.text,
+              relativeTimeDescription: r.relativeTimeDescription,
+              publishTime: r.publishTime,
+              profilePhotoUrl: r.profilePhotoUrl,
+              source: "google" as const,
+            })),
+            rating: avgRating,
+            totalRatings: cached.length,
+            configured: true,
+          };
+        }
+
+        const googleReviews = result.result.reviews ?? [];
+
+        // Clear old cache and insert new
+        await clearGoogleReviewsCache(placeId);
+        if (googleReviews.length > 0) {
+          await insertGoogleReviews(googleReviews.map(r => ({
+            placeId,
+            authorName: r.author_name || "Anonymous",
+            rating: r.rating,
+            text: r.text || null,
+            relativeTimeDescription: null,
+            publishTime: r.time ? r.time * 1000 : null,
+            profilePhotoUrl: null,
+          })));
+        }
+
+        return {
+          reviews: googleReviews.map((r, i) => ({
+            id: i + 1,
+            authorName: r.author_name || "Anonymous",
+            rating: r.rating,
+            text: r.text || null,
+            relativeTimeDescription: null,
+            publishTime: r.time ? r.time * 1000 : null,
+            profilePhotoUrl: null,
+            source: "google" as const,
+          })),
+          rating: result.result.rating ?? 0,
+          totalRatings: result.result.user_ratings_total ?? 0,
+          configured: true,
+        };
+      } catch (error) {
+        console.error("[GoogleReviews] Failed to fetch:", error);
+        // Return stale cache on error
+        const cached = await getCachedGoogleReviews(placeId);
+        const avgRating = cached.length > 0 ? Math.round(cached.reduce((sum, r) => sum + r.rating, 0) / cached.length * 10) / 10 : 0;
+        return {
+          reviews: cached.map(r => ({
+            id: r.id,
+            authorName: r.authorName,
+            rating: r.rating,
+            text: r.text,
+            relativeTimeDescription: r.relativeTimeDescription,
+            publishTime: r.publishTime,
+            profilePhotoUrl: r.profilePhotoUrl,
+            source: "google" as const,
+          })),
+          rating: avgRating,
+          totalRatings: cached.length,
+          configured: true,
+        };
+      }
+    }),
+
+    // Admin: get current Google Place ID setting
+    getPlaceId: adminProcedure.query(async () => {
+      const placeId = await getAppSetting("google_place_id");
+      return { placeId: placeId ?? "" };
+    }),
+
+    // Admin: update Google Place ID
+    setPlaceId: adminProcedure
+      .input(z.object({ placeId: z.string() }))
+      .mutation(async ({ input }) => {
+        await setAppSetting("google_place_id", input.placeId);
+        // Clear cache so reviews are fetched fresh
+        if (input.placeId) {
+          await clearGoogleReviewsCache(input.placeId);
+        }
+        return { success: true };
+      }),
+
+    // Admin: force refresh Google reviews cache
+    refresh: adminProcedure.mutation(async () => {
+      const placeId = await getAppSetting("google_place_id");
+      if (!placeId) throw new Error("Google Place ID not configured");
+
+      const result = await makeRequest<PlaceDetailsResult>(
+        "/maps/api/place/details/json",
+        { place_id: placeId, fields: "reviews,rating,user_ratings_total" }
+      );
+
+      if (result.status !== "OK" || !result.result) {
+        throw new Error("Failed to fetch reviews from Google");
+      }
+
+      const googleReviews = result.result.reviews ?? [];
+      await clearGoogleReviewsCache(placeId);
+      if (googleReviews.length > 0) {
+        await insertGoogleReviews(googleReviews.map(r => ({
+          placeId,
+          authorName: r.author_name || "Anonymous",
+          rating: r.rating,
+          text: r.text || null,
+          relativeTimeDescription: null,
+          publishTime: r.time ? r.time * 1000 : null,
+          profilePhotoUrl: null,
+        })));
+      }
+
+      return {
+        success: true,
+        count: googleReviews.length,
+        rating: result.result.rating ?? 0,
+        totalRatings: result.result.user_ratings_total ?? 0,
+      };
+    }),
   }),
 
   enquiries: router({

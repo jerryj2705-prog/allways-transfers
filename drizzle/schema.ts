@@ -155,3 +155,28 @@ export const reviews = mysqlTable("reviews", {
 
 export type Review = typeof reviews.$inferSelect;
 export type InsertReview = typeof reviews.$inferInsert;
+
+export const googleReviewsCache = mysqlTable("google_reviews_cache", {
+  id: int("id").autoincrement().primaryKey(),
+  placeId: varchar("placeId", { length: 255 }).notNull(),
+  authorName: varchar("authorName", { length: 300 }).notNull(),
+  rating: int("rating").notNull(),
+  text: text("text"),
+  relativeTimeDescription: varchar("relativeTimeDescription", { length: 100 }),
+  publishTime: bigint("publishTime", { mode: "number" }), // Unix timestamp
+  profilePhotoUrl: text("profilePhotoUrl"),
+  fetchedAt: timestamp("fetchedAt").defaultNow().notNull(),
+});
+
+export type GoogleReviewCache = typeof googleReviewsCache.$inferSelect;
+export type InsertGoogleReviewCache = typeof googleReviewsCache.$inferInsert;
+
+export const appSettings = mysqlTable("app_settings", {
+  id: int("id").autoincrement().primaryKey(),
+  settingKey: varchar("settingKey", { length: 100 }).notNull().unique(),
+  settingValue: text("settingValue"),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type AppSetting = typeof appSettings.$inferSelect;
+export type InsertAppSetting = typeof appSettings.$inferInsert;

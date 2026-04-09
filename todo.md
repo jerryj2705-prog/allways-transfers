@@ -353,3 +353,14 @@
 - [x] Add admin moderation UI for managing reviews on admin dashboard
 - [x] Display aggregate rating (average stars + count) on homepage
 - [x] Write tests for review CRUD procedures
+
+## Google Business Reviews Integration
+- [x] Research Google Places API for fetching business reviews
+- [x] Add database tables for Google reviews cache and app settings
+- [x] Add server-side procedure to fetch Google reviews with 24h caching
+- [x] Store Google Place ID in admin settings
+- [x] Merge Google reviews with in-app reviews on homepage testimonials
+- [x] Show combined weighted average rating on homepage
+- [x] Add Google review badge/indicator to distinguish from in-app reviews
+- [x] Add admin UI to configure Google Place ID with refresh button
+- [x] Write tests for Google reviews integration (18 tests)

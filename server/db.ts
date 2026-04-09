@@ -678,3 +678,53 @@ export async function getReviewByBookingId(bookingId: number) {
   const result = await db.select().from(reviews).where(eq(reviews.bookingId, bookingId)).limit(1);
   return result.length > 0 ? result[0] : undefined;
 }
+
+// ─── Google Reviews Cache ───
+
+import { googleReviewsCache, appSettings, type InsertGoogleReviewCache } from "../drizzle/schema";
+
+export async function getCachedGoogleReviews(placeId: string) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(googleReviewsCache).where(eq(googleReviewsCache.placeId, placeId)).orderBy(desc(googleReviewsCache.rating));
+}
+
+export async function getGoogleReviewsCacheAge(placeId: string): Promise<number | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select({ fetchedAt: googleReviewsCache.fetchedAt })
+    .from(googleReviewsCache)
+    .where(eq(googleReviewsCache.placeId, placeId))
+    .limit(1);
+  if (result.length === 0) return null;
+  return Date.now() - result[0].fetchedAt.getTime();
+}
+
+export async function clearGoogleReviewsCache(placeId: string) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(googleReviewsCache).where(eq(googleReviewsCache.placeId, placeId));
+}
+
+export async function insertGoogleReviews(reviews: InsertGoogleReviewCache[]) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  if (reviews.length === 0) return;
+  await db.insert(googleReviewsCache).values(reviews);
+}
+
+// ─── App Settings ───
+
+export async function getAppSetting(key: string): Promise<string | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(appSettings).where(eq(appSettings.settingKey, key)).limit(1);
+  return result.length > 0 ? (result[0].settingValue ?? null) : null;
+}
+
+export async function setAppSetting(key: string, value: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(appSettings).values({ settingKey: key, settingValue: value })
+    .onDuplicateKeyUpdate({ set: { settingValue: value } });
+}
