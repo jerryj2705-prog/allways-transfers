@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import { useLocation } from "wouter";
 import {
   Search, LayoutDashboard, Clock, CheckCircle, XCircle, AlertCircle,
   ChevronLeft, ChevronRight, LogOut, Home, DollarSign, MessageSquare, CalendarDays, Star,
+  Download, X,
 } from "lucide-react";
 import { SERVICE_TYPES, BOOKING_STATUSES, PAYMENT_METHODS } from "@shared/types";
 import type { ServiceType, BookingStatus, PaymentMethod } from "@shared/types";
@@ -36,6 +37,55 @@ const STATUS_ICONS: Record<string, React.ElementType> = {
   cancelled: XCircle,
 };
 
+// PWA Install Prompt Hook
+function usePwaInstall() {
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isInstalled, setIsInstalled] = useState(false);
+  const [dismissed, setDismissed] = useState(() => {
+    try { return localStorage.getItem("pwa-install-dismissed") === "true"; } catch { return false; }
+  });
+
+  useEffect(() => {
+    // Check if already installed
+    if (window.matchMedia("(display-mode: standalone)").matches ||
+        (window.navigator as any).standalone === true) {
+      setIsInstalled(true);
+      return;
+    }
+
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+
+    const installedHandler = () => setIsInstalled(true);
+
+    window.addEventListener("beforeinstallprompt", handler);
+    window.addEventListener("appinstalled", installedHandler);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handler);
+      window.removeEventListener("appinstalled", installedHandler);
+    };
+  }, []);
+
+  const install = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === "accepted") setIsInstalled(true);
+    setDeferredPrompt(null);
+  };
+
+  const dismiss = () => {
+    setDismissed(true);
+    try { localStorage.setItem("pwa-install-dismissed", "true"); } catch {}
+  };
+
+  const showBanner = !isInstalled && !dismissed && deferredPrompt !== null;
+
+  return { showBanner, install, dismiss, isInstalled };
+}
+
 export default function AdminDashboard() {
   const { user, loading, logout } = useAuth();
   const [, setLocation] = useLocation();
@@ -43,6 +93,7 @@ export default function AdminDashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(0);
   const pageSize = 15;
+  const pwa = usePwaInstall();
 
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const searchTimeout = useMemo(() => {
@@ -179,6 +230,39 @@ export default function AdminDashboard() {
       </div>
 
       <div className="container py-8">
+        {/* PWA Install Banner */}
+        {pwa.showBanner && (
+          <div className="mb-6 relative overflow-hidden rounded-xl border border-amber-600/30 bg-gradient-to-r from-amber-950/60 via-amber-900/40 to-amber-950/60 p-4 sm:p-5">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+                <div className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-amber-600/20 flex items-center justify-center">
+                  <Download className="w-5 h-5 sm:w-6 sm:h-6 text-amber-400" />
+                </div>
+                <div className="min-w-0">
+                  <p className="font-semibold text-sm sm:text-base text-foreground">Install Admin App</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground truncate">Quick access from your home screen — works offline</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <Button
+                  size="sm"
+                  onClick={pwa.install}
+                  className="gold-gradient text-gold-foreground border-0 text-xs sm:text-sm"
+                >
+                  Install
+                </Button>
+                <button
+                  onClick={pwa.dismiss}
+                  className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                  aria-label="Dismiss install banner"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {statCards.map((stat) => (

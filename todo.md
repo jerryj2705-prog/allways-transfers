@@ -364,3 +364,20 @@
 - [x] Add Google review badge/indicator to distinguish from in-app reviews
 - [x] Add admin UI to configure Google Place ID with refresh button
 - [x] Write tests for Google reviews integration (18 tests)
+
+## Google Place ID Configuration
+- [ ] Find Google Place ID for All Ways Transfers business
+- [ ] Configure the Place ID in the database so Google reviews appear on homepage
+
+## PWA Install Prompt Banner
+- [x] Add "Install App" prompt banner on admin dashboard for Android/mobile users
+- [x] Show banner only when PWA is not yet installed
+- [x] Allow dismissing the banner
+
+## Google Ads Tag (gtag.js)
+- [x] Add Google Ads tag (AW-18046779022) to index.html head
+
+## PWA Install Prompt Banner
+- [x] Add "Install App" prompt banner on admin dashboard for Android/mobile users
+- [x] Show banner only when PWA is not yet installed
+- [x] Allow dismissing the banner
