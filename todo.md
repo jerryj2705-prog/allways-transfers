@@ -381,3 +381,8 @@
 - [x] Add "Install App" prompt banner on admin dashboard for Android/mobile users
 - [x] Show banner only when PWA is not yet installed
 - [x] Allow dismissing the banner
+
+## Testimonials Load More
+- [x] Show only 3 reviews initially on homepage testimonials section
+- [x] Add "Load More" button to reveal additional reviews incrementally
+- [x] Hide button when all reviews are displayed

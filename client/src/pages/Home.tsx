@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useLocation } from "wouter";
 import { useState, useMemo } from "react";
-import { Plane, Clock, MapPin, Star, Shield, Award, Phone, Baby, PawPrint, DollarSign, Mail, Menu, X, Quote, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plane, Clock, MapPin, Star, Shield, Award, Phone, Baby, PawPrint, DollarSign, Mail, Menu, X, Quote } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -129,11 +129,14 @@ type UnifiedReview = {
   date?: string;
 };
 
+const INITIAL_REVIEWS = 3;
+const LOAD_MORE_COUNT = 3;
+
 function TestimonialsSection() {
   const { data: approvedReviews } = trpc.reviews.approved.useQuery();
   const { data: reviewStats } = trpc.reviews.publicStats.useQuery();
   const { data: googleData } = trpc.googleReviews.get.useQuery();
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [visibleCount, setVisibleCount] = useState(INITIAL_REVIEWS);
 
   // Merge in-app and Google reviews into a unified list
   const allReviews = useMemo(() => {
@@ -168,7 +171,7 @@ function TestimonialsSection() {
       }
     }
 
-    // Sort by rating descending, then shuffle a bit for variety
+    // Sort by rating descending
     return unified.sort((a, b) => b.rating - a.rating);
   }, [approvedReviews, googleData]);
 
@@ -203,14 +206,13 @@ function TestimonialsSection() {
     return map[type] || type;
   };
 
-  const visibleReviews = allReviews.slice(currentIndex, currentIndex + 3);
-  const displayReviews = visibleReviews.length < 3 && allReviews.length >= 3
-    ? [...visibleReviews, ...allReviews.slice(0, 3 - visibleReviews.length)]
-    : visibleReviews;
+  const displayReviews = allReviews.slice(0, visibleCount);
+  const hasMore = visibleCount < allReviews.length;
+  const remaining = allReviews.length - visibleCount;
 
-  const canNavigate = allReviews.length > 3;
-  const goNext = () => setCurrentIndex((prev) => (prev + 3) % allReviews.length);
-  const goPrev = () => setCurrentIndex((prev) => (prev - 3 + allReviews.length) % allReviews.length);
+  const handleLoadMore = () => {
+    setVisibleCount((prev) => Math.min(prev + LOAD_MORE_COUNT, allReviews.length));
+  };
 
   return (
     <section id="testimonials" className="py-24 charcoal-panel">
@@ -237,73 +239,48 @@ function TestimonialsSection() {
           )}
         </div>
 
-        <div className="relative">
-          {canNavigate && (
-            <button
-              onClick={goPrev}
-              className="absolute -left-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-card border border-border/50 flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary/50 transition-colors hidden md:flex"
-              aria-label="Previous reviews"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-          )}
-
-          <div className="grid md:grid-cols-3 gap-6">
-            {(displayReviews.length > 0 ? displayReviews : allReviews.slice(0, 3)).map((review, idx) => (
-              <Card key={`${review.id}-${idx}`} className="bg-card border-border/50 hover:border-primary/30 transition-all duration-300">
-                <CardContent className="p-6 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <Quote className="w-8 h-8 text-primary/30" />
-                    {review.source === "google" && (
-                      <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-muted/50 border border-border/30">
-                        <GoogleLogo className="w-3 h-3" />
-                        <span className="text-[10px] font-medium text-muted-foreground">Google</span>
-                      </div>
-                    )}
-                  </div>
-                  <StarRating rating={review.rating} />
-                  {review.comment && (
-                    <p className="text-muted-foreground leading-relaxed italic line-clamp-4">
-                      "{review.comment}"
-                    </p>
+        <div className="grid md:grid-cols-3 gap-6">
+          {displayReviews.map((review, idx) => (
+            <Card key={`${review.id}-${idx}`} className="bg-card border-border/50 hover:border-primary/30 transition-all duration-300">
+              <CardContent className="p-6 space-y-4">
+                <div className="flex items-center justify-between">
+                  <Quote className="w-8 h-8 text-primary/30" />
+                  {review.source === "google" && (
+                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-muted/50 border border-border/30">
+                      <GoogleLogo className="w-3 h-3" />
+                      <span className="text-[10px] font-medium text-muted-foreground">Google</span>
+                    </div>
                   )}
-                  <div className="pt-2 border-t border-border/30">
-                    <p className="font-semibold text-offwhite">{review.reviewerName}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {review.source === "inapp" && review.serviceType
-                        ? `${serviceLabel(review.serviceType)}${review.date ? ` \u00B7 ${review.date}` : ""}`
-                        : review.date ?? ""}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          {canNavigate && (
-            <button
-              onClick={goNext}
-              className="absolute -right-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-card border border-border/50 flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary/50 transition-colors hidden md:flex"
-              aria-label="Next reviews"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </button>
-          )}
+                </div>
+                <StarRating rating={review.rating} />
+                {review.comment && (
+                  <p className="text-muted-foreground leading-relaxed italic line-clamp-4">
+                    "{review.comment}"
+                  </p>
+                )}
+                <div className="pt-2 border-t border-border/30">
+                  <p className="font-semibold text-offwhite">{review.reviewerName}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {review.source === "inapp" && review.serviceType
+                      ? `${serviceLabel(review.serviceType)}${review.date ? ` \u00B7 ${review.date}` : ""}`
+                      : review.date ?? ""}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
 
-        {/* Mobile navigation dots */}
-        {canNavigate && (
-          <div className="flex justify-center gap-2 mt-8 md:hidden">
-            {Array.from({ length: Math.ceil(allReviews.length / 3) }).map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setCurrentIndex(i * 3)}
-                className={`w-2.5 h-2.5 rounded-full transition-colors ${
-                  Math.floor(currentIndex / 3) === i ? "bg-primary" : "bg-muted-foreground/30"
-                }`}
-                aria-label={`Go to page ${i + 1}`}
-              />
-            ))}
+        {/* Load More Button */}
+        {hasMore && (
+          <div className="flex justify-center mt-10">
+            <Button
+              variant="outline"
+              onClick={handleLoadMore}
+              className="bg-transparent border-primary/40 text-primary hover:bg-primary/10 hover:border-primary/60 px-8 py-2.5 text-sm font-medium transition-all"
+            >
+              Load More Reviews ({remaining} remaining)
+            </Button>
           </div>
         )}
       </div>
