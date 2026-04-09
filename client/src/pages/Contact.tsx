@@ -94,8 +94,8 @@ export default function Contact() {
                   </div>
                   <div>
                     <h3 className="font-semibold mb-1">Phone</h3>
-                    <a href="tel:+61400000000" className="text-muted-foreground hover:text-amber-400 transition-colors">
-                      0400 000 000
+                    <a href="tel:+61466544068" className="text-muted-foreground hover:text-amber-400 transition-colors">
+                      0466 544 068
                     </a>
                   </div>
                 </CardContent>
@@ -108,8 +108,8 @@ export default function Contact() {
                   </div>
                   <div>
                     <h3 className="font-semibold mb-1">Email</h3>
-                    <a href="mailto:info@allwaystransfers.com.au" className="text-muted-foreground hover:text-amber-400 transition-colors">
-                      info@allwaystransfers.com.au
+                    <a href="mailto:bookings@allwaystransfers.com.au" className="text-muted-foreground hover:text-amber-400 transition-colors">
+                      bookings@allwaystransfers.com.au
                     </a>
                   </div>
                 </CardContent>

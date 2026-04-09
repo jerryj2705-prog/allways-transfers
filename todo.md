@@ -262,3 +262,4 @@
 - [x] Link Terms page from booking form's terms checkbox
 - [x] Centre-justify navigation labels in main menu
 - [x] Stop sending real emails during vitest test runs
+- [x] Update Contact page phone to 0466 544 068 and email to bookings@allwaystransfers.com.au
