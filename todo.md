@@ -343,3 +343,13 @@
 ## Remove Manus Branding
 - [x] Find and remove all visible Manus branding from the website UI
 - [x] Ensure only Allways Transfers branding is shown to users
+
+## Testimonials & User Ratings
+- [x] Create reviews database table (id, bookingId, userId, name, rating 1-5, comment, isApproved, createdAt)
+- [x] Add server-side tRPC procedures for submitting and listing reviews
+- [x] Add admin procedure to approve/reject/delete reviews
+- [x] Build testimonials display section on homepage with star ratings and customer quotes
+- [x] Build review submission form accessible from My Bookings (completed trips only)
+- [x] Add admin moderation UI for managing reviews on admin dashboard
+- [x] Display aggregate rating (average stars + count) on homepage
+- [x] Write tests for review CRUD procedures

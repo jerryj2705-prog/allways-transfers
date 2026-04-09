@@ -1,8 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useLocation } from "wouter";
-import { useState } from "react";
-import { Plane, Clock, MapPin, Star, Shield, Award, Phone, Baby, PawPrint, DollarSign, Mail, Menu, X } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Plane, Clock, MapPin, Star, Shield, Award, Phone, Baby, PawPrint, DollarSign, Mail, Menu, X, Quote, ChevronLeft, ChevronRight } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -93,6 +93,133 @@ const features = [
     image: NIGHT_OUT_IMG,
   },
 ];
+
+function StarRating({ rating, size = "w-4 h-4" }: { rating: number; size?: string }) {
+  return (
+    <div className="flex items-center gap-0.5">
+      {[1, 2, 3, 4, 5].map((star) => (
+        <Star
+          key={star}
+          className={`${size} ${star <= rating ? "fill-primary text-primary" : "text-muted-foreground/30"}`}
+        />
+      ))}
+    </div>
+  );
+}
+
+function TestimonialsSection() {
+  const { data: approvedReviews } = trpc.reviews.approved.useQuery();
+  const { data: reviewStats } = trpc.reviews.publicStats.useQuery();
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  const reviews = useMemo(() => approvedReviews ?? [], [approvedReviews]);
+
+  if (!reviews.length) {
+    return null; // Don't render section if no approved reviews
+  }
+
+  const serviceLabel = (type: string) => {
+    const map: Record<string, string> = {
+      airport_transfer: "Airport Transfer",
+      hourly_hire: "Hourly Hire",
+      point_to_point: "Point to Point",
+      special_events: "Special Events",
+    };
+    return map[type] || type;
+  };
+
+  const visibleReviews = reviews.slice(currentIndex, currentIndex + 3);
+  // If we don't have 3, wrap around
+  const displayReviews = visibleReviews.length < 3 && reviews.length >= 3
+    ? [...visibleReviews, ...reviews.slice(0, 3 - visibleReviews.length)]
+    : visibleReviews;
+
+  const canNavigate = reviews.length > 3;
+  const goNext = () => setCurrentIndex((prev) => (prev + 3) % reviews.length);
+  const goPrev = () => setCurrentIndex((prev) => (prev - 3 + reviews.length) % reviews.length);
+
+  return (
+    <section id="testimonials" className="py-24 charcoal-panel">
+      <div className="container">
+        <div className="text-center mb-16 space-y-4">
+          <p className="text-sm font-medium tracking-[0.25em] uppercase text-primary">
+            Testimonials
+          </p>
+          <h2 className="font-heading text-3xl md:text-4xl tracking-tight text-offwhite">
+            What Our Clients Say
+          </h2>
+          {reviewStats && reviewStats.approved > 0 && (
+            <div className="flex items-center justify-center gap-3">
+              <StarRating rating={Math.round(reviewStats.averageRating)} size="w-5 h-5" />
+              <span className="text-lg font-semibold text-offwhite">{reviewStats.averageRating}</span>
+              <span className="text-muted-foreground">from {reviewStats.approved} review{reviewStats.approved !== 1 ? "s" : ""}</span>
+            </div>
+          )}
+        </div>
+
+        <div className="relative">
+          {canNavigate && (
+            <button
+              onClick={goPrev}
+              className="absolute -left-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-card border border-border/50 flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary/50 transition-colors hidden md:flex"
+              aria-label="Previous reviews"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+          )}
+
+          <div className="grid md:grid-cols-3 gap-6">
+            {(displayReviews.length > 0 ? displayReviews : reviews.slice(0, 3)).map((review, idx) => (
+              <Card key={`${review.id}-${idx}`} className="bg-card border-border/50 hover:border-primary/30 transition-all duration-300">
+                <CardContent className="p-6 space-y-4">
+                  <Quote className="w-8 h-8 text-primary/30" />
+                  <StarRating rating={review.rating} />
+                  {review.comment && (
+                    <p className="text-muted-foreground leading-relaxed italic">
+                      "{review.comment}"
+                    </p>
+                  )}
+                  <div className="pt-2 border-t border-border/30">
+                    <p className="font-semibold text-offwhite">{review.reviewerName}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {serviceLabel(review.serviceType)} &middot; {new Date(review.createdAt).toLocaleDateString("en-AU", { month: "short", year: "numeric" })}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {canNavigate && (
+            <button
+              onClick={goNext}
+              className="absolute -right-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-card border border-border/50 flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary/50 transition-colors hidden md:flex"
+              aria-label="Next reviews"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          )}
+        </div>
+
+        {/* Mobile navigation dots */}
+        {canNavigate && (
+          <div className="flex justify-center gap-2 mt-8 md:hidden">
+            {Array.from({ length: Math.ceil(reviews.length / 3) }).map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setCurrentIndex(i * 3)}
+                className={`w-2.5 h-2.5 rounded-full transition-colors ${
+                  Math.floor(currentIndex / 3) === i ? "bg-primary" : "bg-muted-foreground/30"
+                }`}
+                aria-label={`Go to page ${i + 1}`}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
 
 export default function Home() {
   const [, setLocation] = useLocation();
@@ -458,6 +585,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* Testimonials Section */}
+      <TestimonialsSection />
 
       {/* CTA Section */}
       <section className="py-24">

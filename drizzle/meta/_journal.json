@@ -78,6 +78,13 @@
       "when": 1775714896646,
       "tag": "0010_striped_crusher_hogan",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "5",
+      "when": 1775721721474,
+      "tag": "0011_foamy_stellaris",
+      "breakpoints": true
     }
   ]
 }

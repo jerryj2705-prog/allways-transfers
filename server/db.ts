@@ -588,3 +588,93 @@ export async function getBookingStats() {
     cancelled: row?.cancelled ?? 0,
   };
 }
+
+// ─── Review Queries ───
+
+import { reviews, type InsertReview, type Review } from "../drizzle/schema";
+
+export async function createReview(data: Omit<InsertReview, "id" | "createdAt" | "updatedAt" | "status">) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(reviews).values({ ...data, status: "pending" });
+  const result = await db.select().from(reviews).orderBy(desc(reviews.id)).limit(1);
+  return result[0];
+}
+
+export async function getApprovedReviews() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(reviews).where(eq(reviews.status, "approved")).orderBy(desc(reviews.createdAt));
+}
+
+export async function getReviewStats() {
+  const db = await getDb();
+  if (!db) return { total: 0, pending: 0, approved: 0, rejected: 0, averageRating: 0 };
+  const result = await db.select({
+    total: sql<number>`count(*)`,
+    pendingCount: sql<number>`sum(case when status = 'pending' then 1 else 0 end)`,
+    approvedCount: sql<number>`sum(case when status = 'approved' then 1 else 0 end)`,
+    rejectedCount: sql<number>`sum(case when status = 'rejected' then 1 else 0 end)`,
+    avgRating: sql<number>`coalesce(avg(case when status = 'approved' then rating else null end), 0)`,
+  }).from(reviews);
+  const row = result[0];
+  return {
+    total: row?.total ?? 0,
+    pending: row?.pendingCount ?? 0,
+    approved: row?.approvedCount ?? 0,
+    rejected: row?.rejectedCount ?? 0,
+    averageRating: Math.round((row?.avgRating ?? 0) * 10) / 10,
+  };
+}
+
+export async function listReviews(params: {
+  status?: string;
+  limit?: number;
+  offset?: number;
+}) {
+  const db = await getDb();
+  if (!db) return { reviews: [], total: 0 };
+
+  const conditions = [];
+  if (params.status && params.status !== "all") {
+    conditions.push(eq(reviews.status, params.status as Review["status"]));
+  }
+
+  const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+  const [items, countResult] = await Promise.all([
+    db.select().from(reviews).where(whereClause).orderBy(desc(reviews.createdAt)).limit(params.limit ?? 20).offset(params.offset ?? 0),
+    db.select({ count: sql<number>`count(*)` }).from(reviews).where(whereClause),
+  ]);
+
+  return { reviews: items, total: countResult[0]?.count ?? 0 };
+}
+
+export async function getReviewById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(reviews).where(eq(reviews.id, id)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function updateReviewStatus(id: number, status: Review["status"], adminNotes?: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const updateData: Record<string, unknown> = { status };
+  if (adminNotes !== undefined) updateData.adminNotes = adminNotes;
+  await db.update(reviews).set(updateData).where(eq(reviews.id, id));
+  return getReviewById(id);
+}
+
+export async function deleteReview(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(reviews).where(eq(reviews.id, id));
+}
+
+export async function getReviewByBookingId(bookingId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(reviews).where(eq(reviews.bookingId, bookingId)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}

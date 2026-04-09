@@ -28,7 +28,7 @@ import {
   Plane, Clock, MapPin, Star, CalendarDays, Users,
   ArrowRight, Loader2, LogIn, ChevronRight, Car,
   XCircle, AlertTriangle, ShieldAlert, CheckCircle2,
-  Pencil
+  Pencil, MessageSquarePlus
 } from "lucide-react";
 import { SERVICE_TYPES, BOOKING_STATUSES, PAYMENT_METHODS } from "@shared/types";
 import type { ServiceType, BookingStatus, PaymentMethod } from "@shared/types";
@@ -78,13 +78,53 @@ export default function MyBookings() {
   const [modifyCalendarOpen, setModifyCalendarOpen] = useState(false);
   const [modifyTimeOpen, setModifyTimeOpen] = useState(false);
 
+  // Review dialog state
+  const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
+  const [reviewBookingId, setReviewBookingId] = useState<number | null>(null);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState("");
+  const [reviewHoverRating, setReviewHoverRating] = useState(0);
+
   const cancelBooking = bookings?.find(b => b.id === cancelBookingId);
   const modifyBooking = bookings?.find(b => b.id === modifyBookingId);
+  const reviewBooking = bookings?.find(b => b.id === reviewBookingId);
 
   const { data: cancellationPolicy, isLoading: policyLoading } = trpc.bookings.cancellationPolicy.useQuery(
     { bookingId: cancelBookingId! },
     { enabled: cancelDialogOpen && cancelBookingId !== null }
   );
+
+  const reviewMutation = trpc.reviews.submit.useMutation({
+    onSuccess: () => {
+      toast.success("Thank you for your review! It will be visible after approval.");
+      setReviewDialogOpen(false);
+      setReviewBookingId(null);
+      setReviewRating(5);
+      setReviewComment("");
+      utils.bookings.myBookings.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to submit review");
+    },
+  });
+
+  const handleReviewClick = (e: React.MouseEvent, bookingId: number) => {
+    e.stopPropagation();
+    setReviewBookingId(bookingId);
+    setReviewRating(5);
+    setReviewComment("");
+    setReviewHoverRating(0);
+    setReviewDialogOpen(true);
+  };
+
+  const handleSubmitReview = () => {
+    if (!reviewBookingId || reviewRating < 1) return;
+    reviewMutation.mutate({
+      bookingId: reviewBookingId,
+      rating: reviewRating,
+      comment: reviewComment || undefined,
+    });
+  };
 
   const cancelMutation = trpc.bookings.cancel.useMutation({
     onSuccess: () => {
@@ -253,6 +293,7 @@ export default function MyBookings() {
     const Icon = SERVICE_ICONS[svcInfo?.icon ?? "Star"] || Star;
     const canModify = showActions && (booking.status === "pending" || booking.status === "confirmed");
     const canCancel = showActions && booking.status !== "cancelled" && booking.status !== "completed";
+    const isCompleted = booking.status === "completed";
 
     return (
       <Card
@@ -342,6 +383,17 @@ export default function MyBookings() {
                     >
                       <XCircle className="w-3 h-3 mr-1" />
                       Cancel
+                    </Button>
+                  )}
+                  {isCompleted && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-primary border-primary/30 hover:bg-primary/10 hover:text-primary h-7 text-xs"
+                      onClick={(e) => handleReviewClick(e, booking.id)}
+                    >
+                      <MessageSquarePlus className="w-3 h-3 mr-1" />
+                      Leave Review
                     </Button>
                   )}
                 </div>
@@ -781,6 +833,104 @@ export default function MyBookings() {
                 <>
                   <Pencil className="w-4 h-4 mr-2" />
                   Save Changes
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Review Dialog */}
+      <Dialog open={reviewDialogOpen} onOpenChange={(open) => {
+        if (!open) {
+          setReviewDialogOpen(false);
+          setReviewBookingId(null);
+          setReviewRating(5);
+          setReviewComment("");
+        }
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl">Leave a Review</DialogTitle>
+            {reviewBooking && (
+              <DialogDescription>
+                {reviewBooking.referenceNumber} &middot; {SERVICE_TYPES[reviewBooking.serviceType as ServiceType]?.label ?? reviewBooking.serviceType}
+              </DialogDescription>
+            )}
+          </DialogHeader>
+
+          <div className="space-y-5 py-2">
+            {/* Star rating */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Your Rating</label>
+              <div className="flex items-center gap-1">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    className="p-1 transition-transform hover:scale-110"
+                    onMouseEnter={() => setReviewHoverRating(star)}
+                    onMouseLeave={() => setReviewHoverRating(0)}
+                    onClick={() => setReviewRating(star)}
+                  >
+                    <Star
+                      className={`w-8 h-8 transition-colors ${
+                        star <= (reviewHoverRating || reviewRating)
+                          ? "fill-primary text-primary"
+                          : "text-muted-foreground/30"
+                      }`}
+                    />
+                  </button>
+                ))}
+                <span className="ml-2 text-sm text-muted-foreground">
+                  {reviewRating === 1 && "Poor"}
+                  {reviewRating === 2 && "Fair"}
+                  {reviewRating === 3 && "Good"}
+                  {reviewRating === 4 && "Very Good"}
+                  {reviewRating === 5 && "Excellent"}
+                </span>
+              </div>
+            </div>
+
+            {/* Comment */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Your Comment (optional)</label>
+              <Textarea
+                placeholder="Tell us about your experience..."
+                value={reviewComment}
+                onChange={(e) => setReviewComment(e.target.value)}
+                className="resize-none"
+                rows={4}
+                maxLength={1000}
+              />
+              <p className="text-xs text-muted-foreground text-right">{reviewComment.length}/1000</p>
+            </div>
+
+            <div className="rounded-lg border border-border/50 bg-card/50 p-3">
+              <p className="text-xs text-muted-foreground">
+                Your review will be published after approval. Your name from the booking will be displayed alongside your review.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setReviewDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              className="gold-gradient text-gold-foreground hover:opacity-90"
+              onClick={handleSubmitReview}
+              disabled={reviewRating < 1 || reviewMutation.isPending}
+            >
+              {reviewMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Submitting...
+                </>
+              ) : (
+                <>
+                  <Star className="w-4 h-4 mr-2" />
+                  Submit Review
                 </>
               )}
             </Button>

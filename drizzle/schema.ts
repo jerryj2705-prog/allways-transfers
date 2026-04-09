@@ -137,3 +137,21 @@ export const publicHolidays = mysqlTable("public_holidays", {
 
 export type PublicHoliday = typeof publicHolidays.$inferSelect;
 export type InsertPublicHoliday = typeof publicHolidays.$inferInsert;
+
+export const reviews = mysqlTable("reviews", {
+  id: int("id").autoincrement().primaryKey(),
+  bookingId: int("bookingId").notNull(),
+  bookingReference: varchar("bookingReference", { length: 20 }).notNull(),
+  userId: int("userId"),
+  reviewerName: varchar("reviewerName", { length: 200 }).notNull(),
+  rating: int("rating").notNull(), // 1-5 stars
+  comment: text("comment"),
+  serviceType: mysqlEnum("serviceType", ["airport_transfer", "hourly_hire", "point_to_point", "special_events"]).notNull(),
+  status: mysqlEnum("status", ["pending", "approved", "rejected"]).default("pending").notNull(),
+  adminNotes: text("adminNotes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Review = typeof reviews.$inferSelect;
+export type InsertReview = typeof reviews.$inferInsert;

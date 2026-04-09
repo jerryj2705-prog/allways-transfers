@@ -30,6 +30,14 @@ import {
   createPublicHoliday,
   updatePublicHoliday,
   deletePublicHoliday,
+  createReview,
+  getApprovedReviews,
+  getReviewStats,
+  listReviews,
+  getReviewById,
+  updateReviewStatus,
+  deleteReview,
+  getReviewByBookingId,
 } from "./db";
 import { createCheckoutSession } from "./stripe";
 import { notifyOwner } from "./_core/notification";
@@ -703,6 +711,109 @@ export const appRouter = router({
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         await deletePublicHoliday(input.id);
+        return { success: true };
+      }),
+  }),
+
+  reviews: router({
+    // Public: get approved reviews for homepage testimonials
+    approved: publicProcedure.query(async () => {
+      return getApprovedReviews();
+    }),
+
+    // Public: get aggregate stats (average rating + count of approved reviews)
+    publicStats: publicProcedure.query(async () => {
+      return getReviewStats();
+    }),
+
+    // Public: check if a booking already has a review
+    checkBooking: publicProcedure
+      .input(z.object({ bookingId: z.number() }))
+      .query(async ({ input }) => {
+        const review = await getReviewByBookingId(input.bookingId);
+        return { hasReview: !!review, review };
+      }),
+
+    // Protected: submit a review (logged-in users only, for completed bookings)
+    submit: protectedProcedure
+      .input(z.object({
+        bookingId: z.number(),
+        rating: z.number().min(1).max(5),
+        comment: z.string().max(1000).optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        // Verify the booking exists and belongs to this user
+        const booking = await getBookingById(input.bookingId);
+        if (!booking) throw new Error("Booking not found");
+        if (booking.clientEmail !== ctx.user.email) throw new Error("You can only review your own bookings");
+        if (booking.status !== "completed") throw new Error("You can only review completed bookings");
+
+        // Check if already reviewed
+        const existing = await getReviewByBookingId(input.bookingId);
+        if (existing) throw new Error("You have already reviewed this booking");
+
+        const review = await createReview({
+          bookingId: input.bookingId,
+          bookingReference: booking.referenceNumber,
+          userId: ctx.user.id,
+          reviewerName: booking.clientName,
+          rating: input.rating,
+          comment: input.comment ?? null,
+          serviceType: booking.serviceType,
+        });
+
+        // Notify owner
+        try {
+          await notifyOwner({
+            title: `New Review: ${input.rating} stars`,
+            content: `${booking.clientName} left a ${input.rating}-star review for booking ${booking.referenceNumber}.\n${input.comment ? `Comment: ${input.comment}` : "No comment."}\n\nReview is pending approval.`,
+          });
+        } catch (e) {
+          console.warn("Failed to send review notification:", e);
+        }
+
+        return { success: true, review };
+      }),
+
+    // Admin: list all reviews
+    list: adminProcedure
+      .input(z.object({
+        status: z.string().optional(),
+        limit: z.number().optional(),
+        offset: z.number().optional(),
+      }))
+      .query(async ({ input }) => {
+        return listReviews(input);
+      }),
+
+    // Admin: get review stats
+    stats: adminProcedure.query(async () => {
+      return getReviewStats();
+    }),
+
+    // Admin: get single review
+    getById: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        return getReviewById(input.id);
+      }),
+
+    // Admin: update review status (approve/reject)
+    updateStatus: adminProcedure
+      .input(z.object({
+        id: z.number(),
+        status: z.enum(["pending", "approved", "rejected"]),
+        adminNotes: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        return updateReviewStatus(input.id, input.status, input.adminNotes);
+      }),
+
+    // Admin: delete a review
+    delete: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await deleteReview(input.id);
         return { success: true };
       }),
   }),
