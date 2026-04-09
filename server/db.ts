@@ -318,6 +318,9 @@ export interface PriceBreakdown {
   outOfHoursSurcharge: number;
   outOfAreaSurcharge: number;
   fuelLevySurcharge: number;
+  additionalStopsSurcharge: number;
+  additionalStopsCount: number;
+  perStopRate: number;
   supportVanPrice: number;
   squareSurcharge: number;
   subtotal: number;
@@ -332,6 +335,8 @@ export async function calculatePrice(params: {
   needsSupportVan: boolean;
   paymentMethod: string;
   hireHours?: number; // for hourly hire
+  additionalPickupCount?: number;
+  additionalDropoffCount?: number;
 }): Promise<PriceBreakdown> {
   const settings = await getAllPricingSettings();
   const getVal = (key: string) => {
@@ -377,11 +382,16 @@ export async function calculatePrice(params: {
   const fuelLevyPercent = isActive("surcharge_fuel_levy") ? getVal("surcharge_fuel_levy") : 0;
   const fuelLevySurcharge = Math.round((basePrice + distanceCharge) * (fuelLevyPercent / 100) * 100) / 100;
 
+  // Additional stops surcharge
+  const additionalStopsCount = (params.additionalPickupCount ?? 0) + (params.additionalDropoffCount ?? 0);
+  const perStopRate = isActive("surcharge_additional_stop") ? getVal("surcharge_additional_stop") : 0;
+  const additionalStopsSurcharge = Math.round(additionalStopsCount * perStopRate * 100) / 100;
+
   // Support van
   const supportVanPrice = params.needsSupportVan ? getVal("rate_support_van") : 0;
 
   // Subtotal before payment surcharge
-  const subtotal = Math.round((basePrice + distanceCharge + outOfHoursSurcharge + outOfAreaSurcharge + fuelLevySurcharge + supportVanPrice) * 100) / 100;
+  const subtotal = Math.round((basePrice + distanceCharge + outOfHoursSurcharge + outOfAreaSurcharge + fuelLevySurcharge + additionalStopsSurcharge + supportVanPrice) * 100) / 100;
 
   // Square 2% surcharge
   const squareSurcharge = params.paymentMethod === "square_postpay" ? Math.round(subtotal * 0.02 * 100) / 100 : 0;
@@ -394,6 +404,9 @@ export async function calculatePrice(params: {
     outOfHoursSurcharge,
     outOfAreaSurcharge,
     fuelLevySurcharge,
+    additionalStopsSurcharge,
+    additionalStopsCount,
+    perStopRate,
     supportVanPrice,
     squareSurcharge,
     subtotal,

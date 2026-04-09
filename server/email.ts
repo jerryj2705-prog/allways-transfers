@@ -125,7 +125,32 @@ export interface BookingEmailData {
   paymentMethod: string;
   paymentStatus: string;
   specialRequests?: string | null;
+  additionalPickupCount?: number;
+  additionalDropoffCount?: number;
+  additionalPickupAddresses?: string[];
+  additionalDropoffAddresses?: string[];
   origin: string;
+}
+
+function buildAdditionalStopsHtml(data: BookingEmailData): string {
+  let html = "";
+  if ((data.additionalPickupCount ?? 0) > 0) {
+    html += `<tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Additional Pickups (${data.additionalPickupCount})</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${(data.additionalPickupAddresses ?? []).join("<br/>")}</span>
+        </td>
+      </tr>`;
+  }
+  if ((data.additionalDropoffCount ?? 0) > 0) {
+    html += `<tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Additional Drop-offs (${data.additionalDropoffCount})</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${(data.additionalDropoffAddresses ?? []).join("<br/>")}</span>
+        </td>
+      </tr>`;
+  }
+  return html;
 }
 
 export async function sendBookingConfirmationEmail(data: BookingEmailData): Promise<boolean> {
@@ -208,6 +233,7 @@ export async function sendBookingConfirmationEmail(data: BookingEmailData): Prom
           <span style="color:#e5e5e5;font-size:15px;">${data.petDescription ?? "Yes"}</span>
         </td>
       </tr>` : ""}
+      ${buildAdditionalStopsHtml(data)}
       ${data.specialRequests ? `<tr>
         <td style="padding:8px 0;border-bottom:1px solid #333;">
           <span style="color:#a3a3a3;font-size:13px;">Special Requests</span><br/>
@@ -514,6 +540,7 @@ export async function sendAdminNewBookingNotification(data: BookingEmailData): P
           <span style="color:#e5e5e5;font-size:15px;">${data.petDescription ?? "Yes"}</span>
         </td>
       </tr>` : ""}
+      ${buildAdditionalStopsHtml(data)}
       ${data.specialRequests ? `<tr>
         <td style="padding:8px 0;border-bottom:1px solid #333;">
           <span style="color:#a3a3a3;font-size:13px;">Special Requests</span><br/>

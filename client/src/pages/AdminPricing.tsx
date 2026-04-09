@@ -25,6 +25,7 @@ const CATEGORY_ICONS: Record<string, React.ElementType> = {
   surcharge_out_of_hours: Clock,
   surcharge_out_of_area: MapPin,
   surcharge_fuel_levy: Fuel,
+  surcharge_additional_stop: MapPin,
   min_hourly_hours: Clock,
   late_cancel_charge_pct: Percent,
   distance_surcharge_per_50km: Route,

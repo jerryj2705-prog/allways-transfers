@@ -352,6 +352,40 @@ export default function AdminBookingDetail() {
                       </div>
                     </div>
                   )}
+                  {((booking.additionalPickupCount ?? 0) > 0 || (booking.additionalDropoffCount ?? 0) > 0) && (
+                    <div className="flex items-start gap-3 col-span-2">
+                      <MapPin className="w-4 h-4 text-muted-foreground mt-0.5" />
+                      <div className="space-y-2">
+                        <p className="text-muted-foreground">Additional Stops</p>
+                        {(booking.additionalPickupCount ?? 0) > 0 && (
+                          <div>
+                            <p className="text-xs text-muted-foreground">Additional Pickups ({booking.additionalPickupCount})</p>
+                            {(() => {
+                              try {
+                                const addrs = JSON.parse(booking.additionalPickupAddresses || "[]");
+                                return addrs.map((addr: string, i: number) => (
+                                  <p key={i} className="font-medium text-sm">{addr}</p>
+                                ));
+                              } catch { return null; }
+                            })()}
+                          </div>
+                        )}
+                        {(booking.additionalDropoffCount ?? 0) > 0 && (
+                          <div>
+                            <p className="text-xs text-muted-foreground">Additional Drop-offs ({booking.additionalDropoffCount})</p>
+                            {(() => {
+                              try {
+                                const addrs = JSON.parse(booking.additionalDropoffAddresses || "[]");
+                                return addrs.map((addr: string, i: number) => (
+                                  <p key={i} className="font-medium text-sm">{addr}</p>
+                                ));
+                              } catch { return null; }
+                            })()}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
                 {booking.specialRequests && (
                   <div className="border-t border-border/50 pt-4">

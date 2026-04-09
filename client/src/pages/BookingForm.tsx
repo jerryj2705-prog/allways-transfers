@@ -197,6 +197,10 @@ export default function BookingForm() {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | "">("")
   const [hireHours, setHireHours] = useState(0);
+  const [additionalPickupCount, setAdditionalPickupCount] = useState(0);
+  const [additionalDropoffCount, setAdditionalDropoffCount] = useState(0);
+  const [additionalPickupAddresses, setAdditionalPickupAddresses] = useState<string[]>([]);
+  const [additionalDropoffAddresses, setAdditionalDropoffAddresses] = useState<string[]>([]);
 
   const { data: vehiclesData } = trpc.vehicles.list.useQuery();
   const vehicles = vehiclesData ?? [];
@@ -251,8 +255,10 @@ export default function BookingForm() {
       needsSupportVan,
       paymentMethod: paymentMethod || "cash_postpay",
       hireHours: serviceType === "hourly_hire" ? hireHours : undefined,
+      additionalPickupCount,
+      additionalDropoffCount,
     };
-  }, [serviceType, pickupSuburb, dropoffSuburb, pickupHour, needsSupportVan, paymentMethod, hireHours]);
+  }, [serviceType, pickupSuburb, dropoffSuburb, pickupHour, needsSupportVan, paymentMethod, hireHours, additionalPickupCount, additionalDropoffCount]);
 
   const { data: priceBreakdown } = trpc.pricing.calculate.useQuery(
     priceInput!,
@@ -265,6 +271,7 @@ export default function BookingForm() {
     outOfHoursSurcharge: 0,
     outOfAreaSurcharge: 0,
     fuelLevySurcharge: 0,
+    additionalStopsSurcharge: 0,
     supportVanPrice: 0,
     squareSurcharge: 0,
     subtotal: 0,
@@ -299,11 +306,21 @@ export default function BookingForm() {
       case 0: return serviceType !== "";
       case 1: {
         const baseValid = !!(pickupAddress && pickupSuburb && pickupDate && pickupTime && passengerCount >= 1);
+        // Validate additional pickup addresses are filled
+        const pickupAddrsValid = additionalPickupCount === 0 || (
+          additionalPickupAddresses.length === additionalPickupCount &&
+          additionalPickupAddresses.every(a => a.trim().length > 0)
+        );
+        // Validate additional dropoff addresses are filled
+        const dropoffAddrsValid = additionalDropoffCount === 0 || (
+          additionalDropoffAddresses.length === additionalDropoffCount &&
+          additionalDropoffAddresses.every(a => a.trim().length > 0)
+        );
         if (serviceType === "hourly_hire") {
           const minHrs = parseInt(pricingSettings?.find(s => s.settingKey === "min_hourly_hours")?.settingValue || "3", 10);
-          return baseValid && hireHours >= minHrs;
+          return baseValid && hireHours >= minHrs && pickupAddrsValid && dropoffAddrsValid;
         }
-        return baseValid && !!(dropoffAddress && dropoffSuburb);
+        return baseValid && !!(dropoffAddress && dropoffSuburb) && pickupAddrsValid && dropoffAddrsValid;
       }
       case 2: return !!suv && (!isPetFriendly || petDescription.trim().length > 0);
       case 3: return clientName && clientEmail && clientPhone;
@@ -340,6 +357,11 @@ export default function BookingForm() {
       estimatedDuration: serviceType === "hourly_hire" ? hireHours * 60 : undefined,
       basePrice: pricing.basePrice,
       totalPrice: pricing.totalPrice,
+      additionalPickupCount,
+      additionalDropoffCount,
+      additionalPickupAddresses: additionalPickupAddresses.filter(a => a.trim()),
+      additionalDropoffAddresses: additionalDropoffAddresses.filter(a => a.trim()),
+      additionalStopsSurcharge: pricing.additionalStopsSurcharge,
       specialRequests: specialRequests || undefined,
       termsAccepted,
       paymentMethod,
@@ -680,6 +702,138 @@ export default function BookingForm() {
                 </div>
                 <p className="text-xs text-muted-foreground">{passengerNote}</p>
               </div>
+
+              {/* Additional Pickup Points */}
+              <div className="space-y-3">
+                <Label className="text-sm font-medium">Additional Pickup Points</Label>
+                <div className="flex items-center gap-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => {
+                      const newCount = Math.max(0, additionalPickupCount - 1);
+                      setAdditionalPickupCount(newCount);
+                      setAdditionalPickupAddresses(prev => prev.slice(0, newCount));
+                    }}
+                    disabled={additionalPickupCount === 0}
+                    className="bg-background"
+                  >
+                    <Minus className="w-4 h-4" />
+                  </Button>
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-5 h-5 text-primary" />
+                    <span className="text-xl font-heading font-bold w-8 text-center">{additionalPickupCount}</span>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => {
+                      const newCount = Math.min(5, additionalPickupCount + 1);
+                      setAdditionalPickupCount(newCount);
+                      setAdditionalPickupAddresses(prev => [...prev, ""].slice(0, newCount));
+                    }}
+                    disabled={additionalPickupCount >= 5}
+                    className="bg-background"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">Additional stops before your main destination (surcharge applies per stop)</p>
+                {additionalPickupCount > 0 && (
+                  <div className="space-y-3 pl-4 border-l-2 border-primary/30">
+                    {Array.from({ length: additionalPickupCount }, (_, i) => (
+                      <div key={`extra-pickup-${i}`} className="space-y-1">
+                        <Label className="text-xs font-medium text-muted-foreground">Additional Pickup #{i + 1} Address</Label>
+                        <Input
+                          placeholder="Enter full address for this pickup"
+                          value={additionalPickupAddresses[i] || ""}
+                          onChange={(e) => {
+                            const updated = [...additionalPickupAddresses];
+                            updated[i] = e.target.value;
+                            setAdditionalPickupAddresses(updated);
+                          }}
+                          className="h-11"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Additional Drop-off Points */}
+              <div className="space-y-3">
+                <Label className="text-sm font-medium">Additional Drop-off Points</Label>
+                <div className="flex items-center gap-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => {
+                      const newCount = Math.max(0, additionalDropoffCount - 1);
+                      setAdditionalDropoffCount(newCount);
+                      setAdditionalDropoffAddresses(prev => prev.slice(0, newCount));
+                    }}
+                    disabled={additionalDropoffCount === 0}
+                    className="bg-background"
+                  >
+                    <Minus className="w-4 h-4" />
+                  </Button>
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-5 h-5 text-amber-400" />
+                    <span className="text-xl font-heading font-bold w-8 text-center">{additionalDropoffCount}</span>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => {
+                      const newCount = Math.min(5, additionalDropoffCount + 1);
+                      setAdditionalDropoffCount(newCount);
+                      setAdditionalDropoffAddresses(prev => [...prev, ""].slice(0, newCount));
+                    }}
+                    disabled={additionalDropoffCount >= 5}
+                    className="bg-background"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">Additional drop-off stops along the way (surcharge applies per stop)</p>
+                {additionalDropoffCount > 0 && (
+                  <div className="space-y-3 pl-4 border-l-2 border-amber-400/30">
+                    {Array.from({ length: additionalDropoffCount }, (_, i) => (
+                      <div key={`extra-dropoff-${i}`} className="space-y-1">
+                        <Label className="text-xs font-medium text-muted-foreground">Additional Drop-off #{i + 1} Address</Label>
+                        <Input
+                          placeholder="Enter full address for this drop-off"
+                          value={additionalDropoffAddresses[i] || ""}
+                          onChange={(e) => {
+                            const updated = [...additionalDropoffAddresses];
+                            updated[i] = e.target.value;
+                            setAdditionalDropoffAddresses(updated);
+                          }}
+                          className="h-11"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Additional stops surcharge notice */}
+              {(additionalPickupCount > 0 || additionalDropoffCount > 0) && (
+                <div className="flex items-start gap-3 p-3 rounded-lg bg-primary/10 border border-primary/20">
+                  <MapPin className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                  <div className="text-sm">
+                    <p className="font-medium text-primary">Additional Stops</p>
+                    <p className="text-muted-foreground">
+                      {additionalPickupCount + additionalDropoffCount} additional stop{additionalPickupCount + additionalDropoffCount !== 1 ? "s" : ""} selected.
+                      A surcharge applies per additional stop.
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* Hours selector for Hourly Hire */}
               {serviceType === "hourly_hire" && (() => {
@@ -1119,6 +1273,33 @@ export default function BookingForm() {
                       </div>
                     )}
                   </div>
+                  {/* Additional Stops in Review */}
+                  {(additionalPickupCount > 0 || additionalDropoffCount > 0) && (
+                    <div className="mt-3 space-y-2">
+                      {additionalPickupCount > 0 && (
+                        <div>
+                          <p className="text-muted-foreground text-sm">Additional Pickups ({additionalPickupCount})</p>
+                          {additionalPickupAddresses.filter(a => a.trim()).map((addr, i) => (
+                            <p key={i} className="text-sm font-medium flex items-center gap-1">
+                              <MapPin className="w-3 h-3 text-primary shrink-0" />
+                              {addr}
+                            </p>
+                          ))}
+                        </div>
+                      )}
+                      {additionalDropoffCount > 0 && (
+                        <div>
+                          <p className="text-muted-foreground text-sm">Additional Drop-offs ({additionalDropoffCount})</p>
+                          {additionalDropoffAddresses.filter(a => a.trim()).map((addr, i) => (
+                            <p key={i} className="text-sm font-medium flex items-center gap-1">
+                              <MapPin className="w-3 h-3 text-amber-400 shrink-0" />
+                              {addr}
+                            </p>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Vehicle */}
@@ -1245,6 +1426,12 @@ export default function BookingForm() {
                       <div className="flex justify-between text-sm text-amber-400">
                         <span>Fuel Levy</span>
                         <span>+${pricing.fuelLevySurcharge.toFixed(2)}</span>
+                      </div>
+                    )}
+                    {pricing.additionalStopsSurcharge > 0 && (
+                      <div className="flex justify-between text-sm text-amber-400">
+                        <span>Additional Stops ({additionalPickupCount + additionalDropoffCount} stop{additionalPickupCount + additionalDropoffCount !== 1 ? "s" : ""})</span>
+                        <span>+${pricing.additionalStopsSurcharge.toFixed(2)}</span>
                       </div>
                     )}
                     {needsSupportVan && pricing.supportVanPrice > 0 && (

@@ -307,3 +307,15 @@
 - [x] Show confirmation dialog before saving the rescheduled time
 - [x] Call adminModify mutation to persist the new pickup time
 - [x] Handle overlap warnings when dropping onto an occupied time slot
+
+## Automated Price Calculation
+- [x] Add admin-settable surcharge settings to DB (out-of-hours, fuel levy, out-of-area, additional stops)
+- [x] Update admin pricing page with surcharge configuration UI
+- [x] Add number of additional pickup points field to booking form
+- [x] Add number of additional dropoff points field to booking form
+- [x] Show dynamic additional pickup address fields when additional pickups > 0 (address only, no time — pickup time is for first pickup only)
+- [x] Show dynamic additional dropoff address fields when additional dropoffs > 0 (address only)
+- [x] Implement auto price calculation: Base Price + Out-of-Hours + Fuel Levy + Out-of-Area + Additional Stops
+- [x] Update server-side booking creation to validate and store additional addresses
+- [x] Store additional pickup/dropoff addresses in database
+- [x] Update booking confirmation and admin views to show additional addresses

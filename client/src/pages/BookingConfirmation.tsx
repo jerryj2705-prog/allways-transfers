@@ -158,6 +158,41 @@ export default function BookingConfirmation() {
                   <p className="font-medium">{booking.petDescription || "Yes"}</p>
                 </div>
               )}
+              {((booking.additionalPickupCount ?? 0) > 0 || (booking.additionalDropoffCount ?? 0) > 0) && (
+                <div className="col-span-2 space-y-2">
+                  <p className="text-muted-foreground flex items-center gap-1"><MapPin className="w-3 h-3" /> Additional Stops</p>
+                  {(booking.additionalPickupCount ?? 0) > 0 && (
+                    <div>
+                      <p className="text-xs text-muted-foreground">Additional Pickups ({booking.additionalPickupCount})</p>
+                      {(() => {
+                        try {
+                          const addrs = JSON.parse(booking.additionalPickupAddresses || "[]");
+                          return addrs.map((addr: string, i: number) => (
+                            <p key={i} className="font-medium text-sm flex items-center gap-1">
+                              <MapPin className="w-3 h-3 text-primary shrink-0" />{addr}
+                            </p>
+                          ));
+                        } catch { return null; }
+                      })()}
+                    </div>
+                  )}
+                  {(booking.additionalDropoffCount ?? 0) > 0 && (
+                    <div>
+                      <p className="text-xs text-muted-foreground">Additional Drop-offs ({booking.additionalDropoffCount})</p>
+                      {(() => {
+                        try {
+                          const addrs = JSON.parse(booking.additionalDropoffAddresses || "[]");
+                          return addrs.map((addr: string, i: number) => (
+                            <p key={i} className="font-medium text-sm flex items-center gap-1">
+                              <MapPin className="w-3 h-3 text-amber-400 shrink-0" />{addr}
+                            </p>
+                          ));
+                        } catch { return null; }
+                      })()}
+                    </div>
+                  )}
+                </div>
+              )}
               <div>
                 <p className="text-muted-foreground">Payment Method</p>
                 <p className="font-medium">

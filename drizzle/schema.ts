@@ -45,6 +45,12 @@ export const bookings = mysqlTable("bookings", {
   // Location details
   pickupAddress: text("pickupAddress").notNull(),
   dropoffAddress: text("dropoffAddress"),
+  // Additional stops
+  additionalPickupCount: int("additionalPickupCount").notNull().default(0),
+  additionalDropoffCount: int("additionalDropoffCount").notNull().default(0),
+  additionalPickupAddresses: text("additionalPickupAddresses"), // JSON array of addresses
+  additionalDropoffAddresses: text("additionalDropoffAddresses"), // JSON array of addresses
+  additionalStopsSurcharge: decimal("additionalStopsSurcharge", { precision: 10, scale: 2 }).default("0"),
   // Date/time (UTC ms)
   pickupDate: bigint("pickupDate", { mode: "number" }).notNull(),
   // Passengers

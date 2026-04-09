@@ -78,6 +78,11 @@ export const appRouter = router({
           estimatedDuration: z.number().optional(),
           basePrice: z.number(),
           totalPrice: z.number(),
+          additionalPickupCount: z.number().min(0).max(5).default(0),
+          additionalDropoffCount: z.number().min(0).max(5).default(0),
+          additionalPickupAddresses: z.array(z.string()).default([]),
+          additionalDropoffAddresses: z.array(z.string()).default([]),
+          additionalStopsSurcharge: z.number().default(0),
           specialRequests: z.string().optional(),
           termsAccepted: z.boolean(),
           paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay"]),
@@ -127,6 +132,11 @@ export const appRouter = router({
           estimatedDuration: input.estimatedDuration ?? null,
           basePrice: input.basePrice.toFixed(2),
           totalPrice: input.totalPrice.toFixed(2),
+          additionalPickupCount: input.additionalPickupCount,
+          additionalDropoffCount: input.additionalDropoffCount,
+          additionalPickupAddresses: input.additionalPickupAddresses.length > 0 ? JSON.stringify(input.additionalPickupAddresses) : null,
+          additionalDropoffAddresses: input.additionalDropoffAddresses.length > 0 ? JSON.stringify(input.additionalDropoffAddresses) : null,
+          additionalStopsSurcharge: input.additionalStopsSurcharge.toFixed(2),
           paymentMethod: input.paymentMethod,
           paymentStatus: "unpaid",
           specialRequests: input.specialRequests ?? null,
@@ -186,10 +196,14 @@ export const appRouter = router({
               paymentMethod: input.paymentMethod,
               paymentStatus: input.paymentMethod === "stripe_prepay" ? "unpaid" : "unpaid",
               specialRequests: input.specialRequests ?? null,
+              additionalPickupCount: input.additionalPickupCount ?? 0,
+              additionalDropoffCount: input.additionalDropoffCount ?? 0,
+              additionalPickupAddresses: input.additionalPickupAddresses ?? [],
+              additionalDropoffAddresses: input.additionalDropoffAddresses ?? [],
               origin: input.origin,
             });
-          } catch (e) {
-            console.warn("Failed to send booking confirmation email:", e);
+          } catch (emailError) {
+            console.warn("[Booking] Failed to send confirmation email:", emailError);
           }
 
           // Send admin notification
@@ -213,6 +227,10 @@ export const appRouter = router({
               paymentMethod: input.paymentMethod,
               paymentStatus: input.paymentMethod === "stripe_prepay" ? "unpaid" : "unpaid",
               specialRequests: input.specialRequests ?? null,
+              additionalPickupCount: input.additionalPickupCount ?? 0,
+              additionalDropoffCount: input.additionalDropoffCount ?? 0,
+              additionalPickupAddresses: input.additionalPickupAddresses ?? [],
+              additionalDropoffAddresses: input.additionalDropoffAddresses ?? [],
               origin: input.origin,
             });
           } catch (e) {
@@ -560,6 +578,8 @@ export const appRouter = router({
           needsSupportVan: z.boolean().default(false),
           paymentMethod: z.string().default("cash_postpay"),
           hireHours: z.number().min(0).optional(),
+          additionalPickupCount: z.number().min(0).max(5).default(0),
+          additionalDropoffCount: z.number().min(0).max(5).default(0),
         })
       )
       .query(async ({ input }) => {
@@ -587,6 +607,8 @@ export const appRouter = router({
           needsSupportVan: input.needsSupportVan,
           paymentMethod: input.paymentMethod,
           hireHours: input.hireHours,
+          additionalPickupCount: input.additionalPickupCount,
+          additionalDropoffCount: input.additionalDropoffCount,
         });
 
         return {
