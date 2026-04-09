@@ -390,3 +390,10 @@
 ## Testimonials Load More Animation
 - [x] Add fade-in and slide-up animation for newly loaded review cards
 - [x] Only animate new cards, not already visible ones
+
+## Write a Review from Homepage
+- [x] Add "Write a Review" button in the testimonials section header
+- [x] Show review submission dialog with star rating and comment fields
+- [x] Only allow logged-in users with completed bookings to submit
+- [x] Show appropriate messages for non-logged-in users or users without completed bookings
+- [x] Invalidate reviews queries after successful submission

@@ -1,11 +1,15 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useLocation } from "wouter";
-import { useState, useMemo, useRef, useEffect } from "react";
-import { Plane, Clock, MapPin, Star, Shield, Award, Phone, Baby, PawPrint, DollarSign, Mail, Menu, X, Quote } from "lucide-react";
+import { useState, useMemo, useRef, useEffect, useCallback } from "react";
+import { Plane, Clock, MapPin, Star, Shield, Award, Phone, Baby, PawPrint, DollarSign, Mail, Menu, X, Quote, Loader2, Pencil } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { getLoginUrl } from "@/const";
+import { toast } from "sonner";
 
 const HERO_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/hero-suv_ee8b3ffa.jpg";
 const LOGO_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/logo-white_476df209.png";
@@ -133,12 +137,70 @@ const INITIAL_REVIEWS = 3;
 const LOAD_MORE_COUNT = 3;
 
 function TestimonialsSection() {
+  const { user } = useAuth();
+  const utils = trpc.useUtils();
   const { data: approvedReviews } = trpc.reviews.approved.useQuery();
   const { data: reviewStats } = trpc.reviews.publicStats.useQuery();
   const { data: googleData } = trpc.googleReviews.get.useQuery();
+  const { data: myBookings } = trpc.bookings.myBookings.useQuery(undefined, { enabled: !!user });
   const [visibleCount, setVisibleCount] = useState(INITIAL_REVIEWS);
   const prevVisibleCount = useRef(INITIAL_REVIEWS);
   const [animatingFrom, setAnimatingFrom] = useState(-1);
+
+  // Write a Review dialog state
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [selectedBookingId, setSelectedBookingId] = useState<number | null>(null);
+  const [rating, setRating] = useState(5);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [comment, setComment] = useState("");
+
+  // Completed bookings that haven't been reviewed yet
+  const reviewableBookings = useMemo(() => {
+    if (!myBookings) return [];
+    const reviewedIds = new Set(approvedReviews?.map(r => r.bookingId) ?? []);
+    return myBookings.filter(b => b.status === "completed" && !reviewedIds.has(b.id));
+  }, [myBookings, approvedReviews]);
+
+  const reviewMutation = trpc.reviews.submit.useMutation({
+    onSuccess: () => {
+      toast.success("Thank you for your review! It will be visible after approval.");
+      setReviewOpen(false);
+      setSelectedBookingId(null);
+      setRating(5);
+      setComment("");
+      utils.reviews.approved.invalidate();
+      utils.reviews.publicStats.invalidate();
+      utils.bookings.myBookings.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to submit review");
+    },
+  });
+
+  const handleWriteReview = useCallback(() => {
+    if (!user) {
+      window.location.href = getLoginUrl();
+      return;
+    }
+    if (!reviewableBookings.length) {
+      toast.info("You need a completed booking before you can leave a review.");
+      return;
+    }
+    setSelectedBookingId(reviewableBookings[0].id);
+    setRating(5);
+    setHoverRating(0);
+    setComment("");
+    setReviewOpen(true);
+  }, [user, reviewableBookings]);
+
+  const handleSubmitReview = () => {
+    if (!selectedBookingId || rating < 1) return;
+    reviewMutation.mutate({
+      bookingId: selectedBookingId,
+      rating,
+      comment: comment || undefined,
+    });
+  };
 
   // Track when visibleCount changes to trigger animation on new cards
   useEffect(() => {
@@ -206,7 +268,7 @@ function TestimonialsSection() {
     };
   }, [reviewStats, googleData]);
 
-  if (!allReviews.length) {
+  if (!allReviews.length && !user) {
     return null;
   }
 
@@ -251,6 +313,15 @@ function TestimonialsSection() {
               <span>Includes Google reviews</span>
             </div>
           )}
+          <div className="pt-2">
+            <Button
+              onClick={handleWriteReview}
+              className="gold-gradient text-gold-foreground hover:opacity-90 px-6"
+            >
+              <Pencil className="w-4 h-4 mr-2" />
+              Write a Review
+            </Button>
+          </div>
         </div>
 
         <div className="grid md:grid-cols-3 gap-6">
@@ -307,6 +378,119 @@ function TestimonialsSection() {
             </Button>
           </div>
         )}
+
+        {/* Write a Review Dialog */}
+        <Dialog open={reviewOpen} onOpenChange={(open) => {
+          if (!open) {
+            setReviewOpen(false);
+            setSelectedBookingId(null);
+            setRating(5);
+            setComment("");
+          }
+        }}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-xl">Write a Review</DialogTitle>
+              <DialogDescription>
+                Share your experience with All Ways Transfers
+              </DialogDescription>
+            </DialogHeader>
+
+            {reviewableBookings.length > 1 && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Select Booking</label>
+                <select
+                  value={selectedBookingId ?? ""}
+                  onChange={(e) => setSelectedBookingId(Number(e.target.value))}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  {reviewableBookings.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.referenceNumber} &mdash; {new Date(b.pickupDate).toLocaleDateString("en-AU")}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <div className="space-y-5 py-2">
+              {/* Star rating */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Your Rating</label>
+                <div className="flex items-center gap-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      className="p-1 transition-transform hover:scale-110"
+                      onMouseEnter={() => setHoverRating(star)}
+                      onMouseLeave={() => setHoverRating(0)}
+                      onClick={() => setRating(star)}
+                    >
+                      <Star
+                        className={`w-8 h-8 transition-colors ${
+                          star <= (hoverRating || rating)
+                            ? "fill-primary text-primary"
+                            : "text-muted-foreground/30"
+                        }`}
+                      />
+                    </button>
+                  ))}
+                  <span className="ml-2 text-sm text-muted-foreground">
+                    {rating === 1 && "Poor"}
+                    {rating === 2 && "Fair"}
+                    {rating === 3 && "Good"}
+                    {rating === 4 && "Very Good"}
+                    {rating === 5 && "Excellent"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Comment */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Your Comment (optional)</label>
+                <Textarea
+                  placeholder="Tell us about your experience..."
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  className="resize-none"
+                  rows={4}
+                  maxLength={1000}
+                />
+                <p className="text-xs text-muted-foreground text-right">{comment.length}/1000</p>
+              </div>
+
+              <div className="rounded-lg border border-border/50 bg-card/50 p-3">
+                <p className="text-xs text-muted-foreground">
+                  Your review will be published after approval. Your name from the booking will be displayed alongside your review.
+                </p>
+              </div>
+            </div>
+
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button variant="outline" onClick={() => setReviewOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                className="gold-gradient text-gold-foreground hover:opacity-90"
+                onClick={handleSubmitReview}
+                disabled={rating < 1 || !selectedBookingId || reviewMutation.isPending}
+              >
+                {reviewMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Submitting...
+                  </>
+                ) : (
+                  <>
+                    <Star className="w-4 h-4 mr-2" />
+                    Submit Review
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </section>
   );
