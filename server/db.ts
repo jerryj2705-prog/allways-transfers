@@ -264,6 +264,7 @@ export async function getBookingsByDateRange(startMs: number, endMs: number) {
       status: bookings.status,
       paymentStatus: bookings.paymentStatus,
       paymentMethod: bookings.paymentMethod,
+      estimatedDuration: bookings.estimatedDuration,
     })
     .from(bookings)
     .where(

@@ -292,3 +292,10 @@
 - [x] Color-code bookings by status (pending, confirmed, completed, cancelled)
 - [x] Add calendar navigation (prev/next month, today button)
 - [x] Add calendar page to admin dashboard sidebar navigation
+
+## Daily Timeline View
+- [x] Add daily timeline view showing bookings as time blocks on the calendar page
+- [x] Calculate estimated end times based on service type and estimated duration
+- [x] Detect and visually highlight overlapping bookings
+- [x] Color-code time blocks by booking status
+- [x] Allow toggling between monthly calendar view and daily timeline view
