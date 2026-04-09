@@ -440,3 +440,8 @@
 - [x] Extend session cookie maxAge when Remember Me is checked
 - [x] Add Remember Me checkbox to Login page UI
 - [x] Write tests for Remember Me token expiry behaviour
+
+## Remember Me Duration Change
+- [x] Change Remember Me session duration from 30 days to 1 year
+- [x] Update Login page label from "30 days" to "1 year"
+- [x] Update tests to reflect 1-year expiry

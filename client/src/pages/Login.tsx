@@ -107,7 +107,7 @@ export default function Login() {
                   htmlFor="rememberMe"
                   className="text-sm text-zinc-400 cursor-pointer select-none"
                 >
-                  Remember me for 30 days
+                  Remember me for 1 year
                 </Label>
               </div>
               <Button

@@ -106,10 +106,10 @@ describe("standalone-auth: remember me token expiry", () => {
     const shortExp = shortPayload.exp as number;
     const longExp = longPayload.exp as number;
 
-    // Long token should expire ~29 days after short token
+    // Long token should expire ~364 days after short token
     const diffDays = (longExp - shortExp) / (60 * 60 * 24);
-    expect(diffDays).toBeGreaterThan(28);
-    expect(diffDays).toBeLessThan(30);
+    expect(diffDays).toBeGreaterThan(363);
+    expect(diffDays).toBeLessThan(365);
   });
 });
 
