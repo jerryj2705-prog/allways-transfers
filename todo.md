@@ -339,3 +339,7 @@
 - [x] Add meta tags for PWA (theme-color, apple-mobile-web-app, viewport)
 - [ ] Optimize admin dashboard pages for mobile/tablet touch experience
 - [ ] Test PWA installability and offline functionality
+
+## Remove Manus Branding
+- [x] Find and remove all visible Manus branding from the website UI
+- [x] Ensure only Allways Transfers branding is shown to users
