@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useLocation } from "wouter";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { Plane, Clock, MapPin, Star, Shield, Award, Phone, Baby, PawPrint, DollarSign, Mail, Menu, X, Quote } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 import { trpc } from "@/lib/trpc";
@@ -137,6 +137,20 @@ function TestimonialsSection() {
   const { data: reviewStats } = trpc.reviews.publicStats.useQuery();
   const { data: googleData } = trpc.googleReviews.get.useQuery();
   const [visibleCount, setVisibleCount] = useState(INITIAL_REVIEWS);
+  const prevVisibleCount = useRef(INITIAL_REVIEWS);
+  const [animatingFrom, setAnimatingFrom] = useState(-1);
+
+  // Track when visibleCount changes to trigger animation on new cards
+  useEffect(() => {
+    if (visibleCount > prevVisibleCount.current) {
+      setAnimatingFrom(prevVisibleCount.current);
+      // Clear animation state after animations complete
+      const timer = setTimeout(() => setAnimatingFrom(-1), 600);
+      prevVisibleCount.current = visibleCount;
+      return () => clearTimeout(timer);
+    }
+    prevVisibleCount.current = visibleCount;
+  }, [visibleCount]);
 
   // Merge in-app and Google reviews into a unified list
   const allReviews = useMemo(() => {
@@ -240,8 +254,17 @@ function TestimonialsSection() {
         </div>
 
         <div className="grid md:grid-cols-3 gap-6">
-          {displayReviews.map((review, idx) => (
-            <Card key={`${review.id}-${idx}`} className="bg-card border-border/50 hover:border-primary/30 transition-all duration-300">
+          {displayReviews.map((review, idx) => {
+            const isNew = animatingFrom >= 0 && idx >= animatingFrom;
+            const staggerDelay = isNew ? (idx - animatingFrom) * 120 : 0;
+            return (
+            <Card
+              key={`${review.id}-${idx}`}
+              className={`bg-card border-border/50 hover:border-primary/30 transition-all duration-300 ${
+                isNew ? "animate-review-in" : ""
+              }`}
+              style={isNew ? { animationDelay: `${staggerDelay}ms` } : undefined}
+            >
               <CardContent className="p-6 space-y-4">
                 <div className="flex items-center justify-between">
                   <Quote className="w-8 h-8 text-primary/30" />
@@ -268,7 +291,8 @@ function TestimonialsSection() {
                 </div>
               </CardContent>
             </Card>
-          ))}
+            );
+          })}
         </div>
 
         {/* Load More Button */}

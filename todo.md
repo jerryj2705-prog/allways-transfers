@@ -386,3 +386,7 @@
 - [x] Show only 3 reviews initially on homepage testimonials section
 - [x] Add "Load More" button to reveal additional reviews incrementally
 - [x] Hide button when all reviews are displayed
+
+## Testimonials Load More Animation
+- [x] Add fade-in and slide-up animation for newly loaded review cards
+- [x] Only animate new cards, not already visible ones
