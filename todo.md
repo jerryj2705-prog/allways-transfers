@@ -319,3 +319,13 @@
 - [x] Update server-side booking creation to validate and store additional addresses
 - [x] Store additional pickup/dropoff addresses in database
 - [x] Update booking confirmation and admin views to show additional addresses
+
+## Public Holiday Surcharge
+- [x] Create public_holidays database table (id, name, date, isRecurring, isActive)
+- [x] Seed with Queensland public holidays for 2025-2027
+- [x] Add admin-settable surcharge_public_holiday pricing setting
+- [x] Add server-side CRUD procedures for managing public holidays
+- [x] Update price calculation to detect public holiday and apply surcharge
+- [x] Build admin UI for managing public holidays (add/edit/delete)
+- [x] Update booking form price breakdown to show public holiday surcharge
+- [x] Write tests for public holiday surcharge calculation

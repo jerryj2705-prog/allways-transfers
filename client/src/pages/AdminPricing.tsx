@@ -11,7 +11,9 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import {
   ChevronLeft, DollarSign, Percent, Save, Fuel, Clock, MapPin, Plane, Car, Star, Route,
+  CalendarDays, Plus, Trash2, Pencil, X, Check,
 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 
 const LOGO_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/logo-white_476df209.png";
 
@@ -26,6 +28,7 @@ const CATEGORY_ICONS: Record<string, React.ElementType> = {
   surcharge_out_of_area: MapPin,
   surcharge_fuel_levy: Fuel,
   surcharge_additional_stop: MapPin,
+  surcharge_public_holiday: CalendarDays,
   min_hourly_hours: Clock,
   late_cancel_charge_pct: Percent,
   distance_surcharge_per_50km: Route,
@@ -35,6 +38,19 @@ export default function AdminPricing() {
   const [, setLocation] = useLocation();
   const { user, loading: authLoading, isAuthenticated } = useAuth();
   const { data: settings, isLoading, refetch } = trpc.pricing.getAll.useQuery();
+  const { data: holidays, isLoading: holidaysLoading, refetch: refetchHolidays } = trpc.publicHolidays.list.useQuery();
+  const createHolidayMutation = trpc.publicHolidays.create.useMutation({
+    onSuccess: () => { refetchHolidays(); toast.success("Holiday added"); setHolidayDialogOpen(false); },
+    onError: (err) => toast.error(err.message),
+  });
+  const updateHolidayMutation = trpc.publicHolidays.update.useMutation({
+    onSuccess: () => { refetchHolidays(); toast.success("Holiday updated"); setHolidayDialogOpen(false); },
+    onError: (err) => toast.error(err.message),
+  });
+  const deleteHolidayMutation = trpc.publicHolidays.delete.useMutation({
+    onSuccess: () => { refetchHolidays(); toast.success("Holiday deleted"); },
+    onError: (err) => toast.error(err.message),
+  });
   const updateMutation = trpc.pricing.update.useMutation({
     onSuccess: () => {
       refetch();
@@ -44,6 +60,8 @@ export default function AdminPricing() {
   });
 
   const [editValues, setEditValues] = useState<Record<number, { value: string; isActive: number }>>({});
+  const [holidayDialogOpen, setHolidayDialogOpen] = useState(false);
+  const [editingHoliday, setEditingHoliday] = useState<{ id?: number; name: string; date: string; isRecurring: number } | null>(null);
 
   if (authLoading || isLoading) {
     return (
@@ -240,7 +258,174 @@ export default function AdminPricing() {
             {toggles.map(renderSettingCard)}
           </div>
         </section>
+
+        {/* Public Holidays */}
+        <section className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <CalendarDays className="w-5 h-5 text-primary" />
+              <h2 className="font-heading text-xl font-semibold">Public Holidays</h2>
+            </div>
+            <Button
+              size="sm"
+              onClick={() => {
+                setEditingHoliday({ name: "", date: "", isRecurring: 0 });
+                setHolidayDialogOpen(true);
+              }}
+              className="gold-gradient text-gold-foreground"
+            >
+              <Plus className="w-4 h-4 mr-1" />
+              Add Holiday
+            </Button>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Manage public holidays. A surcharge is automatically applied when a booking pickup date falls on an active holiday.
+            Recurring holidays match the same date every year (e.g., Christmas on Dec 25).
+          </p>
+
+          {holidaysLoading ? (
+            <div className="text-muted-foreground text-sm animate-pulse">Loading holidays...</div>
+          ) : !holidays || holidays.length === 0 ? (
+            <Card>
+              <CardContent className="p-8 text-center text-muted-foreground">
+                <CalendarDays className="w-10 h-10 mx-auto mb-3 opacity-40" />
+                <p>No public holidays configured yet.</p>
+                <p className="text-xs mt-1">Add holidays to automatically apply surcharges.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-2">
+              {holidays.map((h) => (
+                <Card key={h.id} className={`transition-all ${h.isActive !== 1 ? "opacity-50" : ""}`}>
+                  <CardContent className="p-4 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${h.isActive === 1 ? "gold-gradient" : "bg-muted"}`}>
+                        <CalendarDays className={`w-5 h-5 ${h.isActive === 1 ? "text-gold-foreground" : "text-muted-foreground"}`} />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-heading text-sm font-semibold truncate">{h.name}</h3>
+                          {h.isRecurring === 1 && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium shrink-0">Recurring</span>
+                          )}
+                          {h.isActive !== 1 && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-destructive/10 text-destructive font-medium shrink-0">Inactive</span>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {h.isRecurring === 1
+                            ? `Every ${new Date(h.date + "T00:00:00").toLocaleDateString("en-AU", { month: "long", day: "numeric" })}`
+                            : new Date(h.date + "T00:00:00").toLocaleDateString("en-AU", { weekday: "short", year: "numeric", month: "long", day: "numeric" })
+                          }
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Switch
+                        checked={h.isActive === 1}
+                        onCheckedChange={(checked) => {
+                          updateHolidayMutation.mutate({ id: h.id, isActive: checked ? 1 : 0 });
+                        }}
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => {
+                          setEditingHoliday({ id: h.id, name: h.name, date: h.date, isRecurring: h.isRecurring });
+                          setHolidayDialogOpen(true);
+                        }}
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive"
+                        onClick={() => {
+                          if (confirm(`Delete "${h.name}"?`)) {
+                            deleteHolidayMutation.mutate({ id: h.id });
+                          }
+                        }}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </section>
       </main>
+
+      {/* Holiday Add/Edit Dialog */}
+      <Dialog open={holidayDialogOpen} onOpenChange={setHolidayDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{editingHoliday?.id ? "Edit Holiday" : "Add Public Holiday"}</DialogTitle>
+            <DialogDescription>
+              {editingHoliday?.id ? "Update the holiday details below." : "Add a new public holiday. Bookings on this date will have a surcharge applied."}
+            </DialogDescription>
+          </DialogHeader>
+          {editingHoliday && (
+            <div className="space-y-4 py-2">
+              <div className="space-y-2">
+                <Label>Holiday Name</Label>
+                <Input
+                  placeholder="e.g. Christmas Day"
+                  value={editingHoliday.name}
+                  onChange={(e) => setEditingHoliday({ ...editingHoliday, name: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Date</Label>
+                <Input
+                  type="date"
+                  value={editingHoliday.date}
+                  onChange={(e) => setEditingHoliday({ ...editingHoliday, date: e.target.value })}
+                />
+              </div>
+              <div className="flex items-center gap-3">
+                <Switch
+                  checked={editingHoliday.isRecurring === 1}
+                  onCheckedChange={(checked) => setEditingHoliday({ ...editingHoliday, isRecurring: checked ? 1 : 0 })}
+                />
+                <div>
+                  <Label>Recurring (same date every year)</Label>
+                  <p className="text-xs text-muted-foreground">E.g., Christmas is always Dec 25</p>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setHolidayDialogOpen(false)}>Cancel</Button>
+            <Button
+              className="gold-gradient text-gold-foreground"
+              disabled={!editingHoliday?.name || !editingHoliday?.date || createHolidayMutation.isPending || updateHolidayMutation.isPending}
+              onClick={() => {
+                if (!editingHoliday) return;
+                if (editingHoliday.id) {
+                  updateHolidayMutation.mutate({
+                    id: editingHoliday.id,
+                    name: editingHoliday.name,
+                    date: editingHoliday.date,
+                    isRecurring: editingHoliday.isRecurring,
+                  });
+                } else {
+                  createHolidayMutation.mutate({
+                    name: editingHoliday.name,
+                    date: editingHoliday.date,
+                    isRecurring: editingHoliday.isRecurring,
+                  });
+                }
+              }}
+            >
+              {editingHoliday?.id ? "Update" : "Add Holiday"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

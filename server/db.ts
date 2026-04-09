@@ -1,6 +1,6 @@
 import { eq, desc, and, or, like, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, vehicles, bookings, pricingSettings, enquiries, type InsertBooking, type Booking, type PricingSetting, type InsertEnquiry, type Enquiry } from "../drizzle/schema";
+import { InsertUser, users, vehicles, bookings, pricingSettings, enquiries, publicHolidays, type InsertBooking, type Booking, type PricingSetting, type InsertEnquiry, type Enquiry, type InsertPublicHoliday, type PublicHoliday } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -312,6 +312,62 @@ export async function updatePricingSetting(id: number, value: string, isActive?:
   return db.select().from(pricingSettings).where(eq(pricingSettings.id, id)).then(r => r[0]);
 }
 
+// ─── Public Holiday Queries ───
+
+export async function getAllPublicHolidays() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(publicHolidays).orderBy(publicHolidays.date);
+}
+
+export async function getActivePublicHolidays() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(publicHolidays).where(eq(publicHolidays.isActive, 1)).orderBy(publicHolidays.date);
+}
+
+export async function createPublicHoliday(data: Omit<InsertPublicHoliday, "id" | "createdAt" | "updatedAt">) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(publicHolidays).values(data);
+  const result = await db.select().from(publicHolidays).orderBy(desc(publicHolidays.id)).limit(1);
+  return result[0];
+}
+
+export async function updatePublicHoliday(id: number, data: { name?: string; date?: string; isRecurring?: number; isActive?: number }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const updateData: Record<string, unknown> = {};
+  if (data.name !== undefined) updateData.name = data.name;
+  if (data.date !== undefined) updateData.date = data.date;
+  if (data.isRecurring !== undefined) updateData.isRecurring = data.isRecurring;
+  if (data.isActive !== undefined) updateData.isActive = data.isActive;
+  if (Object.keys(updateData).length === 0) throw new Error("No fields to update");
+  await db.update(publicHolidays).set(updateData).where(eq(publicHolidays.id, id));
+  const result = await db.select().from(publicHolidays).where(eq(publicHolidays.id, id)).limit(1);
+  return result[0];
+}
+
+export async function deletePublicHoliday(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(publicHolidays).where(eq(publicHolidays.id, id));
+}
+
+export function isDatePublicHoliday(dateStr: string, holidays: PublicHoliday[]): PublicHoliday | undefined {
+  // dateStr is YYYY-MM-DD
+  const monthDay = dateStr.substring(5); // MM-DD
+  return holidays.find(h => {
+    if (h.isActive !== 1) return false;
+    if (h.isRecurring === 1) {
+      // For recurring holidays, match MM-DD regardless of year
+      return h.date.substring(5) === monthDay;
+    }
+    // For non-recurring, exact date match
+    return h.date === dateStr;
+  });
+}
+
 export interface PriceBreakdown {
   basePrice: number;
   distanceCharge: number;
@@ -321,6 +377,8 @@ export interface PriceBreakdown {
   additionalStopsSurcharge: number;
   additionalStopsCount: number;
   perStopRate: number;
+  publicHolidaySurcharge: number;
+  publicHolidayName: string | null;
   supportVanPrice: number;
   squareSurcharge: number;
   subtotal: number;
@@ -331,6 +389,7 @@ export async function calculatePrice(params: {
   serviceType: string;
   distanceKm: number;
   pickupHour: number; // 0-23 in local time
+  pickupDateStr: string; // YYYY-MM-DD in local time for holiday check
   isOutOfArea: boolean;
   needsSupportVan: boolean;
   paymentMethod: string;
@@ -387,11 +446,23 @@ export async function calculatePrice(params: {
   const perStopRate = isActive("surcharge_additional_stop") ? getVal("surcharge_additional_stop") : 0;
   const additionalStopsSurcharge = Math.round(additionalStopsCount * perStopRate * 100) / 100;
 
+  // Public holiday surcharge
+  let publicHolidaySurcharge = 0;
+  let publicHolidayName: string | null = null;
+  if (params.pickupDateStr && isActive("surcharge_public_holiday")) {
+    const holidays = await getActivePublicHolidays();
+    const matchedHoliday = isDatePublicHoliday(params.pickupDateStr, holidays);
+    if (matchedHoliday) {
+      publicHolidaySurcharge = getVal("surcharge_public_holiday");
+      publicHolidayName = matchedHoliday.name;
+    }
+  }
+
   // Support van
   const supportVanPrice = params.needsSupportVan ? getVal("rate_support_van") : 0;
 
   // Subtotal before payment surcharge
-  const subtotal = Math.round((basePrice + distanceCharge + outOfHoursSurcharge + outOfAreaSurcharge + fuelLevySurcharge + additionalStopsSurcharge + supportVanPrice) * 100) / 100;
+  const subtotal = Math.round((basePrice + distanceCharge + outOfHoursSurcharge + outOfAreaSurcharge + fuelLevySurcharge + additionalStopsSurcharge + publicHolidaySurcharge + supportVanPrice) * 100) / 100;
 
   // Square 2% surcharge
   const squareSurcharge = params.paymentMethod === "square_postpay" ? Math.round(subtotal * 0.02 * 100) / 100 : 0;
@@ -407,6 +478,8 @@ export async function calculatePrice(params: {
     additionalStopsSurcharge,
     additionalStopsCount,
     perStopRate,
+    publicHolidaySurcharge,
+    publicHolidayName,
     supportVanPrice,
     squareSurcharge,
     subtotal,

@@ -252,13 +252,14 @@ export default function BookingForm() {
       pickupSuburb,
       destinationSuburb: dropoffSuburb || undefined,
       pickupHour,
+      pickupDateStr: pickupDate || "",
       needsSupportVan,
       paymentMethod: paymentMethod || "cash_postpay",
       hireHours: serviceType === "hourly_hire" ? hireHours : undefined,
       additionalPickupCount,
       additionalDropoffCount,
     };
-  }, [serviceType, pickupSuburb, dropoffSuburb, pickupHour, needsSupportVan, paymentMethod, hireHours, additionalPickupCount, additionalDropoffCount]);
+  }, [serviceType, pickupSuburb, dropoffSuburb, pickupHour, pickupDate, needsSupportVan, paymentMethod, hireHours, additionalPickupCount, additionalDropoffCount]);
 
   const { data: priceBreakdown } = trpc.pricing.calculate.useQuery(
     priceInput!,
@@ -272,6 +273,8 @@ export default function BookingForm() {
     outOfAreaSurcharge: 0,
     fuelLevySurcharge: 0,
     additionalStopsSurcharge: 0,
+    publicHolidaySurcharge: 0,
+    publicHolidayName: null as string | null,
     supportVanPrice: 0,
     squareSurcharge: 0,
     subtotal: 0,
@@ -362,6 +365,8 @@ export default function BookingForm() {
       additionalPickupAddresses: additionalPickupAddresses.filter(a => a.trim()),
       additionalDropoffAddresses: additionalDropoffAddresses.filter(a => a.trim()),
       additionalStopsSurcharge: pricing.additionalStopsSurcharge,
+      publicHolidaySurcharge: pricing.publicHolidaySurcharge,
+      publicHolidayName: pricing.publicHolidayName || undefined,
       specialRequests: specialRequests || undefined,
       termsAccepted,
       paymentMethod,
@@ -670,6 +675,19 @@ export default function BookingForm() {
                         }
                         return "";
                       })()}.
+                    </p>
+                  </div>
+                </div>
+              )}
+              {/* Public holiday notice */}
+              {pickupDate && pricing.publicHolidaySurcharge > 0 && (
+                <div className="flex items-start gap-3 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                  <CalendarIcon className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                  <div className="text-sm">
+                    <p className="font-medium text-amber-400">Public Holiday</p>
+                    <p className="text-muted-foreground">
+                      Your pickup date falls on <span className="font-medium text-foreground">{pricing.publicHolidayName}</span>.
+                      A public holiday surcharge of ${pricing.publicHolidaySurcharge.toFixed(2)} will be applied.
                     </p>
                   </div>
                 </div>
@@ -1432,6 +1450,12 @@ export default function BookingForm() {
                       <div className="flex justify-between text-sm text-amber-400">
                         <span>Additional Stops ({additionalPickupCount + additionalDropoffCount} stop{additionalPickupCount + additionalDropoffCount !== 1 ? "s" : ""})</span>
                         <span>+${pricing.additionalStopsSurcharge.toFixed(2)}</span>
+                      </div>
+                    )}
+                    {pricing.publicHolidaySurcharge > 0 && (
+                      <div className="flex justify-between text-sm text-amber-400">
+                        <span>Public Holiday ({pricing.publicHolidayName})</span>
+                        <span>+${pricing.publicHolidaySurcharge.toFixed(2)}</span>
                       </div>
                     )}
                     {needsSupportVan && pricing.supportVanPrice > 0 && (

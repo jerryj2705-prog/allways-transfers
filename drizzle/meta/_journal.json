@@ -64,6 +64,20 @@
       "when": 1775713267646,
       "tag": "0008_ancient_jamie_braddock",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "5",
+      "when": 1775714357011,
+      "tag": "0009_easy_colossus",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "5",
+      "when": 1775714896646,
+      "tag": "0010_striped_crusher_hogan",
+      "breakpoints": true
     }
   ]
 }

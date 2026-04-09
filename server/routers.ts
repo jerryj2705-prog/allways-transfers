@@ -25,6 +25,11 @@ import {
   getEnquiryStats,
   updateBookingPaymentStatus,
   getBookingsByDateRange,
+  getAllPublicHolidays,
+  getActivePublicHolidays,
+  createPublicHoliday,
+  updatePublicHoliday,
+  deletePublicHoliday,
 } from "./db";
 import { createCheckoutSession } from "./stripe";
 import { notifyOwner } from "./_core/notification";
@@ -83,6 +88,8 @@ export const appRouter = router({
           additionalPickupAddresses: z.array(z.string()).default([]),
           additionalDropoffAddresses: z.array(z.string()).default([]),
           additionalStopsSurcharge: z.number().default(0),
+          publicHolidaySurcharge: z.number().default(0),
+          publicHolidayName: z.string().optional(),
           specialRequests: z.string().optional(),
           termsAccepted: z.boolean(),
           paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay"]),
@@ -137,6 +144,8 @@ export const appRouter = router({
           additionalPickupAddresses: input.additionalPickupAddresses.length > 0 ? JSON.stringify(input.additionalPickupAddresses) : null,
           additionalDropoffAddresses: input.additionalDropoffAddresses.length > 0 ? JSON.stringify(input.additionalDropoffAddresses) : null,
           additionalStopsSurcharge: input.additionalStopsSurcharge.toFixed(2),
+          publicHolidaySurcharge: input.publicHolidaySurcharge.toFixed(2),
+          publicHolidayName: input.publicHolidayName ?? null,
           paymentMethod: input.paymentMethod,
           paymentStatus: "unpaid",
           specialRequests: input.specialRequests ?? null,
@@ -200,6 +209,8 @@ export const appRouter = router({
               additionalDropoffCount: input.additionalDropoffCount ?? 0,
               additionalPickupAddresses: input.additionalPickupAddresses ?? [],
               additionalDropoffAddresses: input.additionalDropoffAddresses ?? [],
+              publicHolidaySurcharge: input.publicHolidaySurcharge ?? 0,
+              publicHolidayName: input.publicHolidayName ?? null,
               origin: input.origin,
             });
           } catch (emailError) {
@@ -231,6 +242,8 @@ export const appRouter = router({
               additionalDropoffCount: input.additionalDropoffCount ?? 0,
               additionalPickupAddresses: input.additionalPickupAddresses ?? [],
               additionalDropoffAddresses: input.additionalDropoffAddresses ?? [],
+              publicHolidaySurcharge: input.publicHolidaySurcharge ?? 0,
+              publicHolidayName: input.publicHolidayName ?? null,
               origin: input.origin,
             });
           } catch (e) {
@@ -575,6 +588,7 @@ export const appRouter = router({
           destinationSuburb: z.string().optional(),
           distanceKm: z.number().min(0).optional(),
           pickupHour: z.number().min(0).max(23),
+          pickupDateStr: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().default(""),
           needsSupportVan: z.boolean().default(false),
           paymentMethod: z.string().default("cash_postpay"),
           hireHours: z.number().min(0).optional(),
@@ -603,6 +617,7 @@ export const appRouter = router({
           serviceType: input.serviceType,
           distanceKm,
           pickupHour: input.pickupHour,
+          pickupDateStr: input.pickupDateStr || "",
           isOutOfArea: outOfArea,
           needsSupportVan: input.needsSupportVan,
           paymentMethod: input.paymentMethod,
@@ -643,6 +658,52 @@ export const appRouter = router({
       )
       .mutation(async ({ input }) => {
         return updatePricingSetting(input.id, input.value, input.isActive);
+      }),
+  }),
+
+  publicHolidays: router({
+    // Public: get active holidays (for booking form to show holiday indicator)
+    active: publicProcedure.query(async () => {
+      return getActivePublicHolidays();
+    }),
+
+    // Admin: list all holidays (including inactive)
+    list: adminProcedure.query(async () => {
+      return getAllPublicHolidays();
+    }),
+
+    // Admin: create a new holiday
+    create: adminProcedure
+      .input(z.object({
+        name: z.string().min(1, "Holiday name is required"),
+        date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be YYYY-MM-DD"),
+        isRecurring: z.number().min(0).max(1).default(0),
+        isActive: z.number().min(0).max(1).default(1),
+      }))
+      .mutation(async ({ input }) => {
+        return createPublicHoliday(input);
+      }),
+
+    // Admin: update a holiday
+    update: adminProcedure
+      .input(z.object({
+        id: z.number(),
+        name: z.string().optional(),
+        date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+        isRecurring: z.number().min(0).max(1).optional(),
+        isActive: z.number().min(0).max(1).optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        return updatePublicHoliday(id, data);
+      }),
+
+    // Admin: delete a holiday
+    delete: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await deletePublicHoliday(input.id);
+        return { success: true };
       }),
   }),
 

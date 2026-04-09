@@ -211,6 +211,19 @@ export default function BookingConfirmation() {
               </div>
             </div>
 
+            {booking.publicHolidayName && (
+              <div className="col-span-2 mt-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30">
+                <p className="text-amber-400 text-sm font-medium flex items-center gap-1">
+                  <Calendar className="w-3 h-3" /> Public Holiday: {booking.publicHolidayName}
+                  {parseFloat(booking.publicHolidaySurcharge ?? "0") > 0 && (
+                    <span className="ml-auto text-amber-300">
+                      +${parseFloat(booking.publicHolidaySurcharge ?? "0").toFixed(2)} surcharge
+                    </span>
+                  )}
+                </p>
+              </div>
+            )}
+
             <div className="border-t border-border/50 pt-4">
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">Estimated Total</span>

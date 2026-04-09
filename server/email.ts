@@ -129,6 +129,8 @@ export interface BookingEmailData {
   additionalDropoffCount?: number;
   additionalPickupAddresses?: string[];
   additionalDropoffAddresses?: string[];
+  publicHolidaySurcharge?: number;
+  publicHolidayName?: string | null;
   origin: string;
 }
 
@@ -151,6 +153,19 @@ function buildAdditionalStopsHtml(data: BookingEmailData): string {
       </tr>`;
   }
   return html;
+}
+
+function buildPublicHolidayHtml(data: BookingEmailData): string {
+  if (!data.publicHolidayName) return "";
+  const surcharge = (data.publicHolidaySurcharge ?? 0) > 0
+    ? ` — $${data.publicHolidaySurcharge!.toFixed(2)} surcharge`
+    : "";
+  return `<tr>
+      <td style="padding:8px 0;border-bottom:1px solid #333;">
+        <span style="color:#a3a3a3;font-size:13px;">Public Holiday</span><br/>
+        <span style="color:#d4a843;font-size:15px;">&#127881; ${data.publicHolidayName}${surcharge}</span>
+      </td>
+    </tr>`;
 }
 
 export async function sendBookingConfirmationEmail(data: BookingEmailData): Promise<boolean> {
@@ -234,6 +249,7 @@ export async function sendBookingConfirmationEmail(data: BookingEmailData): Prom
         </td>
       </tr>` : ""}
       ${buildAdditionalStopsHtml(data)}
+      ${buildPublicHolidayHtml(data)}
       ${data.specialRequests ? `<tr>
         <td style="padding:8px 0;border-bottom:1px solid #333;">
           <span style="color:#a3a3a3;font-size:13px;">Special Requests</span><br/>
@@ -541,6 +557,7 @@ export async function sendAdminNewBookingNotification(data: BookingEmailData): P
         </td>
       </tr>` : ""}
       ${buildAdditionalStopsHtml(data)}
+      ${buildPublicHolidayHtml(data)}
       ${data.specialRequests ? `<tr>
         <td style="padding:8px 0;border-bottom:1px solid #333;">
           <span style="color:#a3a3a3;font-size:13px;">Special Requests</span><br/>

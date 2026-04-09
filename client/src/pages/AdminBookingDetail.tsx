@@ -414,6 +414,23 @@ export default function AdminBookingDetail() {
                       <span>${parseFloat(booking.supportVanPrice ?? "0").toFixed(2)}</span>
                     </div>
                   )}
+                  {parseFloat(booking.additionalStopsSurcharge ?? "0") > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Additional Stops</span>
+                      <span>${parseFloat(booking.additionalStopsSurcharge ?? "0").toFixed(2)}</span>
+                    </div>
+                  )}
+                  {parseFloat(booking.publicHolidaySurcharge ?? "0") > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Public Holiday</span>
+                      <span>${parseFloat(booking.publicHolidaySurcharge ?? "0").toFixed(2)}</span>
+                    </div>
+                  )}
+                  {booking.publicHolidayName && (
+                    <div className="text-xs text-amber-400">
+                      Holiday: {booking.publicHolidayName}
+                    </div>
+                  )}
                   <div className="flex justify-between font-heading text-lg font-bold border-t border-border/50 pt-2">
                     <span>Total</span>
                     <span className="gold-text">${parseFloat(booking.totalPrice ?? "0").toFixed(2)}</span>

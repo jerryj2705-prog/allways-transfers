@@ -51,6 +51,9 @@ export const bookings = mysqlTable("bookings", {
   additionalPickupAddresses: text("additionalPickupAddresses"), // JSON array of addresses
   additionalDropoffAddresses: text("additionalDropoffAddresses"), // JSON array of addresses
   additionalStopsSurcharge: decimal("additionalStopsSurcharge", { precision: 10, scale: 2 }).default("0"),
+  // Public holiday
+  publicHolidaySurcharge: decimal("publicHolidaySurcharge", { precision: 10, scale: 2 }).default("0"),
+  publicHolidayName: varchar("publicHolidayName", { length: 200 }),
   // Date/time (UTC ms)
   pickupDate: bigint("pickupDate", { mode: "number" }).notNull(),
   // Passengers
@@ -121,3 +124,16 @@ export const enquiries = mysqlTable("enquiries", {
 
 export type Enquiry = typeof enquiries.$inferSelect;
 export type InsertEnquiry = typeof enquiries.$inferInsert;
+
+export const publicHolidays = mysqlTable("public_holidays", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 200 }).notNull(),
+  date: varchar("date", { length: 10 }).notNull(), // YYYY-MM-DD format
+  isRecurring: int("isRecurring").notNull().default(0), // 1 = same date every year (e.g. Christmas)
+  isActive: int("isActive").notNull().default(1),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type PublicHoliday = typeof publicHolidays.$inferSelect;
+export type InsertPublicHoliday = typeof publicHolidays.$inferInsert;
