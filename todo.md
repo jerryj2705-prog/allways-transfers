@@ -269,3 +269,8 @@
 - [x] Add responsive hamburger menu to subpage headers (Contact, Terms, BookingForm, MyBookings, etc.)
 - [x] Ensure menu closes on link click and route change
 - [x] Animate menu open/close transitions
+
+## Admin Email Notifications
+- [x] Send admin notification email to admin@allwaystransfers.com.au when new booking is created
+- [x] Send admin notification email when a booking is cancelled
+- [x] Include all booking details in admin notification emails

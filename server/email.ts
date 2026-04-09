@@ -413,3 +413,295 @@ export async function sendCancellationConfirmationEmail(data: CancellationEmailD
     return false;
   }
 }
+
+
+// ─── Admin Notification: New Booking ───
+
+const ADMIN_EMAIL = ENV.adminEmail || "admin@allwaystransfers.com.au";
+
+export async function sendAdminNewBookingNotification(data: BookingEmailData): Promise<boolean> {
+  if (process.env.VITEST || process.env.NODE_ENV === "test") {
+    console.log(`[Email] Skipping admin notification in test environment for ${data.referenceNumber}`);
+    return true;
+  }
+  const resend = getResend();
+
+  const adminDashboardUrl = `${data.origin}/admin/bookings`;
+
+  // Build child seat info
+  const childSeats: string[] = [];
+  if (data.rearFacingSeats && data.rearFacingSeats > 0) childSeats.push(`${data.rearFacingSeats}× Rear-facing`);
+  if (data.forwardFacingSeats && data.forwardFacingSeats > 0) childSeats.push(`${data.forwardFacingSeats}× Forward-facing`);
+  if (data.boosterSeats && data.boosterSeats > 0) childSeats.push(`${data.boosterSeats}× Booster`);
+
+  const bodyContent = `
+    <h1 style="margin:0 0 8px;font-size:24px;color:#d4a843;font-weight:700;">New Booking Received</h1>
+    <p style="margin:0 0 24px;font-size:15px;color:#a3a3a3;">A new booking has been submitted and requires your attention.</p>
+
+    <!-- Reference Number -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+      <tr>
+        <td style="background-color:#262626;border-radius:8px;padding:16px;text-align:center;">
+          <p style="margin:0 0 4px;font-size:12px;color:#a3a3a3;text-transform:uppercase;letter-spacing:1px;">Booking Reference</p>
+          <p style="margin:0;font-size:22px;font-weight:700;color:#d4a843;letter-spacing:2px;">${data.referenceNumber}</p>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Client Info -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+      <tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Client Name</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${data.clientName}</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Client Email</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;"><a href="mailto:${data.clientEmail}" style="color:#d4a843;text-decoration:underline;">${data.clientEmail}</a></span>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Booking Details -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+      <tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Service</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${formatServiceType(data.serviceType)}</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Date &amp; Time</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${formatDate(data.pickupDate)} at ${formatTime(data.pickupDate)} (AEST)</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Pickup</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${data.pickupAddress}</span>
+        </td>
+      </tr>
+      ${data.dropoffAddress ? `<tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Drop-off</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${data.dropoffAddress}</span>
+        </td>
+      </tr>` : ""}
+      <tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Passengers</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${data.passengerCount}</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Vehicle</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${data.vehicleName}</span>
+        </td>
+      </tr>
+      ${childSeats.length > 0 ? `<tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Child Seats</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${childSeats.join(", ")}</span>
+        </td>
+      </tr>` : ""}
+      ${data.isPetFriendly ? `<tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Pet</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${data.petDescription ?? "Yes"}</span>
+        </td>
+      </tr>` : ""}
+      ${data.specialRequests ? `<tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Special Requests</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${data.specialRequests}</span>
+        </td>
+      </tr>` : ""}
+      <tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Payment Method</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${formatPaymentMethod(data.paymentMethod)} — ${formatPaymentStatus(data.paymentStatus)}</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:12px 0 0;">
+          <span style="color:#a3a3a3;font-size:13px;">Total</span><br/>
+          <span style="color:#d4a843;font-size:22px;font-weight:700;">$${data.totalPrice}</span>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Admin Dashboard CTA -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:16px;">
+      <tr>
+        <td align="center" style="padding:16px 0;">
+          <a href="${adminDashboardUrl}" style="display:inline-block;background-color:#d4a843;color:#0a0a0a;text-decoration:none;padding:12px 32px;border-radius:8px;font-weight:600;font-size:15px;">View in Admin Dashboard</a>
+        </td>
+      </tr>
+    </table>
+  `;
+
+  try {
+    const result = await resend.emails.send({
+      from: `All Ways Transfers <${ENV.resendFromEmail}>`,
+      to: [ADMIN_EMAIL],
+      subject: `🔔 New Booking — ${data.referenceNumber} — ${data.clientName}`,
+      html: wrapInTemplate(bodyContent),
+    });
+
+    if (result.error) {
+      console.warn("[Email] Failed to send admin new booking notification:", result.error);
+      return false;
+    }
+
+    console.log(`[Email] Admin notification sent for new booking ${data.referenceNumber}`);
+    return true;
+  } catch (error) {
+    console.warn("[Email] Error sending admin new booking notification:", error);
+    return false;
+  }
+}
+
+// ─── Admin Notification: Booking Cancelled ───
+
+export async function sendAdminCancellationNotification(data: CancellationEmailData): Promise<boolean> {
+  if (process.env.VITEST || process.env.NODE_ENV === "test") {
+    console.log(`[Email] Skipping admin cancellation notification in test environment for ${data.referenceNumber}`);
+    return true;
+  }
+  const resend = getResend();
+
+  const adminDashboardUrl = `${data.origin}/admin/bookings`;
+
+  // Build cancellation policy text
+  let policyText: string;
+  let policyColor: string;
+  if (data.cancellationTier === "free") {
+    policyText = `Free cancellation — more than 24 hours before pickup.`;
+    policyColor = "#22c55e";
+  } else if (data.cancellationTier === "partial_charge") {
+    const chargeAmount = (parseFloat(data.totalPrice) * data.chargePercent / 100).toFixed(2);
+    policyText = `${data.chargePercent}% late cancellation fee ($${chargeAmount}) — less than 24 hours before pickup.`;
+    policyColor = "#f59e0b";
+  } else {
+    policyText = `No refund — cancelled less than 4 hours before pickup.`;
+    policyColor = "#ef4444";
+  }
+
+  const bodyContent = `
+    <h1 style="margin:0 0 8px;font-size:24px;color:#ef4444;font-weight:700;">Booking Cancelled</h1>
+    <p style="margin:0 0 24px;font-size:15px;color:#a3a3a3;">A client has cancelled their booking.</p>
+
+    <!-- Reference Number -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+      <tr>
+        <td style="background-color:#262626;border-radius:8px;padding:16px;text-align:center;">
+          <p style="margin:0 0 4px;font-size:12px;color:#a3a3a3;text-transform:uppercase;letter-spacing:1px;">Booking Reference</p>
+          <p style="margin:0;font-size:22px;font-weight:700;color:#737373;letter-spacing:2px;text-decoration:line-through;">${data.referenceNumber}</p>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Client Info -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+      <tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Client Name</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${data.clientName}</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Client Email</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;"><a href="mailto:${data.clientEmail}" style="color:#d4a843;text-decoration:underline;">${data.clientEmail}</a></span>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Cancellation Policy -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+      <tr>
+        <td style="background-color:#262626;border-left:4px solid ${policyColor};border-radius:4px;padding:16px;">
+          <p style="margin:0 0 4px;font-size:13px;font-weight:600;color:${policyColor};text-transform:uppercase;letter-spacing:0.5px;">Cancellation Policy Applied</p>
+          <p style="margin:0;font-size:14px;color:#d4d4d4;">${policyText}</p>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Booking Details -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+      <tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Service</span><br/>
+          <span style="color:#a3a3a3;font-size:15px;">${formatServiceType(data.serviceType)}</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Date &amp; Time</span><br/>
+          <span style="color:#a3a3a3;font-size:15px;">${formatDate(data.pickupDate)} at ${formatTime(data.pickupDate)} (AEST)</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Pickup</span><br/>
+          <span style="color:#a3a3a3;font-size:15px;">${data.pickupAddress}</span>
+        </td>
+      </tr>
+      ${data.dropoffAddress ? `<tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Drop-off</span><br/>
+          <span style="color:#a3a3a3;font-size:15px;">${data.dropoffAddress}</span>
+        </td>
+      </tr>` : ""}
+      <tr>
+        <td style="padding:8px 0;">
+          <span style="color:#a3a3a3;font-size:13px;">Original Total</span><br/>
+          <span style="color:#a3a3a3;font-size:18px;font-weight:600;text-decoration:line-through;">$${data.totalPrice}</span>
+        </td>
+      </tr>
+    </table>
+
+    ${data.reason ? `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+      <tr>
+        <td style="padding:8px 0;">
+          <span style="color:#a3a3a3;font-size:13px;">Client's Reason</span><br/>
+          <span style="color:#d4d4d4;font-size:14px;">${data.reason}</span>
+        </td>
+      </tr>
+    </table>` : ""}
+
+    <!-- Admin Dashboard CTA -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:16px;">
+      <tr>
+        <td align="center" style="padding:16px 0;">
+          <a href="${adminDashboardUrl}" style="display:inline-block;background-color:#d4a843;color:#0a0a0a;text-decoration:none;padding:12px 32px;border-radius:8px;font-weight:600;font-size:15px;">View in Admin Dashboard</a>
+        </td>
+      </tr>
+    </table>
+  `;
+
+  try {
+    const result = await resend.emails.send({
+      from: `All Ways Transfers <${ENV.resendFromEmail}>`,
+      to: [ADMIN_EMAIL],
+      subject: `❌ Booking Cancelled — ${data.referenceNumber} — ${data.clientName}`,
+      html: wrapInTemplate(bodyContent),
+    });
+
+    if (result.error) {
+      console.warn("[Email] Failed to send admin cancellation notification:", result.error);
+      return false;
+    }
+
+    console.log(`[Email] Admin cancellation notification sent for ${data.referenceNumber}`);
+    return true;
+  } catch (error) {
+    console.warn("[Email] Error sending admin cancellation notification:", error);
+    return false;
+  }
+}

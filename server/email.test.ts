@@ -20,6 +20,13 @@ describe("email configuration", () => {
     expect(typeof fromEmail).toBe("string");
     expect(fromEmail!.includes("@")).toBe(true);
   });
+
+  it("ADMIN_EMAIL is configured", () => {
+    const adminEmail = process.env.ADMIN_EMAIL;
+    expect(adminEmail).toBeTruthy();
+    expect(typeof adminEmail).toBe("string");
+    expect(adminEmail!.includes("@")).toBe(true);
+  });
 });
 
 describe("email sending - booking confirmation", () => {
@@ -91,6 +98,53 @@ describe("email sending - cancellation confirmation", () => {
       cancellationTier: "partial_charge",
       chargePercent: 50,
       reason: null,
+      origin: "https://example.com",
+    });
+
+    expect(typeof result).toBe("boolean");
+  });
+});
+
+describe("email sending - admin new booking notification", () => {
+  it("sendAdminNewBookingNotification sends without throwing", async () => {
+    const { sendAdminNewBookingNotification } = await import("./email");
+
+    const result = await sendAdminNewBookingNotification({
+      referenceNumber: "AWT-TEST004",
+      clientName: "New Client",
+      clientEmail: "client@example.com",
+      serviceType: "airport_transfer",
+      pickupAddress: "Sunshine Coast Airport",
+      dropoffAddress: "Noosa Heads",
+      pickupDate: Date.now() + 86400000,
+      passengerCount: 2,
+      vehicleName: "Luxury SUV",
+      totalPrice: "150.00",
+      paymentMethod: "cash_postpay",
+      paymentStatus: "unpaid",
+      origin: "https://example.com",
+    });
+
+    expect(typeof result).toBe("boolean");
+  });
+});
+
+describe("email sending - admin cancellation notification", () => {
+  it("sendAdminCancellationNotification sends without throwing", async () => {
+    const { sendAdminCancellationNotification } = await import("./email");
+
+    const result = await sendAdminCancellationNotification({
+      referenceNumber: "AWT-TEST005",
+      clientName: "Cancelling Client",
+      clientEmail: "client@example.com",
+      serviceType: "point_to_point",
+      pickupAddress: "Brisbane CBD",
+      dropoffAddress: "Gold Coast",
+      pickupDate: Date.now() + 86400000,
+      totalPrice: "200.00",
+      cancellationTier: "partial_charge",
+      chargePercent: 50,
+      reason: "Schedule conflict",
       origin: "https://example.com",
     });
 
