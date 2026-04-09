@@ -1,4 +1,5 @@
 import { TRPCError } from "@trpc/server";
+import { Resend } from "resend";
 import { ENV } from "./env";
 
 export type NotificationPayload = {
@@ -12,16 +13,6 @@ const CONTENT_MAX_LENGTH = 20000;
 const trimValue = (value: string): string => value.trim();
 const isNonEmptyString = (value: unknown): value is string =>
   typeof value === "string" && value.trim().length > 0;
-
-const buildEndpointUrl = (baseUrl: string): string => {
-  const normalizedBase = baseUrl.endsWith("/")
-    ? baseUrl
-    : `${baseUrl}/`;
-  return new URL(
-    "webdevtoken.v1.WebDevService/SendNotification",
-    normalizedBase
-  ).toString();
-};
 
 const validatePayload = (input: NotificationPayload): NotificationPayload => {
   if (!isNonEmptyString(input.title)) {
@@ -58,57 +49,57 @@ const validatePayload = (input: NotificationPayload): NotificationPayload => {
 };
 
 /**
- * Dispatches a project-owner notification through the Manus Notification Service.
- * Returns `true` if the request was accepted, `false` when the upstream service
- * cannot be reached (callers can fall back to email/slack). Validation errors
- * bubble up as TRPC errors so callers can fix the payload.
+ * Dispatches a notification to the project owner via email using Resend.
+ * Returns `true` if the email was sent, `false` when the service
+ * cannot be reached.
  */
 export async function notifyOwner(
   payload: NotificationPayload
 ): Promise<boolean> {
   const { title, content } = validatePayload(payload);
 
-  if (!ENV.forgeApiUrl) {
-    throw new TRPCError({
-      code: "INTERNAL_SERVER_ERROR",
-      message: "Notification service URL is not configured.",
-    });
+  if (!ENV.resendApiKey) {
+    console.warn("[Notification] RESEND_API_KEY is not configured, skipping notification");
+    return false;
   }
 
-  if (!ENV.forgeApiKey) {
-    throw new TRPCError({
-      code: "INTERNAL_SERVER_ERROR",
-      message: "Notification service API key is not configured.",
-    });
+  if (!ENV.adminEmail) {
+    console.warn("[Notification] ADMIN_EMAIL is not configured, skipping notification");
+    return false;
   }
-
-  const endpoint = buildEndpointUrl(ENV.forgeApiUrl);
 
   try {
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        accept: "application/json",
-        authorization: `Bearer ${ENV.forgeApiKey}`,
-        "content-type": "application/json",
-        "connect-protocol-version": "1",
-      },
-      body: JSON.stringify({ title, content }),
+    const resend = new Resend(ENV.resendApiKey);
+
+    const { error } = await resend.emails.send({
+      from: ENV.resendFromEmail,
+      to: ENV.adminEmail,
+      subject: `[All Ways Transfers] ${title}`,
+      text: content,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background: #1a1a1a; padding: 20px; text-align: center;">
+            <img src="https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/logo-white_476df209.png" alt="All Ways Transfers" style="height: 50px;" />
+          </div>
+          <div style="padding: 20px; background: #f9f9f9;">
+            <h2 style="color: #333; margin-top: 0;">${title}</h2>
+            <pre style="white-space: pre-wrap; font-family: Arial, sans-serif; color: #555; line-height: 1.6;">${content}</pre>
+          </div>
+          <div style="padding: 15px; text-align: center; color: #999; font-size: 12px;">
+            This is an automated notification from All Ways Transfers.
+          </div>
+        </div>
+      `,
     });
 
-    if (!response.ok) {
-      const detail = await response.text().catch(() => "");
-      console.warn(
-        `[Notification] Failed to notify owner (${response.status} ${response.statusText})${
-          detail ? `: ${detail}` : ""
-        }`
-      );
+    if (error) {
+      console.warn("[Notification] Failed to send email:", error);
       return false;
     }
 
     return true;
   } catch (error) {
-    console.warn("[Notification] Error calling notification service:", error);
+    console.warn("[Notification] Error sending notification email:", error);
     return false;
   }
 }

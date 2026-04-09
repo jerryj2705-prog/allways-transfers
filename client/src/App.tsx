@@ -17,10 +17,14 @@ import AdminCalendar from "./pages/AdminCalendar";
 import AdminReviews from "./pages/AdminReviews";
 import Terms from "./pages/Terms";
 import ServiceDetail from "./pages/ServiceDetail";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
 
 function Router() {
   return (
     <Switch>
+      <Route path="/login" component={Login} />
+      <Route path="/register" component={Register} />
       <Route path="/" component={Home} />
       <Route path="/book" component={BookingForm} />
       <Route path="/confirmation/:ref" component={BookingConfirmation} />

@@ -19,10 +19,11 @@ function createAdminContext(): TrpcContext {
   return {
     user: {
       id: 1,
-      openId: "admin-user",
+      openId: "local_admin",
       email: "admin@example.com",
       name: "Admin User",
-      loginMethod: "manus",
+      passwordHash: "$2a$12$test",
+      loginMethod: "email",
       role: "admin",
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -42,10 +43,11 @@ function createUserContext(): TrpcContext {
   return {
     user: {
       id: 2,
-      openId: "regular-user",
+      openId: "local_user",
       email: "user@example.com",
       name: "Regular User",
-      loginMethod: "manus",
+      passwordHash: "$2a$12$test",
+      loginMethod: "email",
       role: "user",
       createdAt: new Date(),
       updatedAt: new Date(),

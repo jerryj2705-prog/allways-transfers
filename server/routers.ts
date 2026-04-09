@@ -1,7 +1,8 @@
-import { COOKIE_NAME } from "@shared/const";
+import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, adminProcedure, router } from "./_core/trpc";
+import { hashPassword, verifyPassword, createSessionToken } from "./_core/standalone-auth";
 import { z } from "zod";
 import {
   getActiveVehicles,
@@ -44,6 +45,8 @@ import {
   insertGoogleReviews,
   getAppSetting,
   setAppSetting,
+  getUserByEmail,
+  createUserWithPassword,
 } from "./db";
 import { makeRequest, type PlaceDetailsResult } from "./_core/map";
 import { createCheckoutSession } from "./stripe";
@@ -55,6 +58,58 @@ export const appRouter = router({
   system: systemRouter,
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
+    login: publicProcedure
+      .input(z.object({
+        email: z.string().email("Valid email is required"),
+        password: z.string().min(1, "Password is required"),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const user = await getUserByEmail(input.email);
+        if (!user || !user.passwordHash) {
+          throw new Error("Invalid email or password");
+        }
+        const valid = await verifyPassword(input.password, user.passwordHash);
+        if (!valid) {
+          throw new Error("Invalid email or password");
+        }
+        const token = await createSessionToken({
+          id: user.id,
+          email: user.email!,
+          role: user.role,
+        });
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.cookie(COOKIE_NAME, token, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+        return { success: true, user: { id: user.id, name: user.name, email: user.email, role: user.role } };
+      }),
+    register: publicProcedure
+      .input(z.object({
+        name: z.string().min(1, "Name is required"),
+        email: z.string().email("Valid email is required"),
+        password: z.string().min(8, "Password must be at least 8 characters"),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const existing = await getUserByEmail(input.email);
+        if (existing) {
+          throw new Error("An account with this email already exists");
+        }
+        const passwordHash = await hashPassword(input.password);
+        const user = await createUserWithPassword({
+          name: input.name,
+          email: input.email,
+          passwordHash,
+        });
+        if (!user) {
+          throw new Error("Failed to create account");
+        }
+        const token = await createSessionToken({
+          id: user.id,
+          email: user.email!,
+          role: user.role,
+        });
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.cookie(COOKIE_NAME, token, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+        return { success: true, user: { id: user.id, name: user.name, email: user.email, role: user.role } };
+      }),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });

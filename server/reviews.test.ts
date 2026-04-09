@@ -20,10 +20,11 @@ function createPublicContext(): TrpcContext {
 function createUserContext(overrides?: Partial<AuthenticatedUser>): TrpcContext {
   const user: AuthenticatedUser = {
     id: 1,
-    openId: "test-user-123",
+    openId: "local_test",
     email: "test@example.com",
     name: "Test User",
-    loginMethod: "manus",
+    passwordHash: "$2a$12$test",
+    loginMethod: "email",
     role: "user",
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -44,7 +45,7 @@ function createUserContext(overrides?: Partial<AuthenticatedUser>): TrpcContext 
 }
 
 function createAdminContext(): TrpcContext {
-  return createUserContext({ id: 99, role: "admin", name: "Admin User", email: "admin@example.com", openId: "admin-123" });
+  return createUserContext({ id: 99, role: "admin", name: "Admin User", email: "admin@example.com", openId: "local_admin" });
 }
 
 describe("reviews router", () => {

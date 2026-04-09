@@ -419,3 +419,17 @@
 - [x] Continue to Booking passes service type via URL param to skip Service Type step
 - [x] Update booking form to accept pre-selected service type and skip step 1
 - [x] Register new route in App.tsx
+
+## Hostinger VPS Migration
+- [x] Audit all Manus-specific dependencies in codebase
+- [x] Replace Manus OAuth with standalone email/password auth (bcrypt + JWT)
+- [x] Create login/register pages for standalone auth
+- [x] Replace Manus S3 storage with local file storage or direct S3 (stubbed out - not used by app)
+- [x] Replace Manus Maps proxy with direct Google Maps API calls
+- [x] Remove Manus LLM helper dependencies (stubbed out - not used by app)
+- [x] Replace Manus notification service with direct email (Resend)
+- [x] Update database config for standalone MySQL connection
+- [x] Create production build scripts
+- [x] Update environment variable configuration for standalone deployment
+- [x] Write Hostinger VPS deployment guide (DEPLOYMENT.md)
+- [ ] Export code to GitHub (user action: Settings → GitHub in Management UI)

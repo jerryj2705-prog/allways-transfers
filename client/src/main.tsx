@@ -18,6 +18,8 @@ const redirectToLoginIfUnauthorized = (error: unknown) => {
 
   if (!isUnauthorized) return;
 
+  // Don't redirect if already on login/register page
+  if (window.location.pathname === "/login" || window.location.pathname === "/register") return;
   window.location.href = getLoginUrl();
 };
 
