@@ -712,11 +712,16 @@ export default function Home() {
             </p>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {services.map((service) => (
+            {services.map((service) => {
+              const serviceKey = service.title === "Airport Transfer" ? "airport_transfer"
+                : service.title === "Hourly Hire" ? "hourly_hire"
+                : service.title === "Point to Point" ? "point_to_point"
+                : "special_events";
+              return (
               <Card
                 key={service.title}
                 className="group hover:shadow-lg hover:shadow-primary/10 transition-all duration-300 border-border/50 cursor-pointer bg-card hover:border-primary/30 overflow-hidden"
-                onClick={() => setLocation("/book")}
+                onClick={() => setLocation(`/services/${serviceKey}`)}
               >
                 {service.image && (
                   <div className="relative h-40 overflow-hidden">
@@ -755,7 +760,8 @@ export default function Home() {
                   )}
                 </CardContent>
               </Card>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>

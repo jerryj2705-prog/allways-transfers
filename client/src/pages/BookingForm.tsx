@@ -171,10 +171,16 @@ function SuburbAutocomplete({
 /* ─── Main Booking Form ─── */
 export default function BookingForm() {
   const [, setLocation] = useLocation();
-  const [step, setStep] = useState(0);
+
+  // Check for pre-selected service type from URL query params
+  const urlParams = new URLSearchParams(window.location.search);
+  const preSelectedService = urlParams.get("service") as ServiceType | null;
+  const isPreSelected = preSelectedService && preSelectedService in SERVICE_TYPES;
+
+  const [step, setStep] = useState(isPreSelected ? 1 : 0);
 
   // Form state
-  const [serviceType, setServiceType] = useState<ServiceType | "">("");
+  const [serviceType, setServiceType] = useState<ServiceType | "">(isPreSelected ? preSelectedService : "");
   const [pickupAddress, setPickupAddress] = useState("");
   const [pickupSuburb, setPickupSuburb] = useState("");
   const [dropoffAddress, setDropoffAddress] = useState("");
@@ -384,11 +390,19 @@ export default function BookingForm() {
       <div className="border-b border-border/50 bg-background/90 backdrop-blur-md sticky top-0 z-50">
         <div className="container flex items-center justify-between h-20">
           <button
-            onClick={() => step > 0 ? setStep(step - 1) : setLocation("/")}
+            onClick={() => {
+              if (step === 0) {
+                setLocation("/");
+              } else if (step === 1 && isPreSelected) {
+                setLocation(`/services/${preSelectedService}`);
+              } else {
+                setStep(step - 1);
+              }
+            }}
             className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             <ChevronLeft className="w-4 h-4" />
-            {step > 0 ? "Back" : "Home"}
+            {step === 0 ? "Home" : (step === 1 && isPreSelected) ? "Back to Service" : "Back"}
           </button>
           <img src={LOGO_IMG} alt="All Ways Transfers" className="h-16 w-auto" />
           <div className="w-16" />
@@ -1505,11 +1519,19 @@ export default function BookingForm() {
         <div className="flex items-center justify-between mt-10 pt-6 border-t border-border/50">
           <Button
             variant="outline"
-            onClick={() => step > 0 ? setStep(step - 1) : setLocation("/")}
+            onClick={() => {
+              if (step === 0) {
+                setLocation("/");
+              } else if (step === 1 && isPreSelected) {
+                setLocation(`/services/${preSelectedService}`);
+              } else {
+                setStep(step - 1);
+              }
+            }}
             className="gap-2 bg-background"
           >
             <ArrowLeft className="w-4 h-4" />
-            {step > 0 ? "Previous" : "Cancel"}
+            {step === 0 ? "Cancel" : (step === 1 && isPreSelected) ? "Back to Service" : "Previous"}
           </Button>
 
           {step < STEPS.length - 1 ? (

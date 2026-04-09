@@ -16,6 +16,7 @@ import AdminEnquiries from "./pages/AdminEnquiries";
 import AdminCalendar from "./pages/AdminCalendar";
 import AdminReviews from "./pages/AdminReviews";
 import Terms from "./pages/Terms";
+import ServiceDetail from "./pages/ServiceDetail";
 
 function Router() {
   return (
@@ -26,6 +27,7 @@ function Router() {
       <Route path="/my-bookings" component={MyBookings} />
       <Route path="/contact" component={Contact} />
       <Route path="/terms" component={Terms} />
+      <Route path="/services/:serviceType" component={ServiceDetail} />
       <Route path="/booking/:ref" component={BookingConfirmation} />
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/admin/booking/:id" component={AdminBookingDetail} />

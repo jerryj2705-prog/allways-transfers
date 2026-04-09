@@ -408,3 +408,14 @@
 - [x] Filter displayed reviews by selected rating
 - [x] Show count of reviews per rating level
 - [x] Reset visible count when filter changes
+
+## Remove Duplicate Section
+- [x] Remove "Select Your Service" section from homepage (duplicates Explore Services)
+
+## Service Detail Pages & Booking Flow
+- [x] Make homepage service cards open dedicated service detail pages (not booking form)
+- [x] Create service detail page with extended description, Go Back and Continue to Booking buttons
+- [x] Add route for /services/:serviceType
+- [x] Continue to Booking passes service type via URL param to skip Service Type step
+- [x] Update booking form to accept pre-selected service type and skip step 1
+- [x] Register new route in App.tsx
