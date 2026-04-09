@@ -146,6 +146,7 @@ function TestimonialsSection() {
   const [visibleCount, setVisibleCount] = useState(INITIAL_REVIEWS);
   const prevVisibleCount = useRef(INITIAL_REVIEWS);
   const [animatingFrom, setAnimatingFrom] = useState(-1);
+  const [ratingFilter, setRatingFilter] = useState<number | null>(null);
 
   // Write a Review dialog state
   const [reviewOpen, setReviewOpen] = useState(false);
@@ -278,12 +279,32 @@ function TestimonialsSection() {
     return map[type] || type;
   };
 
-  const displayReviews = allReviews.slice(0, visibleCount);
-  const hasMore = visibleCount < allReviews.length;
-  const remaining = allReviews.length - visibleCount;
+  // Count reviews per rating for filter badges
+  const ratingCounts = useMemo(() => {
+    const counts: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    for (const r of allReviews) counts[r.rating] = (counts[r.rating] || 0) + 1;
+    return counts;
+  }, [allReviews]);
+
+  // Apply rating filter
+  const filteredReviews = useMemo(() => {
+    if (ratingFilter === null) return allReviews;
+    return allReviews.filter((r) => r.rating === ratingFilter);
+  }, [allReviews, ratingFilter]);
+
+  const displayReviews = filteredReviews.slice(0, visibleCount);
+  const hasMore = visibleCount < filteredReviews.length;
+  const remaining = filteredReviews.length - visibleCount;
 
   const handleLoadMore = () => {
-    setVisibleCount((prev) => Math.min(prev + LOAD_MORE_COUNT, allReviews.length));
+    setVisibleCount((prev) => Math.min(prev + LOAD_MORE_COUNT, filteredReviews.length));
+  };
+
+  const handleFilterChange = (star: number | null) => {
+    setRatingFilter(star);
+    setVisibleCount(INITIAL_REVIEWS);
+    prevVisibleCount.current = INITIAL_REVIEWS;
+    setAnimatingFrom(-1);
   };
 
   return (
@@ -319,6 +340,37 @@ function TestimonialsSection() {
             </Button>
           </div>
         </div>
+
+        {/* Star Rating Filter */}
+        {allReviews.length > 0 && (
+          <div className="flex flex-wrap items-center justify-center gap-2 mb-10">
+            <button
+              onClick={() => handleFilterChange(null)}
+              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all border ${
+                ratingFilter === null
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-transparent text-muted-foreground border-border/50 hover:border-primary/40 hover:text-primary"
+              }`}
+            >
+              All ({allReviews.length})
+            </button>
+            {[5, 4, 3, 2, 1].map((star) => (
+              ratingCounts[star] > 0 && (
+                <button
+                  key={star}
+                  onClick={() => handleFilterChange(star)}
+                  className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium transition-all border ${
+                    ratingFilter === star
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-transparent text-muted-foreground border-border/50 hover:border-primary/40 hover:text-primary"
+                  }`}
+                >
+                  {star}<Star className="w-3.5 h-3.5 fill-current" /> ({ratingCounts[star]})
+                </button>
+              )
+            ))}
+          </div>
+        )}
 
         {allReviews.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 space-y-6">
