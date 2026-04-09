@@ -112,7 +112,7 @@ export default function Home() {
           <div className="flex items-center gap-3">
             <img src={LOGO_IMG} alt="All Ways Transfers" className="h-16 w-auto" />
           </div>
-          <div className="hidden md:flex items-center gap-8 text-sm text-muted-foreground">
+          <div className="hidden md:flex items-center justify-center gap-8 text-sm text-muted-foreground flex-1">
             <a href="#services" className="hover:text-primary transition-colors">Services</a>
             <a href="#fleet" className="hover:text-primary transition-colors">Our Fleet</a>
             <a href="#why-us" className="hover:text-primary transition-colors">Why Us</a>

@@ -260,3 +260,4 @@
 - [x] Create Terms & Conditions page (/terms) covering cancellation policy, payment terms, service conditions
 - [x] Add Terms & Conditions link to main navigation menu
 - [x] Link Terms page from booking form's terms checkbox
+- [x] Centre-justify navigation labels in main menu
