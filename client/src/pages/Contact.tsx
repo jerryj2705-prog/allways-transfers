@@ -269,7 +269,7 @@ export default function Contact() {
       </section>
 
       {/* FAQ Section */}
-      <section className="py-16 bg-gradient-to-b from-background to-gray-950">
+      <section id="faq" className="py-16 bg-gradient-to-b from-background to-gray-950">
         <div className="container max-w-4xl">
           <div className="text-center mb-12">
             <div className="inline-flex items-center gap-2 bg-amber-600/10 border border-amber-600/20 rounded-full px-4 py-1.5 mb-4">

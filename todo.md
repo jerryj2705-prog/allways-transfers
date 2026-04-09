@@ -254,3 +254,9 @@
 - [x] Include questions about child seats and pet-friendly options
 - [x] Include questions about booking management (My Bookings, modifications)
 - [x] Style FAQ section to match site's dark/gold theme
+
+## Navigation & Terms
+- [x] Add FAQ link to main navigation menu (links to Contact page FAQ section)
+- [x] Create Terms & Conditions page (/terms) covering cancellation policy, payment terms, service conditions
+- [x] Add Terms & Conditions link to main navigation menu
+- [x] Link Terms page from booking form's terms checkbox

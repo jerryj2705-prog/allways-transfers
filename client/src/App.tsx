@@ -13,6 +13,7 @@ import AdminPricing from "./pages/AdminPricing";
 import MyBookings from "./pages/MyBookings";
 import Contact from "./pages/Contact";
 import AdminEnquiries from "./pages/AdminEnquiries";
+import Terms from "./pages/Terms";
 
 function Router() {
   return (
@@ -22,6 +23,7 @@ function Router() {
       <Route path="/confirmation/:ref" component={BookingConfirmation} />
       <Route path="/my-bookings" component={MyBookings} />
       <Route path="/contact" component={Contact} />
+      <Route path="/terms" component={Terms} />
       <Route path="/booking/:ref" component={BookingConfirmation} />
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/admin/booking/:id" component={AdminBookingDetail} />

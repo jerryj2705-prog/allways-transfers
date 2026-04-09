@@ -1280,7 +1280,10 @@ export default function BookingForm() {
                 className="mt-0.5"
               />
               <label htmlFor="terms" className="text-sm text-muted-foreground leading-relaxed cursor-pointer">
-                I agree to the Terms and Conditions. I understand that the quoted price is an estimate
+                I agree to the{" "}
+                <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-amber-400 hover:text-amber-300 underline underline-offset-2">
+                  Terms and Conditions
+                </a>. I understand that the quoted price is an estimate
                 and the final amount may vary. Cancellation policies apply.
               </label>
             </div>

@@ -117,6 +117,8 @@ export default function Home() {
             <a href="#fleet" className="hover:text-primary transition-colors">Our Fleet</a>
             <a href="#why-us" className="hover:text-primary transition-colors">Why Us</a>
             <a href="/contact" className="hover:text-primary transition-colors">Contact</a>
+            <a href="/contact#faq" className="hover:text-primary transition-colors">FAQ</a>
+            <a href="/terms" className="hover:text-primary transition-colors">Terms</a>
             {user && (
               <a href="/my-bookings" className="hover:text-primary transition-colors">My Bookings</a>
             )}
