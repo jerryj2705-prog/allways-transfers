@@ -397,3 +397,8 @@
 - [x] Only allow logged-in users with completed bookings to submit
 - [x] Show appropriate messages for non-logged-in users or users without completed bookings
 - [x] Invalidate reviews queries after successful submission
+
+## Testimonials Empty State
+- [x] Show "Be the first to review" message when no genuine reviews exist
+- [x] Keep the Write a Review button visible in the empty state
+- [x] Remove any placeholder/fake reviews

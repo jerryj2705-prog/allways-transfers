@@ -268,10 +268,6 @@ function TestimonialsSection() {
     };
   }, [reviewStats, googleData]);
 
-  if (!allReviews.length && !user) {
-    return null;
-  }
-
   const serviceLabel = (type: string) => {
     const map: Record<string, string> = {
       airport_transfer: "Airport Transfer",
@@ -324,6 +320,19 @@ function TestimonialsSection() {
           </div>
         </div>
 
+        {allReviews.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 space-y-6">
+            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+              <Star className="w-8 h-8 text-primary" />
+            </div>
+            <div className="text-center space-y-2 max-w-md">
+              <h3 className="text-xl font-semibold text-offwhite">Be the First to Review</h3>
+              <p className="text-muted-foreground">
+                Share your All Ways Transfers experience and help others discover our premium chauffeur service.
+              </p>
+            </div>
+          </div>
+        ) : (<>
         <div className="grid md:grid-cols-3 gap-6">
           {displayReviews.map((review, idx) => {
             const isNew = animatingFrom >= 0 && idx >= animatingFrom;
@@ -378,6 +387,7 @@ function TestimonialsSection() {
             </Button>
           </div>
         )}
+        </>)}
 
         {/* Write a Review Dialog */}
         <Dialog open={reviewOpen} onOpenChange={(open) => {
