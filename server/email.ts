@@ -129,6 +129,10 @@ export interface BookingEmailData {
 }
 
 export async function sendBookingConfirmationEmail(data: BookingEmailData): Promise<boolean> {
+  if (process.env.VITEST || process.env.NODE_ENV === "test") {
+    console.log(`[Email] Skipping email send in test environment for ${data.referenceNumber}`);
+    return true;
+  }
   const resend = getResend();
 
   const myBookingsUrl = `${data.origin}/my-bookings`;
@@ -280,6 +284,10 @@ export interface CancellationEmailData {
 }
 
 export async function sendCancellationConfirmationEmail(data: CancellationEmailData): Promise<boolean> {
+  if (process.env.VITEST || process.env.NODE_ENV === "test") {
+    console.log(`[Email] Skipping email send in test environment for ${data.referenceNumber}`);
+    return true;
+  }
   const resend = getResend();
 
   const myBookingsUrl = `${data.origin}/my-bookings`;

@@ -261,3 +261,4 @@
 - [x] Add Terms & Conditions link to main navigation menu
 - [x] Link Terms page from booking form's terms checkbox
 - [x] Centre-justify navigation labels in main menu
+- [x] Stop sending real emails during vitest test runs
