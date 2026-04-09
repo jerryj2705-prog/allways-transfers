@@ -1,4 +1,4 @@
-import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
+import { COOKIE_NAME, SESSION_SHORT_MS, SESSION_LONG_MS } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, adminProcedure, router } from "./_core/trpc";
@@ -62,6 +62,7 @@ export const appRouter = router({
       .input(z.object({
         email: z.string().email("Valid email is required"),
         password: z.string().min(1, "Password is required"),
+        rememberMe: z.boolean().optional().default(false),
       }))
       .mutation(async ({ input, ctx }) => {
         const user = await getUserByEmail(input.email);
@@ -72,13 +73,14 @@ export const appRouter = router({
         if (!valid) {
           throw new Error("Invalid email or password");
         }
+        const sessionDuration = input.rememberMe ? SESSION_LONG_MS : SESSION_SHORT_MS;
         const token = await createSessionToken({
           id: user.id,
           email: user.email!,
           role: user.role,
-        });
+        }, { expiresInMs: sessionDuration });
         const cookieOptions = getSessionCookieOptions(ctx.req);
-        ctx.res.cookie(COOKIE_NAME, token, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+        ctx.res.cookie(COOKIE_NAME, token, { ...cookieOptions, maxAge: sessionDuration });
         return { success: true, user: { id: user.id, name: user.name, email: user.email, role: user.role } };
       }),
     register: publicProcedure
@@ -107,7 +109,7 @@ export const appRouter = router({
           role: user.role,
         });
         const cookieOptions = getSessionCookieOptions(ctx.req);
-        ctx.res.cookie(COOKIE_NAME, token, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+        ctx.res.cookie(COOKIE_NAME, token, { ...cookieOptions, maxAge: SESSION_SHORT_MS });
         return { success: true, user: { id: user.id, name: user.name, email: user.email, role: user.role } };
       }),
     logout: publicProcedure.mutation(({ ctx }) => {

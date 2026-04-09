@@ -433,3 +433,10 @@
 - [x] Update environment variable configuration for standalone deployment
 - [x] Write Hostinger VPS deployment guide (DEPLOYMENT.md)
 - [ ] Export code to GitHub (user action: Settings → GitHub in Management UI)
+
+## Remember Me Feature
+- [x] Add rememberMe parameter to login tRPC procedure
+- [x] Extend JWT token expiry when Remember Me is checked (30 days vs 24 hours)
+- [x] Extend session cookie maxAge when Remember Me is checked
+- [x] Add Remember Me checkbox to Login page UI
+- [x] Write tests for Remember Me token expiry behaviour

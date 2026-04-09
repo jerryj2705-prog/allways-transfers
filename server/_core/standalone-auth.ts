@@ -3,7 +3,7 @@
  * Replaces Manus OAuth with email/password auth using bcrypt + JWT
  */
 
-import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
+import { COOKIE_NAME, SESSION_SHORT_MS } from "@shared/const";
 import { ForbiddenError } from "@shared/_core/errors";
 import bcrypt from "bcryptjs";
 import { parse as parseCookieHeader } from "cookie";
@@ -49,7 +49,7 @@ export async function createSessionToken(
   options: { expiresInMs?: number } = {}
 ): Promise<string> {
   const issuedAt = Date.now();
-  const expiresInMs = options.expiresInMs ?? ONE_YEAR_MS;
+  const expiresInMs = options.expiresInMs ?? SESSION_SHORT_MS;
   const expirationSeconds = Math.floor((issuedAt + expiresInMs) / 1000);
   const secretKey = getSessionSecret();
 

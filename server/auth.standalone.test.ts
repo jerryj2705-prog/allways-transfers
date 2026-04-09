@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { hashPassword, verifyPassword, createSessionToken, verifySession } from "./_core/standalone-auth";
+import { SESSION_SHORT_MS, SESSION_LONG_MS } from "@shared/const";
+import { jwtVerify } from "jose";
 
 describe("standalone-auth: password hashing", () => {
   it("hashes a password and verifies it correctly", async () => {
@@ -64,6 +66,53 @@ describe("standalone-auth: JWT session tokens", () => {
   });
 });
 
+describe("standalone-auth: remember me token expiry", () => {
+  const secret = new TextEncoder().encode(process.env.JWT_SECRET || "test-secret-key-for-vitest-runs-only");
+  const user = { id: 99, email: "remember@example.com", role: "user" };
+
+  it("default token expires in ~24 hours (SESSION_SHORT_MS)", async () => {
+    const token = await createSessionToken(user);
+    const { payload } = await jwtVerify(token, secret, { algorithms: ["HS256"] });
+
+    const nowSec = Math.floor(Date.now() / 1000);
+    const expSec = payload.exp as number;
+    const diffMs = (expSec - nowSec) * 1000;
+
+    // Should be close to SESSION_SHORT_MS (24h), allow 5 seconds tolerance
+    expect(diffMs).toBeGreaterThan(SESSION_SHORT_MS - 5000);
+    expect(diffMs).toBeLessThanOrEqual(SESSION_SHORT_MS + 1000);
+  });
+
+  it("remember-me token expires in ~30 days (SESSION_LONG_MS)", async () => {
+    const token = await createSessionToken(user, { expiresInMs: SESSION_LONG_MS });
+    const { payload } = await jwtVerify(token, secret, { algorithms: ["HS256"] });
+
+    const nowSec = Math.floor(Date.now() / 1000);
+    const expSec = payload.exp as number;
+    const diffMs = (expSec - nowSec) * 1000;
+
+    // Should be close to SESSION_LONG_MS (30 days), allow 5 seconds tolerance
+    expect(diffMs).toBeGreaterThan(SESSION_LONG_MS - 5000);
+    expect(diffMs).toBeLessThanOrEqual(SESSION_LONG_MS + 1000);
+  });
+
+  it("short-lived token is much shorter than long-lived token", async () => {
+    const shortToken = await createSessionToken(user, { expiresInMs: SESSION_SHORT_MS });
+    const longToken = await createSessionToken(user, { expiresInMs: SESSION_LONG_MS });
+
+    const { payload: shortPayload } = await jwtVerify(shortToken, secret, { algorithms: ["HS256"] });
+    const { payload: longPayload } = await jwtVerify(longToken, secret, { algorithms: ["HS256"] });
+
+    const shortExp = shortPayload.exp as number;
+    const longExp = longPayload.exp as number;
+
+    // Long token should expire ~29 days after short token
+    const diffDays = (longExp - shortExp) / (60 * 60 * 24);
+    expect(diffDays).toBeGreaterThan(28);
+    expect(diffDays).toBeLessThan(30);
+  });
+});
+
 describe("standalone-auth: login/register via tRPC", () => {
   // These tests use the tRPC caller directly
   it("login rejects empty credentials via zod validation", async () => {
@@ -82,6 +131,25 @@ describe("standalone-auth: login/register via tRPC", () => {
     await expect(
       caller.auth.login({ email: "", password: "test" })
     ).rejects.toThrow();
+  });
+
+  it("login accepts rememberMe parameter without validation error", async () => {
+    const { appRouter } = await import("./routers");
+    const ctx = {
+      user: null,
+      req: { protocol: "https", headers: {} } as any,
+      res: {
+        clearCookie: () => {},
+        cookie: () => {},
+      } as any,
+    };
+    const caller = appRouter.createCaller(ctx);
+
+    // Should fail with "Invalid email or password" (not a validation error),
+    // proving rememberMe is accepted by the schema
+    await expect(
+      caller.auth.login({ email: "nobody@example.com", password: "test123", rememberMe: true })
+    ).rejects.toThrow("Invalid email or password");
   });
 
   it("register rejects short password via zod validation", async () => {
