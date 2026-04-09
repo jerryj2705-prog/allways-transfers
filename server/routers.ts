@@ -24,6 +24,7 @@ import {
   updateEnquiryStatus,
   getEnquiryStats,
   updateBookingPaymentStatus,
+  getBookingsByDateRange,
 } from "./db";
 import { createCheckoutSession } from "./stripe";
 import { notifyOwner } from "./_core/notification";
@@ -276,6 +277,15 @@ export const appRouter = router({
     stats: adminProcedure.query(async () => {
       return getBookingStats();
     }),
+
+    calendarBookings: adminProcedure
+      .input(z.object({
+        startMs: z.number(),
+        endMs: z.number(),
+      }))
+      .query(async ({ input }) => {
+        return getBookingsByDateRange(input.startMs, input.endMs);
+      }),
 
     // Admin: modify any booking's details
     adminModify: adminProcedure

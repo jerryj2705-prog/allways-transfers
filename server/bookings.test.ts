@@ -459,3 +459,70 @@ describe("bookings.adminModify", () => {
     expect(result!.pickupAddress).toBe("Brisbane CBD");
   });
 });
+
+describe("bookings.calendarBookings (admin)", () => {
+  it("returns bookings within a date range for admin", async () => {
+    const adminCtx = createAdminContext();
+    const adminCaller = appRouter.createCaller(adminCtx);
+
+    // Query for a wide range that includes test bookings created above
+    const now = Date.now();
+    const result = await adminCaller.bookings.calendarBookings({
+      startMs: now - 86400000 * 30,
+      endMs: now + 86400000 * 30,
+    });
+
+    expect(Array.isArray(result)).toBe(true);
+    // Should have some bookings from previous tests
+    if (result.length > 0) {
+      const booking = result[0];
+      expect(booking).toHaveProperty("id");
+      expect(booking).toHaveProperty("referenceNumber");
+      expect(booking).toHaveProperty("clientName");
+      expect(booking).toHaveProperty("pickupDate");
+      expect(booking).toHaveProperty("status");
+      expect(booking).toHaveProperty("serviceType");
+      expect(booking).toHaveProperty("vehicleName");
+      expect(booking).toHaveProperty("totalPrice");
+    }
+  });
+
+  it("returns empty array for date range with no bookings", async () => {
+    const adminCtx = createAdminContext();
+    const adminCaller = appRouter.createCaller(adminCtx);
+
+    // Query for a range far in the future
+    const farFuture = Date.now() + 86400000 * 365 * 10;
+    const result = await adminCaller.bookings.calendarBookings({
+      startMs: farFuture,
+      endMs: farFuture + 86400000,
+    });
+
+    expect(Array.isArray(result)).toBe(true);
+    expect(result.length).toBe(0);
+  });
+
+  it("blocks non-admin users from accessing calendar bookings", async () => {
+    const userCtx = createUserContext();
+    const userCaller = appRouter.createCaller(userCtx);
+
+    await expect(
+      userCaller.bookings.calendarBookings({
+        startMs: Date.now(),
+        endMs: Date.now() + 86400000,
+      })
+    ).rejects.toThrow();
+  });
+
+  it("blocks unauthenticated users from accessing calendar bookings", async () => {
+    const publicCtx = createPublicContext();
+    const publicCaller = appRouter.createCaller(publicCtx);
+
+    await expect(
+      publicCaller.bookings.calendarBookings({
+        startMs: Date.now(),
+        endMs: Date.now() + 86400000,
+      })
+    ).rejects.toThrow();
+  });
+});

@@ -245,6 +245,36 @@ export async function updateBookingDetails(id: number, data: {
   return getBookingById(id);
 }
 
+export async function getBookingsByDateRange(startMs: number, endMs: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select({
+      id: bookings.id,
+      referenceNumber: bookings.referenceNumber,
+      clientName: bookings.clientName,
+      clientEmail: bookings.clientEmail,
+      serviceType: bookings.serviceType,
+      pickupAddress: bookings.pickupAddress,
+      dropoffAddress: bookings.dropoffAddress,
+      pickupDate: bookings.pickupDate,
+      passengerCount: bookings.passengerCount,
+      vehicleName: bookings.vehicleName,
+      totalPrice: bookings.totalPrice,
+      status: bookings.status,
+      paymentStatus: bookings.paymentStatus,
+      paymentMethod: bookings.paymentMethod,
+    })
+    .from(bookings)
+    .where(
+      and(
+        sql`${bookings.pickupDate} >= ${startMs}`,
+        sql`${bookings.pickupDate} < ${endMs}`,
+      )
+    )
+    .orderBy(bookings.pickupDate);
+}
+
 export async function getBookingsByEmail(email: string) {
   const db = await getDb();
   if (!db) return [];

@@ -281,3 +281,14 @@
 - [x] Build edit booking UI on admin booking detail page with inline editing or edit modal
 - [x] Validate editable fields (date must be in future, addresses required, etc.)
 - [x] Write tests for admin booking update mutation
+
+## Bug Fixes
+- [x] Fix: test runs still sending real booking confirmation emails to admin (emails are from real browser submissions, not vitest)
+
+## Admin Calendar View
+- [x] Add server-side query to fetch bookings by date range for calendar
+- [x] Build monthly calendar view component with booking indicators
+- [x] Show booking details on day click/hover (reference, client, service, time)
+- [x] Color-code bookings by status (pending, confirmed, completed, cancelled)
+- [x] Add calendar navigation (prev/next month, today button)
+- [x] Add calendar page to admin dashboard sidebar navigation
