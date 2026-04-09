@@ -350,3 +350,112 @@ describe("bookings.getByReference", () => {
     expect(found?.paymentStatus).toBe("unpaid");
   });
 });
+
+describe("bookings.adminModify", () => {
+  it("allows admin to modify booking details", async () => {
+    const publicCtx = createPublicContext();
+    const adminCtx = createAdminContext();
+    const publicCaller = appRouter.createCaller(publicCtx);
+    const adminCaller = appRouter.createCaller(adminCtx);
+
+    const vehicles = await publicCaller.vehicles.list();
+    const suv = vehicles.find((v) => v.type === "suv");
+
+    const created = await publicCaller.bookings.create({
+      clientName: "Modify Test",
+      clientEmail: "modify@example.com",
+      clientPhone: "+61 400 777 777",
+      serviceType: "airport_transfer",
+      pickupAddress: "Brisbane Airport",
+      dropoffAddress: "Gold Coast",
+      pickupDate: Date.now() + 86400000 * 2,
+      passengerCount: 2,
+      vehicleId: suv!.id,
+      vehicleName: suv!.name,
+      needsSupportVan: false,
+      supportVanPrice: 0,
+      basePrice: 170,
+      totalPrice: 170,
+      termsAccepted: true,
+      paymentMethod: "cash_postpay",
+    });
+
+    const updated = await adminCaller.bookings.adminModify({
+      bookingId: created.id,
+      pickupAddress: "Sunshine Coast Airport",
+      dropoffAddress: "Noosa Heads",
+      passengerCount: 4,
+      specialRequests: "Updated by admin",
+    });
+
+    expect(updated).toBeDefined();
+    expect(updated!.pickupAddress).toBe("Sunshine Coast Airport");
+    expect(updated!.dropoffAddress).toBe("Noosa Heads");
+    expect(updated!.passengerCount).toBe(4);
+    expect(updated!.specialRequests).toBe("Updated by admin");
+  });
+
+  it("blocks non-admin users from modifying bookings", async () => {
+    const userCtx = createUserContext();
+    const userCaller = appRouter.createCaller(userCtx);
+
+    await expect(
+      userCaller.bookings.adminModify({
+        bookingId: 1,
+        pickupAddress: "Hacked Address",
+      })
+    ).rejects.toThrow();
+  });
+
+  it("rejects modification of non-existent booking", async () => {
+    const adminCtx = createAdminContext();
+    const adminCaller = appRouter.createCaller(adminCtx);
+
+    await expect(
+      adminCaller.bookings.adminModify({
+        bookingId: 999999,
+        pickupAddress: "Nowhere",
+      })
+    ).rejects.toThrow("Booking not found");
+  });
+
+  it("returns unchanged booking when no fields differ", async () => {
+    const publicCtx = createPublicContext();
+    const adminCtx = createAdminContext();
+    const publicCaller = appRouter.createCaller(publicCtx);
+    const adminCaller = appRouter.createCaller(adminCtx);
+
+    const vehicles = await publicCaller.vehicles.list();
+    const suv = vehicles.find((v) => v.type === "suv");
+
+    const created = await publicCaller.bookings.create({
+      clientName: "No Change Test",
+      clientEmail: "nochange@example.com",
+      clientPhone: "+61 400 888 888",
+      serviceType: "point_to_point",
+      pickupAddress: "Brisbane CBD",
+      dropoffAddress: "Surfers Paradise",
+      pickupDate: Date.now() + 86400000 * 3,
+      passengerCount: 2,
+      vehicleId: suv!.id,
+      vehicleName: suv!.name,
+      needsSupportVan: false,
+      supportVanPrice: 0,
+      basePrice: 200,
+      totalPrice: 200,
+      termsAccepted: true,
+      paymentMethod: "cash_postpay",
+    });
+
+    // Pass the same values — should return unchanged
+    const result = await adminCaller.bookings.adminModify({
+      bookingId: created.id,
+      pickupAddress: "Brisbane CBD",
+      dropoffAddress: "Surfers Paradise",
+      passengerCount: 2,
+    });
+
+    expect(result).toBeDefined();
+    expect(result!.pickupAddress).toBe("Brisbane CBD");
+  });
+});

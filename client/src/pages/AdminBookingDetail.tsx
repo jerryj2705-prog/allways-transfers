@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -6,14 +6,18 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from "@/components/ui/dialog";
 import { useLocation, useParams } from "wouter";
 import { toast } from "sonner";
 import {
   ChevronLeft, MapPin, Calendar, Users, Car, Truck, Phone, Mail, User,
-  Clock, CheckCircle, XCircle, AlertCircle, Baby, Dog,
+  Clock, Baby, Dog, Pencil,
 } from "lucide-react";
 import { SERVICE_TYPES, BOOKING_STATUSES, PAYMENT_METHODS } from "@shared/types";
 import type { ServiceType, BookingStatus, PaymentMethod } from "@shared/types";
@@ -27,6 +31,19 @@ const STATUS_STYLES: Record<string, string> = {
   cancelled: "bg-red-100 text-red-800 border-red-200",
 };
 
+function toLocalDateTimeValue(timestamp: number): string {
+  const d = new Date(timestamp);
+  // Convert to AEST (UTC+10)
+  const aest = new Date(d.getTime() + 10 * 60 * 60 * 1000);
+  return aest.toISOString().slice(0, 16);
+}
+
+function fromLocalDateTimeValue(value: string): number {
+  // Parse as AEST (UTC+10) — subtract 10 hours to get UTC
+  const d = new Date(value + ":00.000Z");
+  return d.getTime() - 10 * 60 * 60 * 1000;
+}
+
 export default function AdminBookingDetail() {
   const params = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
@@ -35,6 +52,14 @@ export default function AdminBookingDetail() {
 
   const [newStatus, setNewStatus] = useState<string>("");
   const [adminNotes, setAdminNotes] = useState("");
+  const [editOpen, setEditOpen] = useState(false);
+
+  // Edit form state
+  const [editPickupAddress, setEditPickupAddress] = useState("");
+  const [editDropoffAddress, setEditDropoffAddress] = useState("");
+  const [editPickupDate, setEditPickupDate] = useState("");
+  const [editPassengerCount, setEditPassengerCount] = useState(1);
+  const [editSpecialRequests, setEditSpecialRequests] = useState("");
 
   const utils = trpc.useUtils();
 
@@ -65,6 +90,29 @@ export default function AdminBookingDetail() {
       toast.error(err.message || "Failed to update payment status");
     },
   });
+
+  const adminModify = trpc.bookings.adminModify.useMutation({
+    onSuccess: () => {
+      toast.success("Booking details updated successfully");
+      utils.bookings.getById.invalidate({ id: bookingId });
+      utils.bookings.list.invalidate();
+      setEditOpen(false);
+    },
+    onError: (err) => {
+      toast.error(err.message || "Failed to update booking details");
+    },
+  });
+
+  // Populate edit form when booking loads or dialog opens
+  useEffect(() => {
+    if (booking && editOpen) {
+      setEditPickupAddress(booking.pickupAddress);
+      setEditDropoffAddress(booking.dropoffAddress ?? "");
+      setEditPickupDate(toLocalDateTimeValue(booking.pickupDate));
+      setEditPassengerCount(booking.passengerCount);
+      setEditSpecialRequests(booking.specialRequests ?? "");
+    }
+  }, [booking, editOpen]);
 
   if (authLoading || isLoading) {
     return (
@@ -103,6 +151,7 @@ export default function AdminBookingDetail() {
   const serviceLabel = SERVICE_TYPES[booking.serviceType as ServiceType]?.label ?? booking.serviceType;
   const statusLabel = BOOKING_STATUSES[booking.status as BookingStatus]?.label ?? booking.status;
   const statusStyle = STATUS_STYLES[booking.status] || "";
+  const canEdit = booking.status !== "cancelled";
 
   const handleStatusUpdate = () => {
     if (!newStatus) return;
@@ -110,6 +159,24 @@ export default function AdminBookingDetail() {
       id: bookingId,
       status: newStatus as BookingStatus,
       adminNotes: adminNotes || undefined,
+    });
+  };
+
+  const handleEditSave = () => {
+    if (!editPickupAddress.trim()) {
+      toast.error("Pickup address is required");
+      return;
+    }
+
+    const pickupTimestamp = fromLocalDateTimeValue(editPickupDate);
+
+    adminModify.mutate({
+      bookingId,
+      pickupAddress: editPickupAddress.trim(),
+      dropoffAddress: editDropoffAddress.trim() || null,
+      pickupDate: pickupTimestamp,
+      passengerCount: editPassengerCount,
+      specialRequests: editSpecialRequests.trim() || null,
     });
   };
 
@@ -139,9 +206,22 @@ export default function AdminBookingDetail() {
             <p className="text-sm text-muted-foreground">Reference</p>
             <h1 className="font-heading text-2xl font-bold tracking-wider">{booking.referenceNumber}</h1>
           </div>
-          <Badge variant="outline" className={`text-sm px-3 py-1 ${statusStyle}`}>
-            {statusLabel}
-          </Badge>
+          <div className="flex items-center gap-3">
+            <Badge variant="outline" className={`text-sm px-3 py-1 ${statusStyle}`}>
+              {statusLabel}
+            </Badge>
+            {canEdit && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="bg-transparent gap-1.5"
+                onClick={() => setEditOpen(true)}
+              >
+                <Pencil className="w-3.5 h-3.5" />
+                Edit Details
+              </Button>
+            )}
+          </div>
         </div>
 
         <div className="grid lg:grid-cols-3 gap-6">
@@ -180,7 +260,18 @@ export default function AdminBookingDetail() {
             {/* Trip Details */}
             <Card className="border-border/50">
               <CardContent className="p-6 space-y-4">
-                <p className="text-xs font-medium tracking-widest uppercase text-primary">Trip Details</p>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-medium tracking-widest uppercase text-primary">Trip Details</p>
+                  {canEdit && (
+                    <button
+                      onClick={() => setEditOpen(true)}
+                      className="text-xs text-primary hover:text-primary/80 flex items-center gap-1 transition-colors"
+                    >
+                      <Pencil className="w-3 h-3" />
+                      Edit
+                    </button>
+                  )}
+                </div>
                 <div className="grid sm:grid-cols-2 gap-4 text-sm">
                   <div className="flex items-start gap-3">
                     <Calendar className="w-4 h-4 text-muted-foreground mt-0.5" />
@@ -425,6 +516,93 @@ export default function AdminBookingDetail() {
           </div>
         </div>
       </div>
+
+      {/* Edit Booking Dialog */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Edit Booking Details</DialogTitle>
+            <DialogDescription>
+              Modify the trip details for booking {booking.referenceNumber}. Changes will be saved immediately.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="edit-pickup-date">Pickup Date & Time (AEST)</Label>
+              <Input
+                id="edit-pickup-date"
+                type="datetime-local"
+                value={editPickupDate}
+                onChange={(e) => setEditPickupDate(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-pickup-address">Pickup Address</Label>
+              <Input
+                id="edit-pickup-address"
+                value={editPickupAddress}
+                onChange={(e) => setEditPickupAddress(e.target.value)}
+                placeholder="Enter pickup address"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-dropoff-address">Drop-off Address</Label>
+              <Input
+                id="edit-dropoff-address"
+                value={editDropoffAddress}
+                onChange={(e) => setEditDropoffAddress(e.target.value)}
+                placeholder="Enter drop-off address (optional)"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-passengers">Passengers</Label>
+              <Select
+                value={editPassengerCount.toString()}
+                onValueChange={(v) => setEditPassengerCount(parseInt(v, 10))}
+              >
+                <SelectTrigger id="edit-passengers">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {[1, 2, 3, 4, 5, 6, 7].map((n) => (
+                    <SelectItem key={n} value={n.toString()}>
+                      {n} {n === 1 ? "passenger" : "passengers"}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-special-requests">Special Requests</Label>
+              <Textarea
+                id="edit-special-requests"
+                value={editSpecialRequests}
+                onChange={(e) => setEditSpecialRequests(e.target.value)}
+                placeholder="Any special requirements..."
+                rows={3}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditOpen(false)} className="bg-transparent">
+              Cancel
+            </Button>
+            <Button
+              onClick={handleEditSave}
+              disabled={adminModify.isPending}
+              className="gold-gradient text-gold-foreground border-0 hover:opacity-90"
+            >
+              {adminModify.isPending ? "Saving..." : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

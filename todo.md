@@ -274,3 +274,10 @@
 - [x] Send admin notification email to admin@allwaystransfers.com.au when new booking is created
 - [x] Send admin notification email when a booking is cancelled
 - [x] Include all booking details in admin notification emails
+
+## Admin Booking Modification
+- [x] Add server-side updateBooking mutation for admins (date, pickup, dropoff, passengers, special requests)
+- [x] Add DB helper to update booking fields
+- [x] Build edit booking UI on admin booking detail page with inline editing or edit modal
+- [x] Validate editable fields (date must be in future, addresses required, etc.)
+- [x] Write tests for admin booking update mutation

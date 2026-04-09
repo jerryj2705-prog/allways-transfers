@@ -277,6 +277,59 @@ export const appRouter = router({
       return getBookingStats();
     }),
 
+    // Admin: modify any booking's details
+    adminModify: adminProcedure
+      .input(z.object({
+        bookingId: z.number(),
+        pickupAddress: z.string().optional(),
+        dropoffAddress: z.string().nullable().optional(),
+        pickupDate: z.number().optional(),
+        passengerCount: z.number().min(1).max(7).optional(),
+        specialRequests: z.string().nullable().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const booking = await getBookingById(input.bookingId);
+        if (!booking) throw new Error("Booking not found");
+
+        // If changing pickup date, must be in the future
+        if (input.pickupDate && input.pickupDate < Date.now()) {
+          throw new Error("New pickup date must be in the future");
+        }
+
+        const changes: string[] = [];
+        if (input.pickupAddress && input.pickupAddress !== booking.pickupAddress) {
+          changes.push(`Pickup: ${booking.pickupAddress} → ${input.pickupAddress}`);
+        }
+        if (input.dropoffAddress !== undefined && input.dropoffAddress !== booking.dropoffAddress) {
+          changes.push(`Drop-off: ${booking.dropoffAddress ?? "N/A"} → ${input.dropoffAddress ?? "N/A"}`);
+        }
+        if (input.pickupDate && input.pickupDate !== booking.pickupDate) {
+          const oldDate = new Date(booking.pickupDate).toLocaleString("en-AU", { timeZone: "Australia/Brisbane" });
+          const newDate = new Date(input.pickupDate).toLocaleString("en-AU", { timeZone: "Australia/Brisbane" });
+          changes.push(`Date/Time: ${oldDate} → ${newDate}`);
+        }
+        if (input.passengerCount && input.passengerCount !== booking.passengerCount) {
+          changes.push(`Passengers: ${booking.passengerCount} → ${input.passengerCount}`);
+        }
+        if (input.specialRequests !== undefined && input.specialRequests !== booking.specialRequests) {
+          changes.push(`Special requests updated`);
+        }
+
+        if (changes.length === 0) {
+          return booking;
+        }
+
+        const updated = await updateBookingDetails(input.bookingId, {
+          pickupAddress: input.pickupAddress,
+          dropoffAddress: input.dropoffAddress ?? undefined,
+          pickupDate: input.pickupDate,
+          passengerCount: input.passengerCount,
+          specialRequests: input.specialRequests,
+        });
+
+        return updated;
+      }),
+
     // Authenticated user: get my bookings by email
     myBookings: protectedProcedure.query(async ({ ctx }) => {
       if (!ctx.user?.email) {
