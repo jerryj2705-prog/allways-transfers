@@ -1,12 +1,15 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useLocation } from "wouter";
-import { ArrowLeft, FileText } from "lucide-react";
+import { useState } from "react";
+import { ArrowLeft, FileText, Menu, X } from "lucide-react";
+import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 
 const LOGO_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/logo-white_476df209.png";
 
 export default function Terms() {
   const [, navigate] = useLocation();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -16,7 +19,7 @@ export default function Terms() {
           <button onClick={() => navigate("/")} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
             <img src={LOGO_IMG} alt="All Ways Transfers" className="h-10 w-auto" />
           </button>
-          <nav className="flex items-center gap-6">
+          <nav className="hidden sm:flex items-center gap-6">
             <button onClick={() => navigate("/")} className="text-sm text-gray-300 hover:text-amber-400 transition-colors flex items-center gap-1">
               <ArrowLeft className="w-4 h-4" />
               Back to Home
@@ -25,6 +28,41 @@ export default function Terms() {
               Book Now
             </Button>
           </nav>
+          {/* Mobile hamburger */}
+          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+            <SheetTrigger asChild>
+              <button className="sm:hidden p-2 text-gray-300 hover:text-amber-400 transition-colors" aria-label="Open menu">
+                <Menu className="w-6 h-6" />
+              </button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-72 bg-background border-l border-border p-0">
+              <div className="flex flex-col h-full">
+                <div className="flex items-center justify-between p-4 border-b border-border/50">
+                  <img src={LOGO_IMG} alt="All Ways Transfers" className="h-10 w-auto" />
+                  <SheetClose asChild>
+                    <button className="p-2 text-muted-foreground hover:text-primary transition-colors" aria-label="Close menu">
+                      <X className="w-5 h-5" />
+                    </button>
+                  </SheetClose>
+                </div>
+                <nav className="flex flex-col gap-1 p-4 flex-1">
+                  <a href="/" onClick={() => setMobileMenuOpen(false)} className="px-3 py-2.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-secondary/50 transition-colors">Home</a>
+                  <a href="/contact" onClick={() => setMobileMenuOpen(false)} className="px-3 py-2.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-secondary/50 transition-colors">Contact</a>
+                  <a href="/contact#faq" onClick={() => setMobileMenuOpen(false)} className="px-3 py-2.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-secondary/50 transition-colors">FAQ</a>
+                  <a href="/terms" onClick={() => setMobileMenuOpen(false)} className="px-3 py-2.5 rounded-lg text-amber-400 bg-secondary/50">Terms</a>
+                  <a href="/my-bookings" onClick={() => setMobileMenuOpen(false)} className="px-3 py-2.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-secondary/50 transition-colors">My Bookings</a>
+                </nav>
+                <div className="p-4 border-t border-border/50">
+                  <Button
+                    onClick={() => { setMobileMenuOpen(false); navigate("/book"); }}
+                    className="w-full bg-amber-600 hover:bg-amber-700 text-white"
+                  >
+                    Book Now
+                  </Button>
+                </div>
+              </div>
+            </SheetContent>
+          </Sheet>
         </div>
       </header>
 

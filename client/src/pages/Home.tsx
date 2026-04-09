@@ -1,7 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useLocation } from "wouter";
-import { Plane, Clock, MapPin, Star, Shield, Award, Phone, Baby, PawPrint, DollarSign, Mail } from "lucide-react";
+import { useState } from "react";
+import { Plane, Clock, MapPin, Star, Shield, Award, Phone, Baby, PawPrint, DollarSign, Mail, Menu, X } from "lucide-react";
+import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 
@@ -96,6 +98,7 @@ export default function Home() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   const { data: pricingSettings } = trpc.pricing.getAll.useQuery();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const getBasePrice = (key: string) => {
     const setting = pricingSettings?.find(s => s.settingKey === key);
@@ -123,12 +126,53 @@ export default function Home() {
               <a href="/my-bookings" className="hover:text-primary transition-colors">My Bookings</a>
             )}
           </div>
-          <Button
-            onClick={() => setLocation("/book")}
-            className="gold-gradient text-gold-foreground border-0 hover:opacity-90 transition-opacity font-medium"
-          >
-            Book Now
-          </Button>
+          <div className="flex items-center gap-3">
+            <Button
+              onClick={() => setLocation("/book")}
+              className="gold-gradient text-gold-foreground border-0 hover:opacity-90 transition-opacity font-medium hidden sm:inline-flex"
+            >
+              Book Now
+            </Button>
+            {/* Mobile hamburger */}
+            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+              <SheetTrigger asChild>
+                <button className="md:hidden p-2 text-muted-foreground hover:text-primary transition-colors" aria-label="Open menu">
+                  <Menu className="w-6 h-6" />
+                </button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-72 bg-background border-l border-border p-0">
+                <div className="flex flex-col h-full">
+                  <div className="flex items-center justify-between p-4 border-b border-border/50">
+                    <img src={LOGO_IMG} alt="All Ways Transfers" className="h-10 w-auto" />
+                    <SheetClose asChild>
+                      <button className="p-2 text-muted-foreground hover:text-primary transition-colors" aria-label="Close menu">
+                        <X className="w-5 h-5" />
+                      </button>
+                    </SheetClose>
+                  </div>
+                  <nav className="flex flex-col gap-1 p-4 flex-1">
+                    <a href="#services" onClick={() => setMobileMenuOpen(false)} className="px-3 py-2.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-secondary/50 transition-colors">Services</a>
+                    <a href="#fleet" onClick={() => setMobileMenuOpen(false)} className="px-3 py-2.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-secondary/50 transition-colors">Our Fleet</a>
+                    <a href="#why-us" onClick={() => setMobileMenuOpen(false)} className="px-3 py-2.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-secondary/50 transition-colors">Why Us</a>
+                    <a href="/contact" onClick={() => setMobileMenuOpen(false)} className="px-3 py-2.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-secondary/50 transition-colors">Contact</a>
+                    <a href="/contact#faq" onClick={() => setMobileMenuOpen(false)} className="px-3 py-2.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-secondary/50 transition-colors">FAQ</a>
+                    <a href="/terms" onClick={() => setMobileMenuOpen(false)} className="px-3 py-2.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-secondary/50 transition-colors">Terms</a>
+                    {user && (
+                      <a href="/my-bookings" onClick={() => setMobileMenuOpen(false)} className="px-3 py-2.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-secondary/50 transition-colors">My Bookings</a>
+                    )}
+                  </nav>
+                  <div className="p-4 border-t border-border/50">
+                    <Button
+                      onClick={() => { setMobileMenuOpen(false); setLocation("/book"); }}
+                      className="w-full gold-gradient text-gold-foreground border-0 hover:opacity-90 transition-opacity font-medium"
+                    >
+                      Book Now
+                    </Button>
+                  </div>
+                </div>
+              </SheetContent>
+            </Sheet>
+          </div>
         </div>
       </nav>
 

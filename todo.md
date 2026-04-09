@@ -263,3 +263,9 @@
 - [x] Centre-justify navigation labels in main menu
 - [x] Stop sending real emails during vitest test runs
 - [x] Update Contact page phone to 0466 544 068 and email to bookings@allwaystransfers.com.au
+
+## Mobile Navigation
+- [x] Add responsive hamburger menu to Home page navigation
+- [x] Add responsive hamburger menu to subpage headers (Contact, Terms, BookingForm, MyBookings, etc.)
+- [x] Ensure menu closes on link click and route change
+- [x] Animate menu open/close transitions
