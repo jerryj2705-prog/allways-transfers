@@ -299,3 +299,11 @@
 - [x] Detect and visually highlight overlapping bookings
 - [x] Color-code time blocks by booking status
 - [x] Allow toggling between monthly calendar view and daily timeline view
+
+## Drag-and-Drop Rescheduling
+- [x] Add drag-and-drop functionality to booking time blocks on daily timeline
+- [x] Snap dragged blocks to 15-minute intervals for precision
+- [x] Show visual feedback during drag (ghost block, drop target indicator)
+- [x] Show confirmation dialog before saving the rescheduled time
+- [x] Call adminModify mutation to persist the new pickup time
+- [x] Handle overlap warnings when dropping onto an occupied time slot
