@@ -11,6 +11,10 @@ ADMIN_EMAIL=admin@yourdomain.com
 GOOGLE_MAPS_API_KEY=AIzaSy_your_google_maps_api_key
 VITE_GOOGLE_MAPS_API_KEY=AIzaSy_your_google_maps_api_key
 
+# ─── Google Sign-In (optional) ───
+GOOGLE_CLIENT_ID=your_google_oauth_client_id.apps.googleusercontent.com
+VITE_GOOGLE_CLIENT_ID=your_google_oauth_client_id.apps.googleusercontent.com
+
 # ─── Stripe (optional, for online payments) ───
 STRIPE_SECRET_KEY=sk_test_xxxxxxxxxxxxxxxxxxxxxxxxxxxx
 STRIPE_WEBHOOK_SECRET=whsec_xxxxxxxxxxxxxxxxxxxxxxxxxxxx

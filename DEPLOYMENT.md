@@ -13,7 +13,7 @@ The application is a single Node.js process that serves both the API and the fro
 | Frontend | React 19 + Tailwind CSS 4 | Built to static files by Vite |
 | Backend | Express 4 + tRPC 11 | Bundled to a single `dist/index.js` |
 | Database | MySQL 8+ / TiDB | Connected via `DATABASE_URL` |
-| Auth | Email/password (bcrypt + JWT) | No external OAuth provider needed |
+| Auth | Email/password (bcrypt + JWT) + Google Sign-In | Optional Google OAuth for social login |
 | Email | Resend API | For booking confirmations and admin notifications |
 | Payments | Stripe Checkout | Optional — for online pre-payment |
 | Maps | Google Maps API | Optional — for Google Reviews integration |
@@ -143,6 +143,10 @@ ADMIN_EMAIL=jerry@allwaystransfers.com.au
 # ─── Google Maps (optional, for Google Reviews) ───
 GOOGLE_MAPS_API_KEY=AIzaSy_your_key_here
 VITE_GOOGLE_MAPS_API_KEY=AIzaSy_your_key_here
+
+# ─── Google Sign-In (optional) ───
+GOOGLE_CLIENT_ID=your_google_oauth_client_id.apps.googleusercontent.com
+VITE_GOOGLE_CLIENT_ID=your_google_oauth_client_id.apps.googleusercontent.com
 
 # ─── Stripe (optional, for online payments) ───
 STRIPE_SECRET_KEY=sk_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxx
@@ -388,6 +392,8 @@ sudo systemctl status mysql
 | `ADMIN_EMAIL` | Yes | Admin email for receiving notifications |
 | `GOOGLE_MAPS_API_KEY` | No | Google Maps API key (server-side, for Google Reviews) |
 | `VITE_GOOGLE_MAPS_API_KEY` | No | Google Maps API key (client-side, for map display) |
+| `GOOGLE_CLIENT_ID` | No | Google OAuth Client ID (server-side, for token verification) |
+| `VITE_GOOGLE_CLIENT_ID` | No | Google OAuth Client ID (client-side, for Sign-In button) |
 | `STRIPE_SECRET_KEY` | No | Stripe secret key for payment processing |
 | `STRIPE_WEBHOOK_SECRET` | No | Stripe webhook signing secret |
 | `VITE_STRIPE_PUBLISHABLE_KEY` | No | Stripe publishable key (client-side) |

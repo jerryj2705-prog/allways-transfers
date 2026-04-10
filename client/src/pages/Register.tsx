@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Eye, EyeOff, UserPlus } from "lucide-react";
+import GoogleSignInButton from "@/components/GoogleSignInButton";
 
 export default function Register() {
   const [, navigate] = useLocation();
@@ -45,6 +46,12 @@ export default function Register() {
     registerMutation.mutate({ name, email, password });
   };
 
+  const handleGoogleSuccess = () => {
+    const params = new URLSearchParams(window.location.search);
+    const returnTo = params.get("returnTo") || "/";
+    window.location.href = returnTo;
+  };
+
   return (
     <div className="min-h-screen bg-black flex items-center justify-center p-4">
       <div className="w-full max-w-md">
@@ -67,6 +74,24 @@ export default function Register() {
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {/* Google Sign-Up Button */}
+            <div className="mb-4">
+              <GoogleSignInButton
+                onSuccess={handleGoogleSuccess}
+                text="signup_with"
+              />
+            </div>
+
+            {/* Divider */}
+            <div className="relative my-5">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-zinc-700" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-zinc-900 px-3 text-zinc-500">or sign up with email</span>
+              </div>
+            </div>
+
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="name" className="text-zinc-300">Full Name</Label>

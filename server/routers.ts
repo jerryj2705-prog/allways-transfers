@@ -47,6 +47,9 @@ import {
   setAppSetting,
   getUserByEmail,
   createUserWithPassword,
+  getUserByGoogleId,
+  createUserWithGoogle,
+  linkGoogleAccount,
 } from "./db";
 import { makeRequest, type PlaceDetailsResult } from "./_core/map";
 import { createCheckoutSession } from "./stripe";
@@ -110,6 +113,69 @@ export const appRouter = router({
         });
         const cookieOptions = getSessionCookieOptions(ctx.req);
         ctx.res.cookie(COOKIE_NAME, token, { ...cookieOptions, maxAge: SESSION_SHORT_MS });
+        return { success: true, user: { id: user.id, name: user.name, email: user.email, role: user.role } };
+      }),
+    googleLogin: publicProcedure
+      .input(z.object({
+        credential: z.string().min(1, "Google credential is required"),
+        rememberMe: z.boolean().optional().default(false),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const { ENV } = await import("./_core/env");
+        const { OAuth2Client } = await import("google-auth-library");
+
+        const clientId = ENV.googleClientId;
+        if (!clientId) {
+          throw new Error("Google Sign-In is not configured");
+        }
+
+        const client = new OAuth2Client(clientId);
+        let ticket;
+        try {
+          ticket = await client.verifyIdToken({
+            idToken: input.credential,
+            audience: clientId,
+          });
+        } catch {
+          throw new Error("Invalid Google credential");
+        }
+
+        const payload = ticket.getPayload();
+        if (!payload || !payload.email || !payload.sub) {
+          throw new Error("Invalid Google token payload");
+        }
+
+        const googleId = payload.sub;
+        const email = payload.email;
+        const name = payload.name || email.split("@")[0];
+
+        // 1. Check if user exists by Google ID
+        let user = await getUserByGoogleId(googleId);
+
+        if (!user) {
+          // 2. Check if user exists by email (link accounts)
+          user = await getUserByEmail(email);
+          if (user) {
+            // Link existing email account to Google
+            user = (await linkGoogleAccount(user.id, googleId)) ?? undefined;
+          } else {
+            // 3. Create new user with Google
+            user = (await createUserWithGoogle({ name, email, googleId })) ?? undefined;
+          }
+        }
+
+        if (!user) {
+          throw new Error("Failed to create or find user account");
+        }
+
+        const sessionDuration = input.rememberMe ? SESSION_LONG_MS : SESSION_LONG_MS; // Google users get long sessions by default
+        const token = await createSessionToken({
+          id: user.id,
+          email: user.email!,
+          role: user.role,
+        }, { expiresInMs: sessionDuration });
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.cookie(COOKIE_NAME, token, { ...cookieOptions, maxAge: sessionDuration });
         return { success: true, user: { id: user.id, name: user.name, email: user.email, role: user.role } };
       }),
     logout: publicProcedure.mutation(({ ctx }) => {

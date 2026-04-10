@@ -445,3 +445,13 @@
 - [x] Change Remember Me session duration from 30 days to 1 year
 - [x] Update Login page label from "30 days" to "1 year"
 - [x] Update tests to reflect 1-year expiry
+
+## Google Sign-In Integration
+- [x] Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET env vars
+- [x] Add googleId column to users table schema
+- [x] Create Google OAuth callback route on backend (googleLogin tRPC procedure)
+- [x] Verify Google ID tokens server-side (google-auth-library)
+- [x] Link Google accounts to existing users by email
+- [x] Add "Sign in with Google" button to Login page
+- [x] Add "Sign up with Google" option to Register page
+- [x] Write tests for Google auth flow (6 tests)

@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { Eye, EyeOff, LogIn } from "lucide-react";
+import GoogleSignInButton from "@/components/GoogleSignInButton";
 
 export default function Login() {
   const [, navigate] = useLocation();
@@ -19,7 +20,6 @@ export default function Login() {
   const loginMutation = trpc.auth.login.useMutation({
     onSuccess: () => {
       toast.success("Signed in successfully");
-      // Check if there's a return URL
       const params = new URLSearchParams(window.location.search);
       const returnTo = params.get("returnTo") || "/";
       window.location.href = returnTo;
@@ -36,6 +36,12 @@ export default function Login() {
       return;
     }
     loginMutation.mutate({ email, password, rememberMe });
+  };
+
+  const handleGoogleSuccess = () => {
+    const params = new URLSearchParams(window.location.search);
+    const returnTo = params.get("returnTo") || "/";
+    window.location.href = returnTo;
   };
 
   return (
@@ -60,6 +66,25 @@ export default function Login() {
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {/* Google Sign-In Button */}
+            <div className="mb-4">
+              <GoogleSignInButton
+                onSuccess={handleGoogleSuccess}
+                text="signin_with"
+                rememberMe={rememberMe}
+              />
+            </div>
+
+            {/* Divider */}
+            <div className="relative my-5">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-zinc-700" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-zinc-900 px-3 text-zinc-500">or continue with email</span>
+              </div>
+            </div>
+
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-zinc-300">Email</Label>

@@ -136,6 +136,48 @@ export async function updateUserLastSignedIn(userId: number) {
   await db.update(users).set({ lastSignedIn: new Date() }).where(eq(users.id, userId));
 }
 
+export async function getUserByGoogleId(googleId: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(users).where(eq(users.googleId, googleId)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function createUserWithGoogle(data: {
+  name: string;
+  email: string;
+  googleId: string;
+  role?: "user" | "admin";
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const openId = `google_${data.googleId}`;
+
+  await db.insert(users).values({
+    openId,
+    name: data.name,
+    email: data.email,
+    googleId: data.googleId,
+    loginMethod: "google",
+    role: data.role ?? "user",
+    lastSignedIn: new Date(),
+  });
+
+  return getUserByEmail(data.email);
+}
+
+export async function linkGoogleAccount(userId: number, googleId: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(users).set({
+    googleId,
+    loginMethod: "google",
+    lastSignedIn: new Date(),
+  }).where(eq(users.id, userId));
+  return getUserById(userId);
+}
+
 // ─── Vehicle Queries ───
 
 export async function getActiveVehicles() {
