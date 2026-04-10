@@ -50,11 +50,18 @@ import {
   getUserByGoogleId,
   createUserWithGoogle,
   linkGoogleAccount,
+  createPasswordResetToken,
+  getPasswordResetToken,
+  markPasswordResetTokenUsed,
+  updateUserPassword,
+  invalidateUserResetTokens,
+  getUserById,
 } from "./db";
 import { makeRequest, type PlaceDetailsResult } from "./_core/map";
 import { createCheckoutSession } from "./stripe";
 import { notifyOwner } from "./_core/notification";
-import { sendBookingConfirmationEmail, sendCancellationConfirmationEmail, sendAdminNewBookingNotification, sendAdminCancellationNotification } from "./email";
+import { sendBookingConfirmationEmail, sendCancellationConfirmationEmail, sendAdminNewBookingNotification, sendAdminCancellationNotification, sendPasswordResetEmail } from "./email";
+import crypto from "crypto";
 import { lookupSuburb, estimateDistance, isOutOfArea, getAllSuburbNames } from "@shared/suburbs";
 
 export const appRouter = router({
@@ -177,6 +184,82 @@ export const appRouter = router({
         const cookieOptions = getSessionCookieOptions(ctx.req);
         ctx.res.cookie(COOKIE_NAME, token, { ...cookieOptions, maxAge: sessionDuration });
         return { success: true, user: { id: user.id, name: user.name, email: user.email, role: user.role } };
+      }),
+    forgotPassword: publicProcedure
+      .input(z.object({
+        email: z.string().email("Invalid email address"),
+        origin: z.string().min(1, "Origin is required"),
+      }))
+      .mutation(async ({ input }) => {
+        // Always return success to prevent email enumeration
+        const user = await getUserByEmail(input.email);
+        if (!user) {
+          return { success: true, message: "If an account with that email exists, a password reset link has been sent." };
+        }
+
+        // Generate a secure random token
+        const token = crypto.randomBytes(32).toString("hex");
+        const RESET_EXPIRY_MINUTES = 30;
+        const expiresAt = new Date(Date.now() + RESET_EXPIRY_MINUTES * 60 * 1000);
+
+        // Invalidate any existing tokens for this user
+        await invalidateUserResetTokens(user.id);
+
+        // Store the token
+        await createPasswordResetToken(user.id, token, expiresAt);
+
+        // Build the reset URL
+        const resetUrl = `${input.origin}/reset-password?token=${token}`;
+
+        // Send the email
+        await sendPasswordResetEmail({
+          name: user.name || "Customer",
+          email: user.email!,
+          resetUrl,
+          expiresInMinutes: RESET_EXPIRY_MINUTES,
+        });
+
+        return { success: true, message: "If an account with that email exists, a password reset link has been sent." };
+      }),
+    resetPassword: publicProcedure
+      .input(z.object({
+        token: z.string().min(1, "Reset token is required"),
+        password: z.string().min(8, "Password must be at least 8 characters"),
+      }))
+      .mutation(async ({ input }) => {
+        // Look up the token
+        const resetToken = await getPasswordResetToken(input.token);
+        if (!resetToken) {
+          throw new Error("Invalid or expired reset link. Please request a new one.");
+        }
+
+        // Check if already used
+        if (resetToken.usedAt) {
+          throw new Error("This reset link has already been used. Please request a new one.");
+        }
+
+        // Check if expired
+        if (new Date() > resetToken.expiresAt) {
+          throw new Error("This reset link has expired. Please request a new one.");
+        }
+
+        // Verify user still exists
+        const user = await getUserById(resetToken.userId);
+        if (!user) {
+          throw new Error("User account not found.");
+        }
+
+        // Hash the new password and update
+        const newHash = await hashPassword(input.password);
+        await updateUserPassword(user.id, newHash);
+
+        // Mark token as used
+        await markPasswordResetTokenUsed(resetToken.id);
+
+        // Invalidate all other reset tokens for this user
+        await invalidateUserResetTokens(user.id);
+
+        return { success: true, message: "Your password has been reset successfully. You can now sign in with your new password." };
       }),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);

@@ -749,3 +749,74 @@ export async function sendAdminCancellationNotification(data: CancellationEmailD
     return false;
   }
 }
+
+// ─── Password Reset Email ───
+
+export interface PasswordResetEmailData {
+  name: string;
+  email: string;
+  resetUrl: string;
+  expiresInMinutes: number;
+}
+
+export async function sendPasswordResetEmail(data: PasswordResetEmailData): Promise<boolean> {
+  if (process.env.VITEST || process.env.NODE_ENV === "test") {
+    console.log(`[Email] Skipping password reset email in test environment for ${data.email}`);
+    return true;
+  }
+  const resend = getResend();
+
+  const bodyContent = `
+    <h1 style="margin:0 0 8px;font-size:24px;color:#d4a843;font-weight:700;">Reset Your Password</h1>
+    <p style="margin:0 0 24px;font-size:15px;color:#a3a3a3;">Hi ${data.name},</p>
+    <p style="margin:0 0 16px;font-size:15px;color:#d4d4d4;">
+      We received a request to reset the password for your All Ways Transfers account. Click the button below to set a new password:
+    </p>
+
+    <!-- Reset Button -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+      <tr>
+        <td align="center" style="padding:16px 0;">
+          <a href="${data.resetUrl}" style="display:inline-block;background-color:#d4a843;color:#0a0a0a;text-decoration:none;padding:14px 40px;border-radius:8px;font-weight:700;font-size:16px;">Reset Password</a>
+        </td>
+      </tr>
+    </table>
+
+    <p style="margin:0 0 8px;font-size:13px;color:#a3a3a3;">
+      This link will expire in <strong style="color:#d4d4d4;">${data.expiresInMinutes} minutes</strong>.
+    </p>
+    <p style="margin:0 0 16px;font-size:13px;color:#a3a3a3;">
+      If you didn't request a password reset, you can safely ignore this email. Your password will remain unchanged.
+    </p>
+
+    <!-- Fallback URL -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:16px;border-top:1px solid #333;padding-top:16px;">
+      <tr>
+        <td>
+          <p style="margin:0 0 4px;font-size:11px;color:#737373;">If the button doesn't work, copy and paste this link into your browser:</p>
+          <p style="margin:0;font-size:11px;color:#525252;word-break:break-all;">${data.resetUrl}</p>
+        </td>
+      </tr>
+    </table>
+  `;
+
+  try {
+    const result = await resend.emails.send({
+      from: `All Ways Transfers <${ENV.resendFromEmail}>`,
+      to: [data.email],
+      subject: "Reset Your Password — All Ways Transfers",
+      html: wrapInTemplate(bodyContent),
+    });
+
+    if (result.error) {
+      console.warn("[Email] Failed to send password reset email:", result.error);
+      return false;
+    }
+
+    console.log(`[Email] Password reset email sent to ${data.email}`);
+    return true;
+  } catch (error) {
+    console.warn("[Email] Error sending password reset email:", error);
+    return false;
+  }
+}

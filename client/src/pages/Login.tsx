@@ -121,19 +121,28 @@ export default function Login() {
                   </button>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="rememberMe"
-                  checked={rememberMe}
-                  onCheckedChange={(checked) => setRememberMe(checked === true)}
-                  className="border-zinc-600 data-[state=checked]:bg-amber-600 data-[state=checked]:border-amber-600"
-                />
-                <Label
-                  htmlFor="rememberMe"
-                  className="text-sm text-zinc-400 cursor-pointer select-none"
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="rememberMe"
+                    checked={rememberMe}
+                    onCheckedChange={(checked) => setRememberMe(checked === true)}
+                    className="border-zinc-600 data-[state=checked]:bg-amber-600 data-[state=checked]:border-amber-600"
+                  />
+                  <Label
+                    htmlFor="rememberMe"
+                    className="text-sm text-zinc-400 cursor-pointer select-none"
+                  >
+                    Remember me for 1 year
+                  </Label>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => navigate("/forgot-password")}
+                  className="text-sm text-amber-500 hover:text-amber-400"
                 >
-                  Remember me for 1 year
-                </Label>
+                  Forgot password?
+                </button>
               </div>
               <Button
                 type="submit"

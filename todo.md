@@ -455,3 +455,15 @@
 - [x] Add "Sign in with Google" button to Login page
 - [x] Add "Sign up with Google" option to Register page
 - [x] Write tests for Google auth flow (6 tests)
+
+## Forgot Password Feature
+- [x] Add password_reset_tokens table to schema
+- [x] Create token generation and validation helpers
+- [x] Add forgotPassword tRPC procedure (sends reset email)
+- [x] Add resetPassword tRPC procedure (validates token, updates password)
+- [x] Create password reset email template using Resend
+- [x] Create Forgot Password page (email input form)
+- [x] Create Reset Password page (new password form with token from URL)
+- [x] Add routes for /forgot-password and /reset-password in App.tsx
+- [x] Add "Forgot password?" link on Login page
+- [x] Write tests for forgot/reset password flow (9 tests)
