@@ -623,3 +623,4 @@
 - [ ] Fix: Booking confirmation emails not being sent to clients
 - [x] Remove all "From $..." base price text from service cards (misleading)
 - [x] Rename airport toll labels from "entry/exit" to "access" in price breakdowns
+- [x] Add "Get a Quote" button to service cards on Home and Service Detail pages

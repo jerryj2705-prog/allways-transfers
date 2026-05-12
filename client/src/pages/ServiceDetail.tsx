@@ -343,13 +343,20 @@ export default function ServiceDetail() {
               <p className="text-white/70 max-w-2xl text-lg leading-relaxed">
                 {service.heroDescription}
               </p>
-              {minHours && (
-                <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 flex-wrap">
+                {minHours && (
                   <span className="text-sm text-amber-400/80 border border-amber-400/30 rounded-full px-3 py-0.5">
                     Minimum {minHours} hour{minHours !== 1 ? "s" : ""}
                   </span>
-                </div>
-              )}
+                )}
+                <a
+                  href="/book"
+                  className="inline-flex items-center gap-2 gold-gradient text-gold-foreground font-medium px-6 py-2.5 rounded-lg hover:opacity-90 transition-opacity text-sm"
+                >
+                  Get a Quote
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+                </a>
+              </div>
             </div>
           </div>
         </div>
