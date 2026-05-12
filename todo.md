@@ -615,3 +615,8 @@
 - [x] Add quarterly scheduled notification reminding admin to review toll prices (in-app cron via node-cron, no Manus dependency)
 - [x] Add quick-reference link to Linkt toll calculator on admin pricing page
 - [x] Add Mark as Reviewed button to update toll timestamps without modifying prices
+- [x] Change fuel levy from percentage-based to distance-based: (L/100km) × (distance/100) × (fuel price/L)
+- [x] Replace single fuel_levy_pct setting with fuel_consumption_rate (8 L/100km) and fuel_price_per_litre ($2.50)
+- [x] Update pricing engine calculation for new fuel levy formula
+- [x] Update admin pricing UI to show new fuel levy settings
+- [x] Update booking form and all price breakdown displays (already uses fuelLevySurcharge from pricing engine)

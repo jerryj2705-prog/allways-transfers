@@ -27,7 +27,8 @@ const CATEGORY_ICONS: Record<string, React.ElementType> = {
   rate_support_van: Car,
   surcharge_out_of_hours: Clock,
   surcharge_out_of_area: MapPin,
-  surcharge_fuel_levy: Fuel,
+  fuel_consumption_rate: Fuel,
+  fuel_price_per_litre: DollarSign,
   surcharge_additional_stop: MapPin,
   surcharge_public_holiday: CalendarDays,
   min_hourly_hours: Clock,
@@ -145,13 +146,15 @@ export default function AdminPricing() {
   const surcharges = allSurcharges.filter(s => !s.settingKey.startsWith("toll_sct_") && !s.settingKey.startsWith("toll_bne_"));
   const roadTolls = settings?.filter(s => s.category === "road_toll") ?? [];
   const toggles = settings?.filter(s => s.category === "toggle") ?? [];
+  const fuelSettings = settings?.filter(s => s.category === "fuel") ?? [];
 
   const renderSettingCard = (setting: typeof settings extends (infer T)[] | undefined ? T : never) => {
     if (!setting) return null;
     const edit = getEditValue(setting.id, { settingValue: setting.settingValue, isActive: setting.isActive });
     const Icon = CATEGORY_ICONS[setting.settingKey] || DollarSign;
     const isToggle = setting.category === "toggle";
-    const isPercent = setting.settingKey === "surcharge_fuel_levy" || setting.settingKey === "late_cancel_charge_pct";
+    const isPercent = setting.settingKey === "late_cancel_charge_pct";
+    const isFuel = setting.category === "fuel";
     const isHours = setting.settingKey === "min_hourly_hours";
     const changed = hasChanges(setting.id, { settingValue: setting.settingValue, isActive: setting.isActive });
 
@@ -168,7 +171,7 @@ export default function AdminPricing() {
                 <p className="text-xs text-muted-foreground">{setting.description}</p>
               </div>
             </div>
-            {(setting.category === "surcharge" || setting.category === "road_toll" || setting.category === "rate" || isToggle) && (
+            {(setting.category === "surcharge" || setting.category === "road_toll" || setting.category === "rate" || setting.category === "fuel" || isToggle) && (
               <div className="flex items-center gap-2 shrink-0">
                 <Label className="text-xs text-muted-foreground">Active</Label>
                 <Switch
@@ -183,7 +186,7 @@ export default function AdminPricing() {
           <div className="flex items-center gap-3">
             <div className="relative flex-1">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
-                {isHours ? "hrs" : isPercent ? "%" : "$"}
+                {isHours ? "hrs" : isPercent ? "%" : isFuel ? (setting.settingKey === "fuel_consumption_rate" ? "L" : "$") : "$"}
               </span>
               <Input
                 type="number"
@@ -355,11 +358,27 @@ export default function AdminPricing() {
             <Fuel className="w-5 h-5 text-primary" />
             <h2 className="font-heading text-xl font-semibold">Fuel Levy</h2>
           </div>
-          <p className="text-sm text-muted-foreground">Percentage-based levy applied to base price + distance charges. Toggle to enable/disable.</p>
+          <p className="text-sm text-muted-foreground">
+            Distance-based fuel cost calculated as: Vehicle Consumption (L/100km) × Trip Distance × Fuel Price per Litre. Toggle each setting active/inactive.
+          </p>
           <div className="grid sm:grid-cols-2 gap-4">
-            {toggles.map(renderSettingCard)}
+            {fuelSettings.map(renderSettingCard)}
           </div>
         </section>
+
+        {/* Other Toggles */}
+        {toggles.length > 0 && (
+          <section className="space-y-4">
+            <div className="flex items-center gap-2">
+              <CircleDot className="w-5 h-5 text-primary" />
+              <h2 className="font-heading text-xl font-semibold">Other Settings</h2>
+            </div>
+            <p className="text-sm text-muted-foreground">Additional toggle-based settings.</p>
+            <div className="grid sm:grid-cols-2 gap-4">
+              {toggles.map(renderSettingCard)}
+            </div>
+          </section>
+        )}
 
         {/* Public Holidays */}
         <section className="space-y-4">

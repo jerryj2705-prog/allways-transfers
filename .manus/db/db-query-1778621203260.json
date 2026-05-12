@@ -1,0 +1,20 @@
+{
+  "query": "SELECT * FROM pricing_settings WHERE settingKey LIKE '%fuel%';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway05.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3HWZfK7Ep6HZCJY.9379f7ca03be --database 2tTLZKCNzV8jFwxBsLMjpn --execute SELECT * FROM pricing_settings WHERE settingKey LIKE '%fuel%';",
+  "rows": [
+    {
+      "id": "9",
+      "settingKey": "surcharge_fuel_levy",
+      "settingValue": "5.00",
+      "label": "Fuel Levy Surcharge (%)",
+      "description": "Percentage-based fuel levy applied to base + distance charges. Set to 0 to disable.",
+      "category": "toggle",
+      "isActive": "1",
+      "updatedAt": "2026-04-08 08:20:50"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tsettingKey\tsettingValue\tlabel\tdescription\tcategory\tisActive\tupdatedAt\n9\tsurcharge_fuel_levy\t5.00\tFuel Levy Surcharge (%)\tPercentage-based fuel levy applied to base + distance charges. Set to 0 to disable.\ttoggle\t1\t2026-04-08 08:20:50\n",
+  "stderr": "",
+  "execution_time_ms": 1752
+}

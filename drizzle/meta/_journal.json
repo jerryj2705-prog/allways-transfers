@@ -169,6 +169,13 @@
       "when": 1778605030492,
       "tag": "0023_faulty_wonder_man",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "5",
+      "when": 1778621242652,
+      "tag": "0024_last_silver_sable",
+      "breakpoints": true
     }
   ]
 }

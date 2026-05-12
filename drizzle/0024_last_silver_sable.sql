@@ -1,0 +1,1 @@
+ALTER TABLE `pricing_settings` MODIFY COLUMN `category` enum('base_price','surcharge','rate','toggle','road_toll','fuel') NOT NULL;

@@ -662,9 +662,10 @@ export async function calculatePrice(params: {
   // Out-of-area surcharge
   const outOfAreaSurcharge = (params.isOutOfArea && isActive("surcharge_out_of_area")) ? getVal("surcharge_out_of_area") : 0;
 
-  // Fuel levy (percentage of base + distance)
-  const fuelLevyPercent = isActive("surcharge_fuel_levy") ? getVal("surcharge_fuel_levy") : 0;
-  const fuelLevySurcharge = Math.round((basePrice + distanceCharge) * (fuelLevyPercent / 100) * 100) / 100;
+  // Fuel levy (distance-based: L/100km × distance/100 × price per litre)
+  const fuelConsumptionRate = isActive("fuel_consumption_rate") ? getVal("fuel_consumption_rate") : 0;
+  const fuelPricePerLitre = isActive("fuel_price_per_litre") ? getVal("fuel_price_per_litre") : 0;
+  const fuelLevySurcharge = Math.round(fuelConsumptionRate * (params.distanceKm / 100) * fuelPricePerLitre * 100) / 100;
 
   // Additional stops surcharge
   const additionalStopsCount = (params.additionalPickupCount ?? 0) + (params.additionalDropoffCount ?? 0);
