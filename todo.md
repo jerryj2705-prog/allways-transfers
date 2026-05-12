@@ -612,5 +612,5 @@
 - [x] Add toll amounts to relevant price breakdowns (booking form, confirmation, admin detail, emails)
 - [x] Add Total Tolls Collected metric to admin dashboard stats overview
 - [x] Add "Last Updated" timestamp display on toll pricing cards in admin pricing page
-- [x] Add quarterly scheduled notification reminding admin to review toll prices
+- [x] Add quarterly scheduled notification reminding admin to review toll prices (in-app cron via node-cron, no Manus dependency)
 - [x] Add quick-reference link to Linkt toll calculator on admin pricing page

@@ -10,6 +10,7 @@ import { serveStatic, setupVite } from "./vite";
 import { constructWebhookEvent } from "../stripe";
 import { getBookingById, getBookingByStripeSession, updateBookingPaymentStatus } from "../db";
 import { sendPaymentReceiptEmail } from "../email";
+import { initCronJobs } from "../cron";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -157,6 +158,7 @@ async function startServer() {
 
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
+    initCronJobs();
   });
 }
 
