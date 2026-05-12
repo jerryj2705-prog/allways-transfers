@@ -161,7 +161,7 @@ export default function AdminPricing() {
                 <p className="text-xs text-muted-foreground">{setting.description}</p>
               </div>
             </div>
-            {(setting.category === "surcharge" || setting.category === "road_toll" || isToggle) && (
+            {(setting.category === "surcharge" || setting.category === "road_toll" || setting.category === "rate" || isToggle) && (
               <div className="flex items-center gap-2 shrink-0">
                 <Label className="text-xs text-muted-foreground">Active</Label>
                 <Switch
