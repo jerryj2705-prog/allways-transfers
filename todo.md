@@ -496,3 +496,5 @@
 - [x] When Support Van selected standalone: hide child seats selection (not relevant for Van)
 - [x] When Support Van selected standalone: hide Pet Friendly option (not relevant for Van)
 - [x] Allow 0 passengers for standalone Support Van bookings (freight-only)
+- [x] Re-enable Pet Friendly option for standalone Van bookings (e.g. transporting pets)
+- [x] Add Number of Pets selector to Pet Friendly option

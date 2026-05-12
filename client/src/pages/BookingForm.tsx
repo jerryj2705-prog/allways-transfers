@@ -198,6 +198,7 @@ export default function BookingForm() {
   const [boosterSeats, setBoosterSeats] = useState(0);
   const [isPetFriendly, setIsPetFriendly] = useState(false);
   const [petDescription, setPetDescription] = useState("");
+  const [numberOfPets, setNumberOfPets] = useState(1);
   const [clientName, setClientName] = useState("");
   const [clientEmail, setClientEmail] = useState("");
   const [clientPhone, setClientPhone] = useState("");
@@ -333,7 +334,7 @@ export default function BookingForm() {
         }
         return baseValid && !!(dropoffAddress && dropoffSuburb) && pickupAddrsValid && dropoffAddrsValid;
       }
-      case 2: return (vehicleSelection === "van" ? !!van : !!suv) && (isVanStandalone || !isPetFriendly || petDescription.trim().length > 0);
+      case 2: return (vehicleSelection === "van" ? !!van : !!suv) && (!isPetFriendly || petDescription.trim().length > 0);
       case 3: return clientName && clientEmail && clientPhone;
       case 4: return paymentMethod !== "";
       case 5: return termsAccepted;
@@ -363,8 +364,9 @@ export default function BookingForm() {
       rearFacingSeats: isVanStandalone ? 0 : rearFacingSeats,
       forwardFacingSeats: isVanStandalone ? 0 : forwardFacingSeats,
       boosterSeats: isVanStandalone ? 0 : boosterSeats,
-      isPetFriendly: isVanStandalone ? false : isPetFriendly,
-      petDescription: isVanStandalone ? undefined : (isPetFriendly ? petDescription : undefined),
+      isPetFriendly,
+      numberOfPets: isPetFriendly ? numberOfPets : undefined,
+      petDescription: isPetFriendly ? petDescription : undefined,
       estimatedDistance,
       estimatedDuration: serviceType === "hourly_hire" ? hireHours * 60 : undefined,
       basePrice: pricing.basePrice,
@@ -925,6 +927,7 @@ export default function BookingForm() {
 
             {isVanStandalone ? (
               /* ── Standalone Van: confirmation only, no selector ── */
+              <>
               <Card className="ring-2 ring-primary shadow-lg">
                 <CardContent className="p-6">
                   <div className="flex items-start gap-4">
@@ -951,6 +954,88 @@ export default function BookingForm() {
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Pet-Friendly Option (available for standalone Van too) */}
+              <Card className={`transition-all duration-200 ${
+                isPetFriendly ? "ring-2 ring-primary shadow-lg" : "border-border/50 hover:shadow-md"
+              }`}>
+                <CardContent className="p-6 space-y-4">
+                  <div
+                    className="flex items-start gap-4 cursor-pointer"
+                    onClick={() => {
+                      setIsPetFriendly(!isPetFriendly);
+                      if (isPetFriendly) {
+                        setPetDescription("");
+                        setNumberOfPets(1);
+                      }
+                    }}
+                  >
+                    <Checkbox
+                      checked={isPetFriendly}
+                      onCheckedChange={(checked) => {
+                        setIsPetFriendly(!!checked);
+                        if (!checked) {
+                          setPetDescription("");
+                          setNumberOfPets(1);
+                        }
+                      }}
+                      className="mt-1"
+                    />
+                    <div className="flex items-center gap-3">
+                      <Dog className="w-5 h-5 text-muted-foreground" />
+                      <div>
+                        <h3 className="font-heading text-lg font-semibold">Pet Friendly</h3>
+                        <p className="text-sm text-muted-foreground">I will be travelling with a pet</p>
+                      </div>
+                    </div>
+                  </div>
+                  {isPetFriendly && (
+                    <div className="space-y-4 pl-8">
+                      {/* Number of Pets */}
+                      <div className="flex items-center justify-between">
+                        <Label className="text-sm font-medium">Number of Pets</Label>
+                        <div className="flex items-center gap-3">
+                          <Button
+                            type="button" variant="outline" size="icon"
+                            className="h-8 w-8 bg-background"
+                            onClick={() => setNumberOfPets(Math.max(1, numberOfPets - 1))}
+                            disabled={numberOfPets === 1}
+                          >
+                            <Minus className="w-3.5 h-3.5" />
+                          </Button>
+                          <span className="text-lg font-heading font-bold w-6 text-center">{numberOfPets}</span>
+                          <Button
+                            type="button" variant="outline" size="icon"
+                            className="h-8 w-8 bg-background"
+                            onClick={() => setNumberOfPets(Math.min(10, numberOfPets + 1))}
+                            disabled={numberOfPets === 10}
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                      {/* Pet(s) Description */}
+                      <div className="space-y-2">
+                        <Label htmlFor="petDesc" className="text-sm font-medium">
+                          Pet(s) Description <span className="text-red-400">*</span>
+                        </Label>
+                        <Textarea
+                          id="petDesc"
+                          placeholder="Please describe your pet(s) (e.g. breed, size, temperament, any special needs)..."
+                          value={petDescription}
+                          onChange={(e) => setPetDescription(e.target.value)}
+                          rows={3}
+                          className={!petDescription.trim() ? "border-red-500/50" : ""}
+                        />
+                        {!petDescription.trim() && (
+                          <p className="text-xs text-red-400">Pet description is required when travelling with a pet.</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+              </>
             ) : (
               /* ── Normal flow: full vehicle selector ── */
               <>
@@ -1183,21 +1268,47 @@ export default function BookingForm() {
                       </div>
                     </div>
                     {isPetFriendly && (
-                      <div className="space-y-2 pl-8">
-                        <Label htmlFor="petDesc" className="text-sm font-medium">
-                          Pet Description <span className="text-red-400">*</span>
-                        </Label>
-                        <Textarea
-                          id="petDesc"
-                          placeholder="Please describe your pet (e.g. breed, size, temperament, any special needs)..."
-                          value={petDescription}
-                          onChange={(e) => setPetDescription(e.target.value)}
-                          rows={3}
-                          className={!petDescription.trim() ? "border-red-500/50" : ""}
-                        />
-                        {!petDescription.trim() && (
-                          <p className="text-xs text-red-400">Pet description is required when travelling with a pet.</p>
-                        )}
+                      <div className="space-y-4 pl-8">
+                        {/* Number of Pets */}
+                        <div className="flex items-center justify-between">
+                          <Label className="text-sm font-medium">Number of Pets</Label>
+                          <div className="flex items-center gap-3">
+                            <Button
+                              type="button" variant="outline" size="icon"
+                              className="h-8 w-8 bg-background"
+                              onClick={() => setNumberOfPets(Math.max(1, numberOfPets - 1))}
+                              disabled={numberOfPets === 1}
+                            >
+                              <Minus className="w-3.5 h-3.5" />
+                            </Button>
+                            <span className="text-lg font-heading font-bold w-6 text-center">{numberOfPets}</span>
+                            <Button
+                              type="button" variant="outline" size="icon"
+                              className="h-8 w-8 bg-background"
+                              onClick={() => setNumberOfPets(Math.min(10, numberOfPets + 1))}
+                              disabled={numberOfPets === 10}
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
+                        </div>
+                        {/* Pet(s) Description */}
+                        <div className="space-y-2">
+                          <Label htmlFor="petDesc" className="text-sm font-medium">
+                            Pet(s) Description <span className="text-red-400">*</span>
+                          </Label>
+                          <Textarea
+                            id="petDesc"
+                            placeholder="Please describe your pet(s) (e.g. breed, size, temperament, any special needs)..."
+                            value={petDescription}
+                            onChange={(e) => setPetDescription(e.target.value)}
+                            rows={3}
+                            className={!petDescription.trim() ? "border-red-500/50" : ""}
+                          />
+                          {!petDescription.trim() && (
+                            <p className="text-xs text-red-400">Pet description is required when travelling with a pet.</p>
+                          )}
+                        </div>
                       </div>
                     )}
                   </CardContent>

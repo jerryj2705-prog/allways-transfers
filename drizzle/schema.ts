@@ -72,6 +72,7 @@ export const bookings = mysqlTable("bookings", {
   boosterSeats: int("boosterSeats").notNull().default(0),
   // Pet-friendly
   isPetFriendly: int("isPetFriendly").notNull().default(0),
+  numberOfPets: int("numberOfPets"),
   petDescription: text("petDescription"),
   // Pricing
   estimatedDistance: decimal("estimatedDistance", { precision: 10, scale: 2 }),
