@@ -524,3 +524,5 @@
 - [x] Send payment receipt email from Stripe webhook on checkout.session.completed
 - [x] Include booking details, amount paid, and reference number in receipt
 - [x] Send copy of payment receipt email to admin email address
+- [x] Add "View Receipt" button to My Bookings page for paid Stripe bookings
+- [x] Create receipt page/modal with printable/downloadable receipt

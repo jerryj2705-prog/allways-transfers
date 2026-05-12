@@ -28,7 +28,7 @@ import {
   Plane, Clock, MapPin, Star, CalendarDays, Users,
   ArrowRight, Loader2, LogIn, ChevronRight, Car,
   XCircle, AlertTriangle, ShieldAlert, CheckCircle2,
-  Pencil, MessageSquarePlus
+  Pencil, MessageSquarePlus, Receipt
 } from "lucide-react";
 import { SERVICE_TYPES, BOOKING_STATUSES, PAYMENT_METHODS } from "@shared/types";
 import type { ServiceType, BookingStatus, PaymentMethod } from "@shared/types";
@@ -394,6 +394,20 @@ export default function MyBookings() {
                     >
                       <MessageSquarePlus className="w-3 h-3 mr-1" />
                       Leave Review
+                    </Button>
+                  )}
+                  {booking.paymentStatus === "paid" && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10 hover:text-emerald-300 h-7 text-xs"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setLocation(`/receipt/${booking.referenceNumber}`);
+                      }}
+                    >
+                      <Receipt className="w-3 h-3 mr-1" />
+                      View Receipt
                     </Button>
                   )}
                 </div>

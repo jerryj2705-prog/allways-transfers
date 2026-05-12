@@ -21,6 +21,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import Receipt from "./pages/Receipt";
 
 function Router() {
   return (
@@ -37,6 +38,7 @@ function Router() {
       <Route path="/terms" component={Terms} />
       <Route path="/services/:serviceType" component={ServiceDetail} />
       <Route path="/booking/:ref" component={BookingConfirmation} />
+      <Route path="/receipt/:ref" component={Receipt} />
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/admin/booking/:id" component={AdminBookingDetail} />
       <Route path="/admin/pricing" component={AdminPricing} />

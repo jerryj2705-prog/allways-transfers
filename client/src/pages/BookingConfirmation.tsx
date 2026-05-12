@@ -2,7 +2,7 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useLocation, useParams } from "wouter";
-import { CheckCircle, XCircle, Copy, Home, Calendar, MapPin, Users, Car, CreditCard, Wallet, Banknote, Baby, Dog, AlertTriangle, Loader2 } from "lucide-react";
+import { CheckCircle, XCircle, Copy, Home, Calendar, MapPin, Users, Car, CreditCard, Wallet, Banknote, Baby, Dog, AlertTriangle, Loader2, Receipt } from "lucide-react";
 import { toast } from "sonner";
 import { SERVICE_TYPES, PAYMENT_METHODS } from "@shared/types";
 import type { ServiceType, PaymentMethod } from "@shared/types";
@@ -281,6 +281,17 @@ export default function BookingConfirmation() {
                 }`}>
                   {booking.paymentStatus === "paid" ? "Paid" : booking.paymentStatus === "refunded" ? "Refunded" : "Unpaid"}
                 </span>
+                {booking.paymentStatus === "paid" && (
+                  <Button
+                    variant="link"
+                    size="sm"
+                    className="text-emerald-400 hover:text-emerald-300 h-auto p-0 mt-1 text-xs"
+                    onClick={() => setLocation(`/receipt/${booking.referenceNumber}`)}
+                  >
+                    <Receipt className="w-3 h-3 mr-1" />
+                    View Receipt
+                  </Button>
+                )}
               </div>
             </div>
 
