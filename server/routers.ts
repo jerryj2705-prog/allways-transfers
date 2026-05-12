@@ -869,6 +869,7 @@ export const appRouter = router({
           additionalDropoffCount: z.number().min(0).max(5).default(0),
           isPetFriendly: z.boolean().default(false),
           numberOfPets: z.number().min(0).default(0),
+          freightWeight: z.string().optional(),
         })
       )
       .query(async ({ input }) => {
@@ -901,6 +902,7 @@ export const appRouter = router({
           additionalDropoffCount: input.additionalDropoffCount,
           isPetFriendly: input.isPetFriendly,
           numberOfPets: input.numberOfPets,
+          freightWeight: input.freightWeight,
         });
 
         return {

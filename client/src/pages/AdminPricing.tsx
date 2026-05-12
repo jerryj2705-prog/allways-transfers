@@ -33,6 +33,11 @@ const CATEGORY_ICONS: Record<string, React.ElementType> = {
   min_hourly_hours: Clock,
   late_cancel_charge_pct: Percent,
   surcharge_pet: Dog,
+  freight_weight_under_10kg: Package,
+  freight_weight_10_25kg: Package,
+  freight_weight_25_50kg: Package,
+  freight_weight_50_100kg: Package,
+  freight_weight_100_plus: Package,
 };
 
 export default function AdminPricing() {

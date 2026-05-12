@@ -1,0 +1,9 @@
+{
+  "query": "INSERT INTO pricing_settings (settingKey, settingValue, label, description, category, isActive) VALUES \n('freight_weight_under_10kg', '0.00', 'Freight: Under 10 kg', 'Surcharge for freight items under 10 kg', 'surcharge', 1),\n('freight_weight_10_25kg', '15.00', 'Freight: 10–25 kg', 'Surcharge for freight items weighing 10–25 kg', 'surcharge', 1),\n('freight_weight_25_50kg', '30.00', 'Freight: 25–50 kg', 'Surcharge for freight items weighing 25–50 kg', 'surcharge', 1),\n('freight_weight_50_100kg', '50.00', 'Freight: 50–100 kg', 'Surcharge for freight items weighing 50–100 kg', 'surcharge', 1),\n('freight_weight_100_plus', '80.00', 'Freight: 100+ kg', 'Surcharge for freight items weighing over 100 kg', 'surcharge', 1);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway05.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3HWZfK7Ep6HZCJY.9379f7ca03be --database 2tTLZKCNzV8jFwxBsLMjpn --execute INSERT INTO pricing_settings (settingKey, settingValue, label, description, category, isActive) VALUES \n('freight_weight_under_10kg', '0.00', 'Freight: Under 10 kg', 'Surcharge for freight items under 10 kg', 'surcharge', 1),\n('freight_weight_10_25kg', '15.00', 'Freight: 10–25 kg', 'Surcharge for freight items weighing 10–25 kg', 'surcharge', 1),\n('freight_weight_25_50kg', '30.00', 'Freight: 25–50 kg', 'Surcharge for freight items weighing 25–50 kg', 'surcharge', 1),\n('freight_weight_50_100kg', '50.00', 'Freight: 50–100 kg', 'Surcharge for freight items weighing 50–100 kg', 'surcharge', 1),\n('freight_weight_100_plus', '80.00', 'Freight: 100+ kg', 'Surcharge for freight items weighing over 100 kg', 'surcharge', 1);",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 3266
+}

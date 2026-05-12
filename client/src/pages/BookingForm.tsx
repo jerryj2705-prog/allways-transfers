@@ -293,8 +293,9 @@ export default function BookingForm() {
       additionalDropoffCount,
       isPetFriendly,
       numberOfPets: isPetFriendly ? numberOfPets : 0,
+      freightWeight: serviceType === "freight" ? freightWeight : undefined,
     };
-  }, [serviceType, pickupSuburb, dropoffSuburb, pickupHour, pickupDate, needsSupportVan, paymentMethod, hireHours, additionalPickupCount, additionalDropoffCount, isPetFriendly, numberOfPets]);
+  }, [serviceType, pickupSuburb, dropoffSuburb, pickupHour, pickupDate, needsSupportVan, paymentMethod, hireHours, additionalPickupCount, additionalDropoffCount, isPetFriendly, numberOfPets, freightWeight]);
 
   const { data: priceBreakdown } = trpc.pricing.calculate.useQuery(
     priceInput!,
@@ -312,8 +313,10 @@ export default function BookingForm() {
     publicHolidaySurcharge: 0,
     publicHolidayName: null as string | null,
     petSurcharge: 0,
+    weightSurcharge: 0,
     supportVanPrice: 0,
     squareSurcharge: 0,
+    roundingDiscount: 0,
     subtotal: 0,
     totalPrice: 0,
     distanceKm: 0,
@@ -1849,6 +1852,22 @@ export default function BookingForm() {
                         <span>+${pricing.petSurcharge.toFixed(2)}</span>
                       </div>
                     )}
+                    {pricing.weightSurcharge > 0 && (
+                      <div className="flex justify-between text-sm text-amber-400">
+                        <span className="flex items-center gap-1">
+                          Weight Surcharge ({freightWeight ? freightWeight.replace(/_/g, " ").replace("plus", "+") : ""})
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Info className="w-3.5 h-3.5 text-muted-foreground hover:text-amber-300 cursor-help transition-colors" />
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="max-w-[220px]">
+                              Additional charge based on the estimated weight of your freight items.
+                            </TooltipContent>
+                          </Tooltip>
+                        </span>
+                        <span>+${pricing.weightSurcharge.toFixed(2)}</span>
+                      </div>
+                    )}
                     {needsSupportVan && pricing.supportVanPrice > 0 && (
                       <div className="flex justify-between text-sm">
                         <span>Support Van</span>
@@ -1859,6 +1878,12 @@ export default function BookingForm() {
                       <div className="flex justify-between text-sm text-amber-400">
                         <span>Card Surcharge (2%)</span>
                         <span>+${pricing.squareSurcharge.toFixed(2)}</span>
+                      </div>
+                    )}
+                    {pricing.roundingDiscount > 0 && (
+                      <div className="flex justify-between text-sm text-emerald-400">
+                        <span>Rounding Discount</span>
+                        <span>-${pricing.roundingDiscount.toFixed(2)}</span>
                       </div>
                     )}
                     <div className="flex justify-between font-heading text-lg font-bold border-t border-border/50 pt-2">

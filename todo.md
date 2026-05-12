@@ -540,3 +540,10 @@
 - [x] Pass freight fields through backend booking creation
 - [x] Display freight fields on admin booking detail and confirmation pages
 - [x] Include freight fields in booking confirmation email
+- [x] Add admin-configurable weight surcharge pricing settings per weight range
+- [x] Update pricing engine (calculatePrice) to include weight-based surcharge for freight
+- [x] Update booking form to pass freightWeight to pricing calculation
+- [x] Display weight surcharge in booking form price breakdown
+- [x] Update admin pricing page to show weight surcharge settings
+- [x] Round final fare down to nearest $5 for all bookings
+- [x] Show rounding-down amount as a "Rounding Discount" line in price breakdown

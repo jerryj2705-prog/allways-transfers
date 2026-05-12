@@ -551,8 +551,10 @@ export interface PriceBreakdown {
   publicHolidaySurcharge: number;
   publicHolidayName: string | null;
   petSurcharge: number;
+  weightSurcharge: number;
   supportVanPrice: number;
   squareSurcharge: number;
+  roundingDiscount: number;
   subtotal: number;
   totalPrice: number;
 }
@@ -570,6 +572,7 @@ export async function calculatePrice(params: {
   additionalDropoffCount?: number;
   isPetFriendly?: boolean;
   numberOfPets?: number;
+  freightWeight?: string;
 }): Promise<PriceBreakdown> {
   const settings = await getAllPricingSettings();
   const getVal = (key: string) => {
@@ -634,16 +637,38 @@ export async function calculatePrice(params: {
     petSurcharge = Math.round(getVal("surcharge_pet") * params.numberOfPets * 100) / 100;
   }
 
+  // Weight surcharge for freight bookings
+  let weightSurcharge = 0;
+  if (params.serviceType === "freight" && params.freightWeight) {
+    const weightKeyMap: Record<string, string> = {
+      under_10kg: "freight_weight_under_10kg",
+      "10_25kg": "freight_weight_10_25kg",
+      "25_50kg": "freight_weight_25_50kg",
+      "50_100kg": "freight_weight_50_100kg",
+      "100_plus": "freight_weight_100_plus",
+    };
+    const weightKey = weightKeyMap[params.freightWeight];
+    if (weightKey && isActive(weightKey)) {
+      weightSurcharge = getVal(weightKey);
+    }
+  }
+
   // Support van
   const supportVanPrice = params.needsSupportVan ? getVal("rate_support_van") : 0;
 
   // Subtotal before payment surcharge
-  const subtotal = Math.round((basePrice + distanceCharge + outOfHoursSurcharge + outOfAreaSurcharge + fuelLevySurcharge + additionalStopsSurcharge + publicHolidaySurcharge + petSurcharge + supportVanPrice) * 100) / 100;
+  const subtotal = Math.round((basePrice + distanceCharge + outOfHoursSurcharge + outOfAreaSurcharge + fuelLevySurcharge + additionalStopsSurcharge + publicHolidaySurcharge + petSurcharge + weightSurcharge + supportVanPrice) * 100) / 100;
 
   // Square 2% surcharge
   const squareSurcharge = params.paymentMethod === "square_postpay" ? Math.round(subtotal * 0.02 * 100) / 100 : 0;
 
-  const totalPrice = Math.round((subtotal + squareSurcharge) * 100) / 100;
+  const rawTotal = Math.round((subtotal + squareSurcharge) * 100) / 100;
+
+  // Round down to nearest $5 for all bookings
+  const totalPrice = Math.floor(rawTotal / 5) * 5;
+
+  // Rounding discount (the amount saved by rounding down)
+  const roundingDiscount = Math.round((rawTotal - totalPrice) * 100) / 100;
 
   return {
     basePrice,
@@ -658,8 +683,10 @@ export async function calculatePrice(params: {
     publicHolidaySurcharge,
     publicHolidayName,
     petSurcharge,
+    weightSurcharge,
     supportVanPrice,
     squareSurcharge,
+    roundingDiscount,
     subtotal,
     totalPrice,
   };
