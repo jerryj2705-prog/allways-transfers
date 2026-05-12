@@ -1003,6 +1003,7 @@ __export(db_exports, {
   createReview: () => createReview,
   createUserWithGoogle: () => createUserWithGoogle,
   createUserWithPassword: () => createUserWithPassword,
+  deleteBooking: () => deleteBooking,
   deleteLandmark: () => deleteLandmark,
   deletePublicHoliday: () => deletePublicHoliday,
   deleteReview: () => deleteReview,
@@ -1409,6 +1410,12 @@ async function getBookingsByEmail(email) {
   const db = await getDb();
   if (!db) return [];
   return db.select().from(bookings).where(eq(bookings.clientEmail, email)).orderBy(desc(bookings.pickupDate));
+}
+async function deleteBooking(id) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(bookings).where(eq(bookings.id, id));
+  return { success: true };
 }
 async function getAllPricingSettings() {
   const db = await getDb();
@@ -3782,6 +3789,11 @@ Total: $${input.totalPrice.toFixed(2)}${input.needsSupportVan ? "\n+ Support Van
         specialRequests: input.specialRequests
       });
       return updated;
+    }),
+    // Admin: delete a booking
+    delete: adminProcedure.input(z2.object({ id: z2.number() })).mutation(async ({ input }) => {
+      await deleteBooking(input.id);
+      return { success: true };
     }),
     // Authenticated user: get my bookings by email
     myBookings: protectedProcedure.query(async ({ ctx }) => {

@@ -472,6 +472,13 @@ export async function getBookingsByEmail(email: string) {
     .orderBy(desc(bookings.pickupDate));
 }
 
+export async function deleteBooking(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(bookings).where(eq(bookings.id, id));
+  return { success: true };
+}
+
 // ─── Pricing Settings Queries ───
 
 export async function getAllPricingSettings() {

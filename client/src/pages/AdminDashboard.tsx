@@ -16,8 +16,13 @@ import { useLocation } from "wouter";
 import {
   Search, LayoutDashboard, Clock, CheckCircle, XCircle, AlertCircle,
   ChevronLeft, ChevronRight, LogOut, Home, DollarSign, MessageSquare, CalendarDays, Star,
-  Download, X, Banknote, CreditCard, RotateCcw, MapPin,
+  Download, X, Banknote, CreditCard, RotateCcw, MapPin, Trash2,
 } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
 import { SERVICE_TYPES, BOOKING_STATUSES, PAYMENT_METHODS } from "@shared/types";
 import type { ServiceType, BookingStatus, PaymentMethod } from "@shared/types";
 
@@ -97,12 +102,27 @@ export default function AdminDashboard() {
   const pwa = usePwaInstall();
 
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
   const searchTimeout = useMemo(() => {
     return (val: string) => {
       const id = setTimeout(() => setDebouncedSearch(val), 400);
       return () => clearTimeout(id);
     };
   }, []);
+
+  const utils = trpc.useUtils();
+  const deleteMutation = trpc.bookings.delete.useMutation({
+    onSuccess: () => {
+      toast.success("Booking deleted successfully");
+      utils.bookings.list.invalidate();
+      utils.bookings.stats.invalidate();
+      setDeleteConfirmId(null);
+    },
+    onError: (err) => {
+      toast.error(err.message || "Failed to delete booking");
+      setDeleteConfirmId(null);
+    },
+  });
 
   const { data: stats } = trpc.bookings.stats.useQuery(undefined, {
     enabled: !!user && user.role === "admin",
@@ -404,18 +424,19 @@ export default function AdminDashboard() {
                   <TableHead>Status</TableHead>
                   <TableHead className="hidden xl:table-cell">Payment</TableHead>
                   <TableHead className="text-right">Total</TableHead>
+                  <TableHead className="w-[60px]"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {bookingsLoading ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">
+                    <TableCell colSpan={10} className="text-center py-12 text-muted-foreground">
                       Loading bookings...
                     </TableCell>
                   </TableRow>
                 ) : !bookingsData?.bookings.length ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">
+                    <TableCell colSpan={10} className="text-center py-12 text-muted-foreground">
                       No bookings found.
                     </TableCell>
                   </TableRow>
@@ -476,6 +497,19 @@ export default function AdminDashboard() {
                         <TableCell className="text-right font-medium text-sm">
                           ${parseFloat(booking.totalPrice ?? "0").toFixed(2)}
                         </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 text-muted-foreground hover:text-red-500 hover:bg-red-500/10"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeleteConfirmId(booking.id);
+                            }}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     );
                   })
@@ -517,6 +551,32 @@ export default function AdminDashboard() {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteConfirmId} onOpenChange={(open) => { if (!open) setDeleteConfirmId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Booking</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to permanently delete this booking? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteMutation.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700 text-white"
+              disabled={deleteMutation.isPending}
+              onClick={() => {
+                if (deleteConfirmId) {
+                  deleteMutation.mutate({ id: deleteConfirmId });
+                }
+              }}
+            >
+              {deleteMutation.isPending ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

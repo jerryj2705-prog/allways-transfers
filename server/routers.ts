@@ -64,6 +64,7 @@ import {
   toggleLandmarkActive,
   deleteLandmark,
   getLandmarkStats,
+  deleteBooking,
 } from "./db";
 import { makeRequest, type PlaceDetailsResult } from "./_core/map";
 import { createCheckoutSession } from "./stripe";
@@ -627,6 +628,14 @@ export const appRouter = router({
         });
 
         return updated;
+      }),
+
+    // Admin: delete a booking
+    delete: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await deleteBooking(input.id);
+        return { success: true };
       }),
 
     // Authenticated user: get my bookings by email

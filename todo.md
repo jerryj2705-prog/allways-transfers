@@ -607,3 +607,4 @@
 - [x] Fix: booking insert fails on Hostinger - missing columns (additionalPickupAddresses, additionalDropoffAddresses)
 - [x] Fix: distance price shows $0 for 31km trip (per-km pricing not calculating - rate_per_km is INACTIVE on production)
 - [x] Add enable/disable toggle to rate-category pricing cards in admin pricing page
+- [ ] Add Delete button to each booking in admin dashboard
