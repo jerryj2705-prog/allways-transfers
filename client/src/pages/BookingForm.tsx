@@ -314,6 +314,8 @@ export default function BookingForm() {
     publicHolidayName: null as string | null,
     petSurcharge: 0,
     weightSurcharge: 0,
+    airportTollSurcharge: 0,
+    airportTollDetails: [] as { airport: string; direction: string; amount: number }[],
     supportVanPrice: 0,
     squareSurcharge: 0,
     roundingDiscount: 0,
@@ -1868,6 +1870,22 @@ export default function BookingForm() {
                         <span>+${pricing.weightSurcharge.toFixed(2)}</span>
                       </div>
                     )}
+                    {pricing.airportTollSurcharge > 0 && pricing.airportTollDetails.map((toll: { airport: string; direction: string; amount: number }, idx: number) => (
+                      <div key={idx} className="flex justify-between text-sm text-amber-400">
+                        <span className="flex items-center gap-1">
+                          {toll.airport} {toll.direction} Toll
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Info className="w-3.5 h-3.5 text-muted-foreground hover:text-amber-300 cursor-help transition-colors" />
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="max-w-[220px]">
+                              Airport {toll.direction.toLowerCase()} toll automatically applied for {toll.airport}.
+                            </TooltipContent>
+                          </Tooltip>
+                        </span>
+                        <span>+${toll.amount.toFixed(2)}</span>
+                      </div>
+                    ))}
                     {needsSupportVan && pricing.supportVanPrice > 0 && (
                       <div className="flex justify-between text-sm">
                         <span>Support Van</span>

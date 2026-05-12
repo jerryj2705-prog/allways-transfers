@@ -903,6 +903,8 @@ export const appRouter = router({
           isPetFriendly: input.isPetFriendly,
           numberOfPets: input.numberOfPets,
           freightWeight: input.freightWeight,
+          pickupSuburb: input.pickupSuburb,
+          destinationSuburb: input.destinationSuburb,
         });
 
         return {

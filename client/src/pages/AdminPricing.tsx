@@ -38,6 +38,10 @@ const CATEGORY_ICONS: Record<string, React.ElementType> = {
   freight_weight_25_50kg: Package,
   freight_weight_50_100kg: Package,
   freight_weight_100_plus: Package,
+  toll_sct_entry: Plane,
+  toll_sct_exit: Plane,
+  toll_bne_entry: Plane,
+  toll_bne_exit: Plane,
 };
 
 export default function AdminPricing() {

@@ -547,3 +547,7 @@
 - [x] Update admin pricing page to show weight surcharge settings
 - [x] Round final fare down to nearest $5 for all bookings
 - [x] Show rounding-down amount as a "Rounding Discount" line in price breakdown
+- [x] Add admin-editable airport toll surcharge settings (entry/exit for SCT and BNE airports)
+- [x] Auto-detect airport pickup/dropoff and apply toll surcharges in pricing engine
+- [x] Display airport toll surcharges in booking form price breakdown
+- [x] Add admin UI to manage airport toll settings with entry/exit toggle per airport

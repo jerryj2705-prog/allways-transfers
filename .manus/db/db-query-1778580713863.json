@@ -1,0 +1,9 @@
+{
+  "query": "\nINSERT INTO pricing_settings (settingKey, settingValue, label, description, category, isActive) VALUES\n('toll_sct_entry', '0.00', 'Sunshine Coast Airport Entry Toll', 'Toll charged when entering Sunshine Coast Airport for pickup', 'surcharge', 1),\n('toll_sct_exit', '0.00', 'Sunshine Coast Airport Exit Toll', 'Toll charged when exiting Sunshine Coast Airport for drop-off', 'surcharge', 1),\n('toll_bne_entry', '5.00', 'Brisbane Airport Entry Toll', 'Toll charged when entering Brisbane Airport for pickup', 'surcharge', 1),\n('toll_bne_exit', '5.00', 'Brisbane Airport Exit Toll', 'Toll charged when exiting Brisbane Airport for drop-off', 'surcharge', 1);\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway05.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3HWZfK7Ep6HZCJY.9379f7ca03be --database 2tTLZKCNzV8jFwxBsLMjpn --execute \nINSERT INTO pricing_settings (settingKey, settingValue, label, description, category, isActive) VALUES\n('toll_sct_entry', '0.00', 'Sunshine Coast Airport Entry Toll', 'Toll charged when entering Sunshine Coast Airport for pickup', 'surcharge', 1),\n('toll_sct_exit', '0.00', 'Sunshine Coast Airport Exit Toll', 'Toll charged when exiting Sunshine Coast Airport for drop-off', 'surcharge', 1),\n('toll_bne_entry', '5.00', 'Brisbane Airport Entry Toll', 'Toll charged when entering Brisbane Airport for pickup', 'surcharge', 1),\n('toll_bne_exit', '5.00', 'Brisbane Airport Exit Toll', 'Toll charged when exiting Brisbane Airport for drop-off', 'surcharge', 1);\n",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 2214
+}

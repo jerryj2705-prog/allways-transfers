@@ -552,6 +552,8 @@ export interface PriceBreakdown {
   publicHolidayName: string | null;
   petSurcharge: number;
   weightSurcharge: number;
+  airportTollSurcharge: number;
+  airportTollDetails: { airport: string; direction: string; amount: number }[];
   supportVanPrice: number;
   squareSurcharge: number;
   roundingDiscount: number;
@@ -573,6 +575,8 @@ export async function calculatePrice(params: {
   isPetFriendly?: boolean;
   numberOfPets?: number;
   freightWeight?: string;
+  pickupSuburb?: string;
+  destinationSuburb?: string;
 }): Promise<PriceBreakdown> {
   const settings = await getAllPricingSettings();
   const getVal = (key: string) => {
@@ -653,11 +657,59 @@ export async function calculatePrice(params: {
     }
   }
 
+  // Airport toll surcharges (auto-detect from suburb names)
+  let airportTollSurcharge = 0;
+  const airportTollDetails: { airport: string; direction: string; amount: number }[] = [];
+  const pickupLower = (params.pickupSuburb || "").toLowerCase();
+  const destLower = (params.destinationSuburb || "").toLowerCase();
+
+  // Sunshine Coast Airport detection
+  const isSctPickup = pickupLower.includes("sunshine coast airport") || pickupLower.includes("maroochydore airport") || pickupLower === "marcoola" || pickupLower.includes("mcyairport");
+  const isSctDropoff = destLower.includes("sunshine coast airport") || destLower.includes("maroochydore airport") || destLower === "marcoola" || destLower.includes("mcyairport");
+
+  // Brisbane Airport detection
+  const isBnePickup = pickupLower.includes("brisbane airport") || pickupLower.includes("brisbane domestic") || pickupLower.includes("brisbane international") || pickupLower === "brisbane airport" || pickupLower.includes("bneairport");
+  const isBneDropoff = destLower.includes("brisbane airport") || destLower.includes("brisbane domestic") || destLower.includes("brisbane international") || destLower === "brisbane airport" || destLower.includes("bneairport");
+
+  // SCT pickup = entry toll (driving into airport to collect passenger)
+  if (isSctPickup && isActive("toll_sct_entry")) {
+    const amt = getVal("toll_sct_entry");
+    if (amt > 0) {
+      airportTollSurcharge += amt;
+      airportTollDetails.push({ airport: "Sunshine Coast Airport", direction: "Entry", amount: amt });
+    }
+  }
+  // SCT dropoff = exit toll (driving out of airport after drop-off)
+  if (isSctDropoff && isActive("toll_sct_exit")) {
+    const amt = getVal("toll_sct_exit");
+    if (amt > 0) {
+      airportTollSurcharge += amt;
+      airportTollDetails.push({ airport: "Sunshine Coast Airport", direction: "Exit", amount: amt });
+    }
+  }
+  // BNE pickup = entry toll
+  if (isBnePickup && isActive("toll_bne_entry")) {
+    const amt = getVal("toll_bne_entry");
+    if (amt > 0) {
+      airportTollSurcharge += amt;
+      airportTollDetails.push({ airport: "Brisbane Airport", direction: "Entry", amount: amt });
+    }
+  }
+  // BNE dropoff = exit toll
+  if (isBneDropoff && isActive("toll_bne_exit")) {
+    const amt = getVal("toll_bne_exit");
+    if (amt > 0) {
+      airportTollSurcharge += amt;
+      airportTollDetails.push({ airport: "Brisbane Airport", direction: "Exit", amount: amt });
+    }
+  }
+  airportTollSurcharge = Math.round(airportTollSurcharge * 100) / 100;
+
   // Support van
   const supportVanPrice = params.needsSupportVan ? getVal("rate_support_van") : 0;
 
   // Subtotal before payment surcharge
-  const subtotal = Math.round((basePrice + distanceCharge + outOfHoursSurcharge + outOfAreaSurcharge + fuelLevySurcharge + additionalStopsSurcharge + publicHolidaySurcharge + petSurcharge + weightSurcharge + supportVanPrice) * 100) / 100;
+  const subtotal = Math.round((basePrice + distanceCharge + outOfHoursSurcharge + outOfAreaSurcharge + fuelLevySurcharge + additionalStopsSurcharge + publicHolidaySurcharge + petSurcharge + weightSurcharge + airportTollSurcharge + supportVanPrice) * 100) / 100;
 
   // Square 2% surcharge
   const squareSurcharge = params.paymentMethod === "square_postpay" ? Math.round(subtotal * 0.02 * 100) / 100 : 0;
@@ -684,6 +736,8 @@ export async function calculatePrice(params: {
     publicHolidayName,
     petSurcharge,
     weightSurcharge,
+    airportTollSurcharge,
+    airportTollDetails,
     supportVanPrice,
     squareSurcharge,
     roundingDiscount,
