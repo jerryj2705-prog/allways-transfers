@@ -111,6 +111,12 @@ var init_schema = __esm({
       // 'fastest' or 'toll_free'
       tollOverride: decimal("tollOverride", { precision: 10, scale: 2 }),
       // Admin manual toll override amount
+      airportTollSurcharge: decimal("airportTollSurcharge", { precision: 10, scale: 2 }).default("0"),
+      airportTollDetails: text("airportTollDetails"),
+      // JSON array: [{airport, direction, amount}]
+      roadTollSurcharge: decimal("roadTollSurcharge", { precision: 10, scale: 2 }).default("0"),
+      roadTollDetails: text("roadTollDetails"),
+      // JSON array: [{road, amount}]
       // Pet-friendly
       isPetFriendly: int("isPetFriendly").notNull().default(0),
       numberOfPets: int("numberOfPets"),
@@ -2503,6 +2509,44 @@ function buildPublicHolidayHtml(data) {
       </td>
     </tr>`;
 }
+function buildTollsHtml(data) {
+  let html = "";
+  if ((data.airportTollSurcharge ?? 0) > 0 && data.airportTollDetails && data.airportTollDetails.length > 0) {
+    for (const toll of data.airportTollDetails) {
+      html += `<tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">${toll.airport} ${toll.direction} Toll</span><br/>
+          <span style="color:#d4a843;font-size:15px;">+$${toll.amount.toFixed(2)}</span>
+        </td>
+      </tr>`;
+    }
+  } else if ((data.airportTollSurcharge ?? 0) > 0) {
+    html += `<tr>
+      <td style="padding:8px 0;border-bottom:1px solid #333;">
+        <span style="color:#a3a3a3;font-size:13px;">Airport Tolls</span><br/>
+        <span style="color:#d4a843;font-size:15px;">+$${data.airportTollSurcharge.toFixed(2)}</span>
+      </td>
+    </tr>`;
+  }
+  if ((data.roadTollSurcharge ?? 0) > 0 && data.roadTollDetails && data.roadTollDetails.length > 0) {
+    for (const toll of data.roadTollDetails) {
+      html += `<tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">${toll.road} Toll</span><br/>
+          <span style="color:#d4a843;font-size:15px;">+$${toll.amount.toFixed(2)}</span>
+        </td>
+      </tr>`;
+    }
+  } else if ((data.roadTollSurcharge ?? 0) > 0) {
+    html += `<tr>
+      <td style="padding:8px 0;border-bottom:1px solid #333;">
+        <span style="color:#a3a3a3;font-size:13px;">Road Tolls</span><br/>
+        <span style="color:#d4a843;font-size:15px;">+$${data.roadTollSurcharge.toFixed(2)}</span>
+      </td>
+    </tr>`;
+  }
+  return html;
+}
 async function sendBookingConfirmationEmail(data) {
   if (process.env.VITEST || process.env.NODE_ENV === "test") {
     console.log(`[Email] Skipping email send in test environment for ${data.referenceNumber}`);
@@ -2622,6 +2666,7 @@ async function sendBookingConfirmationEmail(data) {
       </tr>` : ""}
       ${buildAdditionalStopsHtml(data)}
       ${buildPublicHolidayHtml(data)}
+      ${buildTollsHtml(data)}
       ${data.specialRequests ? `<tr>
         <td style="padding:8px 0;border-bottom:1px solid #333;">
           <span style="color:#a3a3a3;font-size:13px;">Special Requests</span><br/>
@@ -2934,6 +2979,7 @@ async function sendAdminNewBookingNotification(data) {
       </tr>` : ""}
       ${buildAdditionalStopsHtml(data)}
       ${buildPublicHolidayHtml(data)}
+      ${buildTollsHtml(data)}
       ${data.specialRequests ? `<tr>
         <td style="padding:8px 0;border-bottom:1px solid #333;">
           <span style="color:#a3a3a3;font-size:13px;">Special Requests</span><br/>
@@ -3525,6 +3571,10 @@ var appRouter = router({
         additionalStopsSurcharge: z2.number().default(0),
         publicHolidaySurcharge: z2.number().default(0),
         publicHolidayName: z2.string().optional(),
+        airportTollSurcharge: z2.number().default(0),
+        airportTollDetails: z2.array(z2.object({ airport: z2.string(), direction: z2.string(), amount: z2.number() })).default([]),
+        roadTollSurcharge: z2.number().default(0),
+        roadTollDetails: z2.array(z2.object({ road: z2.string(), amount: z2.number() })).default([]),
         specialRequests: z2.string().optional(),
         termsAccepted: z2.boolean(),
         paymentMethod: z2.enum(["stripe_prepay", "square_postpay", "cash_postpay"]),
@@ -3583,6 +3633,10 @@ var appRouter = router({
         additionalStopsSurcharge: input.additionalStopsSurcharge.toFixed(2),
         publicHolidaySurcharge: input.publicHolidaySurcharge.toFixed(2),
         publicHolidayName: input.publicHolidayName ?? null,
+        airportTollSurcharge: input.airportTollSurcharge.toFixed(2),
+        airportTollDetails: input.airportTollDetails.length > 0 ? JSON.stringify(input.airportTollDetails) : null,
+        roadTollSurcharge: input.roadTollSurcharge.toFixed(2),
+        roadTollDetails: input.roadTollDetails.length > 0 ? JSON.stringify(input.roadTollDetails) : null,
         paymentMethod: input.paymentMethod,
         paymentStatus: "unpaid",
         specialRequests: input.specialRequests ?? null,
@@ -3654,6 +3708,10 @@ Total: $${input.totalPrice.toFixed(2)}${input.needsSupportVan ? "\n+ Support Van
             additionalDropoffAddresses: input.additionalDropoffAddresses ?? [],
             publicHolidaySurcharge: input.publicHolidaySurcharge ?? 0,
             publicHolidayName: input.publicHolidayName ?? null,
+            airportTollSurcharge: input.airportTollSurcharge ?? 0,
+            airportTollDetails: input.airportTollDetails ?? [],
+            roadTollSurcharge: input.roadTollSurcharge ?? 0,
+            roadTollDetails: input.roadTollDetails ?? [],
             origin: input.origin
           });
         } catch (emailError) {
@@ -3691,6 +3749,10 @@ Total: $${input.totalPrice.toFixed(2)}${input.needsSupportVan ? "\n+ Support Van
             additionalDropoffAddresses: input.additionalDropoffAddresses ?? [],
             publicHolidaySurcharge: input.publicHolidaySurcharge ?? 0,
             publicHolidayName: input.publicHolidayName ?? null,
+            airportTollSurcharge: input.airportTollSurcharge ?? 0,
+            airportTollDetails: input.airportTollDetails ?? [],
+            roadTollSurcharge: input.roadTollSurcharge ?? 0,
+            roadTollDetails: input.roadTollDetails ?? [],
             origin: input.origin
           });
         } catch (e) {

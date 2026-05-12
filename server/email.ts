@@ -138,6 +138,10 @@ export interface BookingEmailData {
   additionalDropoffAddresses?: string[];
   publicHolidaySurcharge?: number;
   publicHolidayName?: string | null;
+  airportTollSurcharge?: number;
+  airportTollDetails?: { airport: string; direction: string; amount: number }[];
+  roadTollSurcharge?: number;
+  roadTollDetails?: { road: string; amount: number }[];
   origin: string;
 }
 
@@ -173,6 +177,45 @@ function buildPublicHolidayHtml(data: BookingEmailData): string {
         <span style="color:#d4a843;font-size:15px;">&#127881; ${data.publicHolidayName}${surcharge}</span>
       </td>
     </tr>`;
+}
+
+function buildTollsHtml(data: BookingEmailData): string {
+  let html = "";
+  if ((data.airportTollSurcharge ?? 0) > 0 && data.airportTollDetails && data.airportTollDetails.length > 0) {
+    for (const toll of data.airportTollDetails) {
+      html += `<tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">${toll.airport} ${toll.direction} Toll</span><br/>
+          <span style="color:#d4a843;font-size:15px;">+$${toll.amount.toFixed(2)}</span>
+        </td>
+      </tr>`;
+    }
+  } else if ((data.airportTollSurcharge ?? 0) > 0) {
+    html += `<tr>
+      <td style="padding:8px 0;border-bottom:1px solid #333;">
+        <span style="color:#a3a3a3;font-size:13px;">Airport Tolls</span><br/>
+        <span style="color:#d4a843;font-size:15px;">+$${data.airportTollSurcharge!.toFixed(2)}</span>
+      </td>
+    </tr>`;
+  }
+  if ((data.roadTollSurcharge ?? 0) > 0 && data.roadTollDetails && data.roadTollDetails.length > 0) {
+    for (const toll of data.roadTollDetails) {
+      html += `<tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">${toll.road} Toll</span><br/>
+          <span style="color:#d4a843;font-size:15px;">+$${toll.amount.toFixed(2)}</span>
+        </td>
+      </tr>`;
+    }
+  } else if ((data.roadTollSurcharge ?? 0) > 0) {
+    html += `<tr>
+      <td style="padding:8px 0;border-bottom:1px solid #333;">
+        <span style="color:#a3a3a3;font-size:13px;">Road Tolls</span><br/>
+        <span style="color:#d4a843;font-size:15px;">+$${data.roadTollSurcharge!.toFixed(2)}</span>
+      </td>
+    </tr>`;
+  }
+  return html;
 }
 
 export async function sendBookingConfirmationEmail(data: BookingEmailData): Promise<boolean> {
@@ -298,6 +341,7 @@ export async function sendBookingConfirmationEmail(data: BookingEmailData): Prom
       </tr>` : ""}
       ${buildAdditionalStopsHtml(data)}
       ${buildPublicHolidayHtml(data)}
+      ${buildTollsHtml(data)}
       ${data.specialRequests ? `<tr>
         <td style="padding:8px 0;border-bottom:1px solid #333;">
           <span style="color:#a3a3a3;font-size:13px;">Special Requests</span><br/>
@@ -647,6 +691,7 @@ export async function sendAdminNewBookingNotification(data: BookingEmailData): P
       </tr>` : ""}
       ${buildAdditionalStopsHtml(data)}
       ${buildPublicHolidayHtml(data)}
+      ${buildTollsHtml(data)}
       ${data.specialRequests ? `<tr>
         <td style="padding:8px 0;border-bottom:1px solid #333;">
           <span style="color:#a3a3a3;font-size:13px;">Special Requests</span><br/>

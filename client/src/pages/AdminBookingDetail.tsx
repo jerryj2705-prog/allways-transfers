@@ -509,6 +509,50 @@ export default function AdminBookingDetail() {
                       Holiday: {booking.publicHolidayName}
                     </div>
                   )}
+                  {parseFloat(booking.airportTollSurcharge ?? "0") > 0 && (
+                    <>
+                      {(() => {
+                        try {
+                          const details = JSON.parse(booking.airportTollDetails || "[]");
+                          return details.map((toll: { airport: string; direction: string; amount: number }, idx: number) => (
+                            <div key={`airport-toll-${idx}`} className="flex justify-between text-amber-400">
+                              <span>{toll.airport} {toll.direction} Toll</span>
+                              <span>${toll.amount.toFixed(2)}</span>
+                            </div>
+                          ));
+                        } catch {
+                          return (
+                            <div className="flex justify-between text-amber-400">
+                              <span>Airport Tolls</span>
+                              <span>${parseFloat(booking.airportTollSurcharge ?? "0").toFixed(2)}</span>
+                            </div>
+                          );
+                        }
+                      })()}
+                    </>
+                  )}
+                  {parseFloat(booking.roadTollSurcharge ?? "0") > 0 && (
+                    <>
+                      {(() => {
+                        try {
+                          const details = JSON.parse(booking.roadTollDetails || "[]");
+                          return details.map((toll: { road: string; amount: number }, idx: number) => (
+                            <div key={`road-toll-${idx}`} className="flex justify-between text-amber-400">
+                              <span>{toll.road} Toll</span>
+                              <span>${toll.amount.toFixed(2)}</span>
+                            </div>
+                          ));
+                        } catch {
+                          return (
+                            <div className="flex justify-between text-amber-400">
+                              <span>Road Tolls</span>
+                              <span>${parseFloat(booking.roadTollSurcharge ?? "0").toFixed(2)}</span>
+                            </div>
+                          );
+                        }
+                      })()}
+                    </>
+                  )}
                   <div className="flex justify-between font-heading text-lg font-bold border-t border-border/50 pt-2">
                     <span>Total</span>
                     <span className="gold-text">${parseFloat(booking.totalPrice ?? "0").toFixed(2)}</span>

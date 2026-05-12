@@ -162,6 +162,13 @@
       "when": 1778591010409,
       "tag": "0022_acoustic_emma_frost",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "5",
+      "when": 1778605030492,
+      "tag": "0023_faulty_wonder_man",
+      "breakpoints": true
     }
   ]
 }

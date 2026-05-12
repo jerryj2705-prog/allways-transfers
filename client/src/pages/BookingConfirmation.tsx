@@ -352,6 +352,55 @@ export default function BookingConfirmation() {
               </div>
             )}
 
+            {(parseFloat(booking.airportTollSurcharge ?? "0") > 0 || parseFloat(booking.roadTollSurcharge ?? "0") > 0) && (
+              <div className="col-span-2 mt-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 space-y-1">
+                {parseFloat(booking.airportTollSurcharge ?? "0") > 0 && (
+                  <>
+                    {(() => {
+                      try {
+                        const details = JSON.parse(booking.airportTollDetails || "[]");
+                        return details.map((toll: { airport: string; direction: string; amount: number }, idx: number) => (
+                          <p key={`at-${idx}`} className="text-amber-400 text-sm flex justify-between">
+                            <span className="flex items-center gap-1"><Navigation className="w-3 h-3" />{toll.airport} {toll.direction} Toll</span>
+                            <span>+${toll.amount.toFixed(2)}</span>
+                          </p>
+                        ));
+                      } catch {
+                        return (
+                          <p className="text-amber-400 text-sm flex justify-between">
+                            <span className="flex items-center gap-1"><Navigation className="w-3 h-3" />Airport Tolls</span>
+                            <span>+${parseFloat(booking.airportTollSurcharge ?? "0").toFixed(2)}</span>
+                          </p>
+                        );
+                      }
+                    })()}
+                  </>
+                )}
+                {parseFloat(booking.roadTollSurcharge ?? "0") > 0 && (
+                  <>
+                    {(() => {
+                      try {
+                        const details = JSON.parse(booking.roadTollDetails || "[]");
+                        return details.map((toll: { road: string; amount: number }, idx: number) => (
+                          <p key={`rt-${idx}`} className="text-amber-400 text-sm flex justify-between">
+                            <span className="flex items-center gap-1"><Navigation className="w-3 h-3" />{toll.road} Toll</span>
+                            <span>+${toll.amount.toFixed(2)}</span>
+                          </p>
+                        ));
+                      } catch {
+                        return (
+                          <p className="text-amber-400 text-sm flex justify-between">
+                            <span className="flex items-center gap-1"><Navigation className="w-3 h-3" />Road Tolls</span>
+                            <span>+${parseFloat(booking.roadTollSurcharge ?? "0").toFixed(2)}</span>
+                          </p>
+                        );
+                      }
+                    })()}
+                  </>
+                )}
+              </div>
+            )}
+
             <div className="border-t border-border/50 pt-4">
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">Estimated Total</span>

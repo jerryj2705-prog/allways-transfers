@@ -77,6 +77,10 @@ export const bookings = mysqlTable("bookings", {
   freightSpecialHandling: text("freightSpecialHandling"),
   routePreference: varchar("routePreference", { length: 20 }).default("fastest"), // 'fastest' or 'toll_free'
   tollOverride: decimal("tollOverride", { precision: 10, scale: 2 }), // Admin manual toll override amount
+  airportTollSurcharge: decimal("airportTollSurcharge", { precision: 10, scale: 2 }).default("0"),
+  airportTollDetails: text("airportTollDetails"), // JSON array: [{airport, direction, amount}]
+  roadTollSurcharge: decimal("roadTollSurcharge", { precision: 10, scale: 2 }).default("0"),
+  roadTollDetails: text("roadTollDetails"), // JSON array: [{road, amount}]
   // Pet-friendly
   isPetFriendly: int("isPetFriendly").notNull().default(0),
   numberOfPets: int("numberOfPets"),

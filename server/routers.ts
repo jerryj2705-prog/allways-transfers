@@ -327,6 +327,10 @@ export const appRouter = router({
           additionalStopsSurcharge: z.number().default(0),
           publicHolidaySurcharge: z.number().default(0),
           publicHolidayName: z.string().optional(),
+          airportTollSurcharge: z.number().default(0),
+          airportTollDetails: z.array(z.object({ airport: z.string(), direction: z.string(), amount: z.number() })).default([]),
+          roadTollSurcharge: z.number().default(0),
+          roadTollDetails: z.array(z.object({ road: z.string(), amount: z.number() })).default([]),
           specialRequests: z.string().optional(),
           termsAccepted: z.boolean(),
           paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay"]),
@@ -390,6 +394,10 @@ export const appRouter = router({
           additionalStopsSurcharge: input.additionalStopsSurcharge.toFixed(2),
           publicHolidaySurcharge: input.publicHolidaySurcharge.toFixed(2),
           publicHolidayName: input.publicHolidayName ?? null,
+          airportTollSurcharge: input.airportTollSurcharge.toFixed(2),
+          airportTollDetails: input.airportTollDetails.length > 0 ? JSON.stringify(input.airportTollDetails) : null,
+          roadTollSurcharge: input.roadTollSurcharge.toFixed(2),
+          roadTollDetails: input.roadTollDetails.length > 0 ? JSON.stringify(input.roadTollDetails) : null,
           paymentMethod: input.paymentMethod,
           paymentStatus: "unpaid",
           specialRequests: input.specialRequests ?? null,
@@ -462,6 +470,10 @@ export const appRouter = router({
               additionalDropoffAddresses: input.additionalDropoffAddresses ?? [],
               publicHolidaySurcharge: input.publicHolidaySurcharge ?? 0,
               publicHolidayName: input.publicHolidayName ?? null,
+              airportTollSurcharge: input.airportTollSurcharge ?? 0,
+              airportTollDetails: input.airportTollDetails ?? [],
+              roadTollSurcharge: input.roadTollSurcharge ?? 0,
+              roadTollDetails: input.roadTollDetails ?? [],
               origin: input.origin,
             });
           } catch (emailError) {
@@ -501,6 +513,10 @@ export const appRouter = router({
               additionalDropoffAddresses: input.additionalDropoffAddresses ?? [],
               publicHolidaySurcharge: input.publicHolidaySurcharge ?? 0,
               publicHolidayName: input.publicHolidayName ?? null,
+              airportTollSurcharge: input.airportTollSurcharge ?? 0,
+              airportTollDetails: input.airportTollDetails ?? [],
+              roadTollSurcharge: input.roadTollSurcharge ?? 0,
+              roadTollDetails: input.roadTollDetails ?? [],
               origin: input.origin,
             });
           } catch (e) {

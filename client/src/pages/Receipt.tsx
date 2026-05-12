@@ -275,6 +275,50 @@ export default function Receipt() {
                 </p>
               </div>
             )}
+
+            {(parseFloat(booking.airportTollSurcharge ?? "0") > 0 || parseFloat(booking.roadTollSurcharge ?? "0") > 0) && (
+              <div className="pt-2 border-t border-border/30 space-y-1">
+                <p className="text-xs text-muted-foreground mb-1">Tolls Included</p>
+                {parseFloat(booking.airportTollSurcharge ?? "0") > 0 && (
+                  <>
+                    {(() => {
+                      try {
+                        const details = JSON.parse(booking.airportTollDetails || "[]");
+                        return details.map((toll: { airport: string; direction: string; amount: number }, idx: number) => (
+                          <p key={`at-${idx}`} className="font-medium text-sm text-amber-400 print:text-amber-700 flex justify-between">
+                            <span>{toll.airport} {toll.direction} Toll</span>
+                            <span>+${toll.amount.toFixed(2)}</span>
+                          </p>
+                        ));
+                      } catch {
+                        return (
+                          <p className="font-medium text-sm text-amber-400 print:text-amber-700">Airport Tolls: +${parseFloat(booking.airportTollSurcharge ?? "0").toFixed(2)}</p>
+                        );
+                      }
+                    })()}
+                  </>
+                )}
+                {parseFloat(booking.roadTollSurcharge ?? "0") > 0 && (
+                  <>
+                    {(() => {
+                      try {
+                        const details = JSON.parse(booking.roadTollDetails || "[]");
+                        return details.map((toll: { road: string; amount: number }, idx: number) => (
+                          <p key={`rt-${idx}`} className="font-medium text-sm text-amber-400 print:text-amber-700 flex justify-between">
+                            <span>{toll.road} Toll</span>
+                            <span>+${toll.amount.toFixed(2)}</span>
+                          </p>
+                        ));
+                      } catch {
+                        return (
+                          <p className="font-medium text-sm text-amber-400 print:text-amber-700">Road Tolls: +${parseFloat(booking.roadTollSurcharge ?? "0").toFixed(2)}</p>
+                        );
+                      }
+                    })()}
+                  </>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
