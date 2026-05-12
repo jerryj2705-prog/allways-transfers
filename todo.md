@@ -568,3 +568,5 @@
 - [x] Add route preference line to Stripe payment receipt email template
 - [x] Update payment receipt email tests to include routePreference
 - [x] Fix booking INSERT query missing routePreference and tollOverride columns (causes booking creation failure) — root cause: stale dist/index.js build; fixed by running pnpm build to regenerate
+- [x] Ensure road toll settings (7 QLD toll roads) are visible and editable in admin pricing dashboard
+- [x] Ensure airport toll settings (Sunshine Coast Airport, Brisbane Airport entry/exit) are visible and editable in admin pricing dashboard

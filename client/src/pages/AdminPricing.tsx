@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import {
   ChevronLeft, DollarSign, Percent, Save, Fuel, Clock, MapPin, Plane, Car, Star, Route,
-  CalendarDays, Plus, Trash2, Pencil, X, Check, Dog, Package,
+  CalendarDays, Plus, Trash2, Pencil, X, Check, Dog, Package, Navigation, CircleDot,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 
@@ -42,6 +42,13 @@ const CATEGORY_ICONS: Record<string, React.ElementType> = {
   toll_sct_exit: Plane,
   toll_bne_entry: Plane,
   toll_bne_exit: Plane,
+  toll_gateway_motorway: Navigation,
+  toll_logan_motorway: Navigation,
+  toll_clem7: CircleDot,
+  toll_go_between_bridge: Navigation,
+  toll_legacy_way: CircleDot,
+  toll_airportlink_m7: Plane,
+  toll_toowoomba_bypass: Navigation,
 };
 
 export default function AdminPricing() {
@@ -125,7 +132,11 @@ export default function AdminPricing() {
   // Group settings by category
   const basePrices = settings?.filter(s => s.category === "base_price") ?? [];
   const rates = settings?.filter(s => s.category === "rate") ?? [];
-  const surcharges = settings?.filter(s => s.category === "surcharge") ?? [];
+  const allSurcharges = settings?.filter(s => s.category === "surcharge") ?? [];
+  // Separate airport tolls from other surcharges
+  const airportTolls = allSurcharges.filter(s => s.settingKey.startsWith("toll_sct_") || s.settingKey.startsWith("toll_bne_"));
+  const surcharges = allSurcharges.filter(s => !s.settingKey.startsWith("toll_sct_") && !s.settingKey.startsWith("toll_bne_"));
+  const roadTolls = settings?.filter(s => s.category === "road_toll") ?? [];
   const toggles = settings?.filter(s => s.category === "toggle") ?? [];
 
   const renderSettingCard = (setting: typeof settings extends (infer T)[] | undefined ? T : never) => {
@@ -150,7 +161,7 @@ export default function AdminPricing() {
                 <p className="text-xs text-muted-foreground">{setting.description}</p>
               </div>
             </div>
-            {(setting.category === "surcharge" || isToggle) && (
+            {(setting.category === "surcharge" || setting.category === "road_toll" || isToggle) && (
               <div className="flex items-center gap-2 shrink-0">
                 <Label className="text-xs text-muted-foreground">Active</Label>
                 <Switch
@@ -254,6 +265,34 @@ export default function AdminPricing() {
           <p className="text-sm text-muted-foreground">Additional charges applied based on conditions. Toggle active/inactive.</p>
           <div className="grid sm:grid-cols-2 gap-4">
             {surcharges.map(renderSettingCard)}
+          </div>
+        </section>
+
+        {/* Airport Tolls */}
+        <section className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Plane className="w-5 h-5 text-primary" />
+            <h2 className="font-heading text-xl font-semibold">Airport Tolls</h2>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Entry and exit toll charges for airport pickups and drop-offs. Toggle active/inactive to control which tolls are applied.
+          </p>
+          <div className="grid sm:grid-cols-2 gap-4">
+            {airportTolls.map(renderSettingCard)}
+          </div>
+        </section>
+
+        {/* Road Tolls */}
+        <section className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Navigation className="w-5 h-5 text-primary" />
+            <h2 className="font-heading text-xl font-semibold">Road Tolls</h2>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            QLD toll road charges automatically applied when a booking route passes through these corridors. Toggle active/inactive and adjust amounts as toll prices change.
+          </p>
+          <div className="grid sm:grid-cols-2 gap-4">
+            {roadTolls.map(renderSettingCard)}
           </div>
         </section>
 
