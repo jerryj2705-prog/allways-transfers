@@ -520,3 +520,6 @@
 - [x] Verify Stripe keys and webhook secret are correctly configured
 - [x] Test end-to-end Stripe checkout flow
 - [x] Add loading spinner animation to Pay Now retry button on confirmation page
+- [x] Create payment receipt email template
+- [x] Send payment receipt email from Stripe webhook on checkout.session.completed
+- [x] Include booking details, amount paid, and reference number in receipt

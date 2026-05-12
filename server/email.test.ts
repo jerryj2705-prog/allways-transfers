@@ -151,3 +151,55 @@ describe("email sending - admin cancellation notification", () => {
     expect(typeof result).toBe("boolean");
   });
 });
+
+describe("email sending - payment receipt", () => {
+  it("sendPaymentReceiptEmail sends without throwing", async () => {
+    const { sendPaymentReceiptEmail } = await import("./email");
+
+    const result = await sendPaymentReceiptEmail({
+      referenceNumber: "AWT-TEST006",
+      clientName: "Paying Client",
+      clientEmail: "delivered@resend.dev",
+      serviceType: "airport_transfer",
+      pickupAddress: "Brisbane Airport",
+      dropoffAddress: "Sunshine Coast",
+      pickupDate: Date.now() + 86400000,
+      passengerCount: 2,
+      vehicleName: "Luxury SUV",
+      totalPrice: "250.00",
+      paymentMethod: "stripe_prepay",
+      isPetFriendly: false,
+      numberOfPets: null,
+      petDescription: null,
+      publicHolidayName: null,
+      publicHolidaySurcharge: null,
+    });
+
+    expect(typeof result).toBe("boolean");
+  });
+
+  it("sendPaymentReceiptEmail handles booking with pets and public holiday", async () => {
+    const { sendPaymentReceiptEmail } = await import("./email");
+
+    const result = await sendPaymentReceiptEmail({
+      referenceNumber: "AWT-TEST007",
+      clientName: "Pet Owner",
+      clientEmail: "delivered@resend.dev",
+      serviceType: "point_to_point",
+      pickupAddress: "Noosa Heads",
+      dropoffAddress: "Brisbane CBD",
+      pickupDate: Date.now() + 86400000,
+      passengerCount: 1,
+      vehicleName: "Luxury Sedan",
+      totalPrice: "350.00",
+      paymentMethod: "stripe_prepay",
+      isPetFriendly: true,
+      numberOfPets: 2,
+      petDescription: "Two small dogs",
+      publicHolidayName: "Australia Day",
+      publicHolidaySurcharge: "50.00",
+    });
+
+    expect(typeof result).toBe("boolean");
+  });
+});

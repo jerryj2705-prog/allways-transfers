@@ -20,6 +20,7 @@ vi.mock("./email", () => ({
   sendCancellationConfirmationEmail: vi.fn(),
   sendAdminNewBookingNotification: vi.fn(),
   sendAdminCancellationNotification: vi.fn(),
+  sendPaymentReceiptEmail: vi.fn().mockResolvedValue(true),
 }));
 
 // Mock the notification module

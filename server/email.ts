@@ -833,3 +833,168 @@ export async function sendPasswordResetEmail(data: PasswordResetEmailData): Prom
     return false;
   }
 }
+
+// ─── Payment Receipt Email ───
+
+export interface PaymentReceiptEmailData {
+  referenceNumber: string;
+  clientName: string;
+  clientEmail: string;
+  serviceType: string;
+  pickupAddress: string;
+  dropoffAddress: string | null;
+  pickupDate: number;
+  passengerCount: number;
+  vehicleName: string;
+  totalPrice: string;
+  paymentMethod: string;
+  isPetFriendly?: boolean;
+  numberOfPets?: number | null;
+  petDescription?: string | null;
+  publicHolidayName?: string | null;
+  publicHolidaySurcharge?: string | null;
+}
+
+export async function sendPaymentReceiptEmail(data: PaymentReceiptEmailData): Promise<boolean> {
+  if (process.env.VITEST || process.env.NODE_ENV === "test") {
+    console.log(`[Email] Skipping email send in test environment for ${data.referenceNumber}`);
+    return true;
+  }
+  const resend = getResend();
+
+  const paidAt = new Date().toLocaleString("en-AU", {
+    timeZone: "Australia/Brisbane",
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+
+  const bodyContent = `
+    <h1 style="margin:0 0 8px;font-size:24px;color:#d4a843;font-weight:700;">Payment Receipt</h1>
+    <p style="margin:0 0 24px;font-size:15px;color:#a3a3a3;">Thank you for your payment, ${data.clientName}. Your transaction has been completed successfully.</p>
+
+    <!-- Payment Confirmation Badge -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+      <tr>
+        <td style="background-color:#1a3a1a;border:1px solid #2d5a2d;border-radius:8px;padding:16px;text-align:center;">
+          <p style="margin:0 0 4px;font-size:14px;color:#4ade80;font-weight:600;">&#10003; Payment Successful</p>
+          <p style="margin:0;font-size:12px;color:#86efac;">Processed on ${paidAt} (AEST)</p>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Reference & Amount -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+      <tr>
+        <td style="background-color:#262626;border-radius:8px;padding:16px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+            <tr>
+              <td style="padding:0 0 12px;">
+                <span style="color:#a3a3a3;font-size:12px;text-transform:uppercase;letter-spacing:1px;">Booking Reference</span><br/>
+                <span style="color:#d4a843;font-size:20px;font-weight:700;letter-spacing:2px;">${data.referenceNumber}</span>
+              </td>
+            </tr>
+            <tr>
+              <td style="border-top:1px solid #333;padding:12px 0 0;">
+                <span style="color:#a3a3a3;font-size:12px;text-transform:uppercase;letter-spacing:1px;">Amount Paid</span><br/>
+                <span style="color:#4ade80;font-size:24px;font-weight:700;">$${data.totalPrice} AUD</span>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:8px 0 0;">
+                <span style="color:#a3a3a3;font-size:12px;text-transform:uppercase;letter-spacing:1px;">Payment Method</span><br/>
+                <span style="color:#e5e5e5;font-size:15px;">${formatPaymentMethod(data.paymentMethod)}</span>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Trip Summary -->
+    <p style="margin:0 0 12px;font-size:12px;color:#a3a3a3;text-transform:uppercase;letter-spacing:1px;">Trip Summary</p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+      <tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Service</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${formatServiceType(data.serviceType)}</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Date &amp; Time</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${formatDate(data.pickupDate)} at ${formatTime(data.pickupDate)} (AEST)</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Pickup</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${data.pickupAddress}</span>
+        </td>
+      </tr>
+      ${data.dropoffAddress ? `<tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Drop-off</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${data.dropoffAddress}</span>
+        </td>
+      </tr>` : ""}
+      <tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Vehicle</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${data.vehicleName}</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Passengers</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${data.passengerCount}</span>
+        </td>
+      </tr>
+      ${data.isPetFriendly && data.numberOfPets ? `<tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Pets</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${data.numberOfPets} pet${data.numberOfPets !== 1 ? "s" : ""}${data.petDescription ? ` — ${data.petDescription}` : ""}</span>
+        </td>
+      </tr>` : ""}
+      ${data.publicHolidayName ? `<tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Public Holiday</span><br/>
+          <span style="color:#d4a843;font-size:15px;">&#127881; ${data.publicHolidayName}${parseFloat(data.publicHolidaySurcharge ?? "0") > 0 ? ` — $${parseFloat(data.publicHolidaySurcharge!).toFixed(2)} surcharge` : ""}</span>
+        </td>
+      </tr>` : ""}
+    </table>
+
+    <!-- Note -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td style="background-color:#262626;border-radius:8px;padding:16px;">
+          <p style="margin:0 0 4px;font-size:13px;color:#a3a3a3;">
+            This email serves as your payment receipt. Please retain it for your records.
+            If you have any questions about your booking or payment, please contact us at
+            <a href="mailto:bookings@allwaystransfers.com.au" style="color:#d4a843;text-decoration:underline;">bookings@allwaystransfers.com.au</a>
+            or call <strong style="color:#e5e5e5;">0466 544 068</strong>.
+          </p>
+        </td>
+      </tr>
+    </table>
+  `;
+
+  try {
+    const result = await resend.emails.send({
+      from: `All Ways Transfers <${ENV.resendFromEmail}>`,
+      to: [data.clientEmail],
+      subject: `Payment Receipt — ${data.referenceNumber}`,
+      html: wrapInTemplate(bodyContent),
+    });
+
+    if (result.error) {
+      console.warn("[Email] Failed to send payment receipt:", result.error);
+      return false;
+    }
+
+    console.log(`[Email] Payment receipt sent to ${data.clientEmail} for ${data.referenceNumber}`);
+    return true;
+  } catch (error) {
+    console.warn("[Email] Error sending payment receipt:", error);
+    return false;
+  }
+}

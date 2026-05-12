@@ -8,7 +8,8 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { constructWebhookEvent } from "../stripe";
-import { getBookingByStripeSession, updateBookingPaymentStatus } from "../db";
+import { getBookingById, getBookingByStripeSession, updateBookingPaymentStatus } from "../db";
+import { sendPaymentReceiptEmail } from "../email";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -55,6 +56,33 @@ async function startServer() {
           if (bookingId && paymentStatus === "paid") {
             await updateBookingPaymentStatus(parseInt(bookingId), "paid");
             console.log(`[Webhook] Payment completed for booking ${bookingId}`);
+
+            // Send payment receipt email
+            try {
+              const booking = await getBookingById(parseInt(bookingId));
+              if (booking) {
+                await sendPaymentReceiptEmail({
+                  referenceNumber: booking.referenceNumber,
+                  clientName: booking.clientName,
+                  clientEmail: booking.clientEmail,
+                  serviceType: booking.serviceType,
+                  pickupAddress: booking.pickupAddress,
+                  dropoffAddress: booking.dropoffAddress,
+                  pickupDate: booking.pickupDate,
+                  passengerCount: booking.passengerCount,
+                  vehicleName: booking.vehicleName,
+                  totalPrice: booking.totalPrice ?? "0",
+                  paymentMethod: booking.paymentMethod ?? "stripe_prepay",
+                  isPetFriendly: booking.isPetFriendly === 1,
+                  numberOfPets: booking.numberOfPets,
+                  petDescription: booking.petDescription,
+                  publicHolidayName: booking.publicHolidayName,
+                  publicHolidaySurcharge: booking.publicHolidaySurcharge,
+                });
+              }
+            } catch (emailErr) {
+              console.warn(`[Webhook] Failed to send payment receipt email for booking ${bookingId}:`, emailErr);
+            }
           }
           break;
         }
