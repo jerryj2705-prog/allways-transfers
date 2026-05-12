@@ -1,0 +1,9 @@
+{
+  "query": "INSERT INTO pricing_settings (settingKey, settingValue, label, description, category, isActive) VALUES ('base_freight', '80.00', 'Freight Base Price', 'Base price for freight/delivery service', 'base_price', 1);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway05.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3HWZfK7Ep6HZCJY.9379f7ca03be --database 2tTLZKCNzV8jFwxBsLMjpn --execute INSERT INTO pricing_settings (settingKey, settingValue, label, description, category, isActive) VALUES ('base_freight', '80.00', 'Freight Base Price', 'Base price for freight/delivery service', 'base_price', 1);",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1900
+}

@@ -1,0 +1,2 @@
+ALTER TABLE `bookings` MODIFY COLUMN `serviceType` enum('airport_transfer','hourly_hire','point_to_point','special_events','freight') NOT NULL;--> statement-breakpoint
+ALTER TABLE `reviews` MODIFY COLUMN `serviceType` enum('airport_transfer','hourly_hire','point_to_point','special_events','freight') NOT NULL;

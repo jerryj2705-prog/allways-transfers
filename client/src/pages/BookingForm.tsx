@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import {
   Plane, Clock, MapPin, Star, ArrowLeft, ArrowRight, Check,
   Users, Briefcase, Truck, ChevronLeft, CreditCard, Banknote, Wallet,
-  AlertTriangle, Search, MapPinned, Baby, Dog, Plus, Minus, CalendarIcon, Info,
+  AlertTriangle, Search, MapPinned, Baby, Dog, Plus, Minus, CalendarIcon, Info, Package,
 } from "lucide-react";
 import { SERVICE_TYPES, SUV_CAPACITY, PAYMENT_METHODS } from "@shared/types";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
@@ -24,18 +24,20 @@ const SVC_AIRPORT_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/31051966348642602
 const SVC_HOURLY_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/lady-in-limo_de251852.png";
 const SVC_P2P_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/roads-spaghetti_814c9a5d.png";
 const SVC_EVENTS_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/crowd-event_baea8a77.jpg";
+const SVC_FREIGHT_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/freight-van_bff50b19.jpg";
 
 const SERVICE_IMAGES: Record<string, string> = {
   airport_transfer: SVC_AIRPORT_IMG,
   hourly_hire: SVC_HOURLY_IMG,
   point_to_point: SVC_P2P_IMG,
   special_events: SVC_EVENTS_IMG,
+  freight: SVC_FREIGHT_IMG,
 };
 
 type ServiceType = keyof typeof SERVICE_TYPES;
 
 const SERVICE_ICONS: Record<string, React.ElementType> = {
-  Plane, Clock, MapPin, Star,
+  Plane, Clock, MapPin, Star, Package,
 };
 
 const PAYMENT_ICONS: Record<PaymentMethod, React.ElementType> = {
@@ -177,12 +179,26 @@ export default function BookingForm() {
   const urlParams = new URLSearchParams(window.location.search);
   const preSelectedService = urlParams.get("service") as ServiceType | null;
   const isPreSelected = preSelectedService && preSelectedService in SERVICE_TYPES;
-  const isVanStandalone = urlParams.get("vehicle") === "van";
+  const isVanStandaloneUrl = urlParams.get("vehicle") === "van";
 
   const [step, setStep] = useState(isPreSelected ? 1 : 0);
 
   // Form state
-  const [serviceType, setServiceType] = useState<ServiceType | "">(isPreSelected ? preSelectedService : "");
+  const [serviceType, setServiceTypeRaw] = useState<ServiceType | "">(isPreSelected ? preSelectedService : "");
+  const isFreight = serviceType === "freight";
+  const isVanStandalone = isVanStandaloneUrl || isFreight;
+
+  // When freight is selected, auto-set van and 0 passengers
+  const setServiceType = (val: ServiceType | "") => {
+    setServiceTypeRaw(val);
+    if (val === "freight") {
+      setVehicleSelection("van");
+      setPassengerCount(0);
+      setRearFacingSeats(0);
+      setForwardFacingSeats(0);
+      setBoosterSeats(0);
+    }
+  };
   const [pickupAddress, setPickupAddress] = useState("");
   const [pickupSuburb, setPickupSuburb] = useState("");
   const [dropoffAddress, setDropoffAddress] = useState("");
@@ -192,7 +208,7 @@ export default function BookingForm() {
   const [pickupTime, setPickupTime] = useState("");
   const [timeOpen, setTimeOpen] = useState(false);
   const [passengerCount, setPassengerCount] = useState(1);
-  const [vehicleSelection, setVehicleSelection] = useState<"suv" | "van" | "both">(isVanStandalone ? "van" : "suv");
+  const [vehicleSelection, setVehicleSelection] = useState<"suv" | "van" | "both">(isVanStandaloneUrl ? "van" : "suv");
   const needsSupportVan = vehicleSelection === "both";
   const [rearFacingSeats, setRearFacingSeats] = useState(0);
   const [forwardFacingSeats, setForwardFacingSeats] = useState(0);
@@ -236,6 +252,7 @@ export default function BookingForm() {
     hourly_hire: "base_hourly_hire",
     point_to_point: "base_point_to_point",
     special_events: "base_special_events",
+    freight: "base_freight",
   };
 
   // Lookup suburb info for area detection display
@@ -389,7 +406,9 @@ export default function BookingForm() {
     });
   };
 
-  const passengerNote = isVanStandalone
+  const passengerNote = isFreight
+    ? "Freight — no passengers (goods delivery only)"
+    : isVanStandalone
     ? "Support Van — 0 passengers (freight only) or 1 passenger (front seat)"
     : passengerCount > SUV_CAPACITY.withLuggage
       ? "With limited check-in luggage allowance"
@@ -738,9 +757,9 @@ export default function BookingForm() {
                     type="button"
                     variant="outline"
                     size="icon"
-                    onClick={() => setPassengerCount(Math.min(isVanStandalone ? 1 : SUV_CAPACITY.limitedLuggage, passengerCount + 1))}
+                    onClick={() => setPassengerCount(Math.min(isFreight ? 0 : isVanStandalone ? 1 : SUV_CAPACITY.limitedLuggage, passengerCount + 1))}
                     className="bg-background"
-                    disabled={isVanStandalone}
+                    disabled={isFreight || isVanStandalone}
                   >
                     +
                   </Button>

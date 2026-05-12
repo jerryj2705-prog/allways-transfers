@@ -286,7 +286,7 @@ export const appRouter = router({
           clientName: z.string().min(1, "Name is required"),
           clientEmail: z.string().email("Valid email is required"),
           clientPhone: z.string().min(1, "Phone is required"),
-          serviceType: z.enum(["airport_transfer", "hourly_hire", "point_to_point", "special_events"]),
+          serviceType: z.enum(["airport_transfer", "hourly_hire", "point_to_point", "special_events", "freight"]),
           pickupAddress: z.string().min(1, "Pickup address is required"),
           dropoffAddress: z.string().optional(),
           pickupDate: z.number().min(1, "Pickup date is required"),

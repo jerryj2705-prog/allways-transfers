@@ -29,6 +29,11 @@ export const SERVICE_TYPES = {
     description: "Weddings, corporate events, funerals, and special occasions",
     icon: "Star",
   },
+  freight: {
+    label: "Freight",
+    description: "Goods and parcel delivery using our spacious van",
+    icon: "Package",
+  },
 } as const;
 
 export type ServiceType = keyof typeof SERVICE_TYPES;

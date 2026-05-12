@@ -43,7 +43,7 @@ export const bookings = mysqlTable("bookings", {
   clientEmail: varchar("clientEmail", { length: 320 }).notNull(),
   clientPhone: varchar("clientPhone", { length: 30 }).notNull(),
   // Service details
-  serviceType: mysqlEnum("serviceType", ["airport_transfer", "hourly_hire", "point_to_point", "special_events"]).notNull(),
+  serviceType: mysqlEnum("serviceType", ["airport_transfer", "hourly_hire", "point_to_point", "special_events", "freight"]).notNull(),
   // Location details
   pickupAddress: text("pickupAddress").notNull(),
   dropoffAddress: text("dropoffAddress"),
@@ -150,7 +150,7 @@ export const reviews = mysqlTable("reviews", {
   reviewerName: varchar("reviewerName", { length: 200 }).notNull(),
   rating: int("rating").notNull(), // 1-5 stars
   comment: text("comment"),
-  serviceType: mysqlEnum("serviceType", ["airport_transfer", "hourly_hire", "point_to_point", "special_events"]).notNull(),
+  serviceType: mysqlEnum("serviceType", ["airport_transfer", "hourly_hire", "point_to_point", "special_events", "freight"]).notNull(),
   status: mysqlEnum("status", ["pending", "approved", "rejected"]).default("pending").notNull(),
   adminNotes: text("adminNotes"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

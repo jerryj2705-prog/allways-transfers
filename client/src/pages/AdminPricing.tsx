@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import {
   ChevronLeft, DollarSign, Percent, Save, Fuel, Clock, MapPin, Plane, Car, Star, Route,
-  CalendarDays, Plus, Trash2, Pencil, X, Check, Dog,
+  CalendarDays, Plus, Trash2, Pencil, X, Check, Dog, Package,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 
@@ -22,6 +22,7 @@ const CATEGORY_ICONS: Record<string, React.ElementType> = {
   base_hourly_hire: Clock,
   base_point_to_point: Route,
   base_special_events: Star,
+  base_freight: Package,
   rate_per_km: Car,
   rate_support_van: Car,
   surcharge_out_of_hours: Clock,

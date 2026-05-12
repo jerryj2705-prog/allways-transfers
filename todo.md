@@ -531,3 +531,7 @@
 - [x] Add paymentNote column to bookings table for payment status change reason
 - [x] Add payment summary cards (total revenue, unpaid, refunded) to admin dashboard
 - [x] Add hover effect on payment summary cards showing payment method breakdown
+- [x] Add Freight service type to shared types
+- [x] Update database schema enum to include freight
+- [x] Add Van as primary vehicle for Freight in booking form
+- [x] Update booking form UI to handle Freight category

@@ -587,6 +587,7 @@ export async function calculatePrice(params: {
     hourly_hire: "base_hourly_hire",
     point_to_point: "base_point_to_point",
     special_events: "base_special_events",
+    freight: "base_freight",
   };
   let basePrice = getVal(serviceKeyMap[params.serviceType] || "base_point_to_point");
 

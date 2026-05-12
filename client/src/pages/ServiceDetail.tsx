@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useLocation, useParams } from "wouter";
 import { useState } from "react";
-import { Plane, Clock, MapPin, Star, ArrowLeft, ArrowRight, Menu, X, Check, Shield, Users, Baby, PawPrint, DollarSign } from "lucide-react";
+import { Plane, Clock, MapPin, Star, ArrowLeft, ArrowRight, Menu, X, Check, Shield, Users, Baby, PawPrint, DollarSign, Package, Truck } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 import { trpc } from "@/lib/trpc";
 
@@ -11,8 +11,9 @@ const AIRPORT_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2t
 const CHAUFFEUR_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/chauffeur_433d77f4.jpg";
 const P2P_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/private-jet_ee739796.png";
 const WEDDING_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/wedding_92293137.png";
+const FREIGHT_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/freight-van_bff50b19.jpg";
 
-type ServiceKey = "airport_transfer" | "hourly_hire" | "point_to_point" | "special_events";
+type ServiceKey = "airport_transfer" | "hourly_hire" | "point_to_point" | "special_events" | "freight";
 
 const SERVICE_DATA: Record<ServiceKey, {
   title: string;
@@ -180,9 +181,47 @@ const SERVICE_DATA: Record<ServiceKey, {
       "Impeccable presentation",
     ],
   },
+  freight: {
+    title: "Freight",
+    tagline: "RELIABLE GOODS DELIVERY",
+    icon: Package,
+    image: FREIGHT_IMG,
+    priceKey: "base_freight",
+    heroDescription: "Need to move goods, parcels, or oversized items across the Sunshine Coast or to Brisbane? Our Mercedes-Benz Vito cargo van provides reliable, professional freight delivery with the same premium service you expect from All Ways Transfers.",
+    sections: [
+      {
+        title: "How It Works",
+        icon: Check,
+        content: "Book your freight delivery online with pickup and drop-off locations. Our driver arrives with the Mercedes-Benz Vito, carefully loads your items, and delivers them safely to the destination. You'll receive a fixed upfront quote based on distance — no hidden fees.",
+      },
+      {
+        title: "What We Carry",
+        icon: Truck,
+        content: "Golf clubs, surfboards, business equipment, furniture, parcels, event supplies, and more. Our spacious van handles bulky and oversized items that won't fit in a standard vehicle. If you're unsure whether your items will fit, contact us and we'll advise.",
+      },
+      {
+        title: "Coverage Area",
+        icon: MapPin,
+        content: "We service the entire Sunshine Coast region, Noosa, Hinterland areas, Brisbane, and the Gold Coast. Long-distance freight runs are available on request. Same-day delivery is subject to availability.",
+      },
+      {
+        title: "Perfect For",
+        icon: Users,
+        content: "Businesses needing reliable local delivery, event organisers moving supplies between venues, travellers with oversized luggage or sporting equipment, and anyone who needs items moved professionally and on time.",
+      },
+    ],
+    highlights: [
+      "Mercedes-Benz Vito van",
+      "Fixed upfront pricing",
+      "Oversized items welcome",
+      "Same-day available",
+      "Professional handling",
+      "Sunshine Coast & Brisbane",
+    ],
+  },
 };
 
-const VALID_KEYS = new Set<string>(["airport_transfer", "hourly_hire", "point_to_point", "special_events"]);
+const VALID_KEYS = new Set<string>(["airport_transfer", "hourly_hire", "point_to_point", "special_events", "freight"]);
 
 export default function ServiceDetail() {
   const params = useParams<{ serviceType: string }>();
