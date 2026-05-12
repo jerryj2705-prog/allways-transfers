@@ -1,0 +1,34 @@
+{
+  "query": "SELECT id, settingKey, settingValue, label, category, isActive FROM pricing_settings WHERE category = 'rate' ORDER BY settingKey;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway05.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3HWZfK7Ep6HZCJY.9379f7ca03be --database 2tTLZKCNzV8jFwxBsLMjpn --execute SELECT id, settingKey, settingValue, label, category, isActive FROM pricing_settings WHERE category = 'rate' ORDER BY settingKey;",
+  "rows": [
+    {
+      "id": "10",
+      "settingKey": "min_hourly_hours",
+      "settingValue": "3.00",
+      "label": "Hourly Hire – Minimum Hours",
+      "category": "rate",
+      "isActive": "1"
+    },
+    {
+      "id": "5",
+      "settingKey": "rate_per_km",
+      "settingValue": "2.50",
+      "label": "Per Kilometre Rate",
+      "category": "rate",
+      "isActive": "1"
+    },
+    {
+      "id": "6",
+      "settingKey": "rate_support_van",
+      "settingValue": "120.00",
+      "label": "Support Van – Base Price",
+      "category": "rate",
+      "isActive": "1"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tsettingKey\tsettingValue\tlabel\tcategory\tisActive\n10\tmin_hourly_hours\t3.00\tHourly Hire – Minimum Hours\trate\t1\n5\trate_per_km\t2.50\tPer Kilometre Rate\trate\t1\n6\trate_support_van\t120.00\tSupport Van – Base Price\trate\t1\n",
+  "stderr": "",
+  "execution_time_ms": 2299
+}

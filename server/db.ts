@@ -3,6 +3,7 @@ import { drizzle } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
 import { InsertUser, users, vehicles, bookings, pricingSettings, enquiries, publicHolidays, passwordResetTokens, type InsertBooking, type Booking, type PricingSetting, type InsertEnquiry, type Enquiry, type InsertPublicHoliday, type PublicHoliday } from "../drizzle/schema";
 import { ENV } from './_core/env';
+import { lookupSuburb } from "@shared/suburbs";
 
 let _db: any = null;
 let _pool: any = null;
@@ -714,14 +715,22 @@ export async function calculatePrice(params: {
   const roadTollDetails: { road: string; amount: number }[] = [];
   const hasTollRoads = !params.preferTollFree; // only apply if customer accepts tolls
 
-  // Define route corridors: which suburb patterns suggest a toll road is used
-  const TOLL_CORRIDORS: { key: string; label: string; pickupPatterns: string[]; destPatterns: string[]; bidirectional?: boolean }[] = [
+  // Resolve LGA for pickup and destination suburbs
+  const pickupInfo = lookupSuburb(params.pickupSuburb || "");
+  const destInfo = lookupSuburb(params.destinationSuburb || "");
+  const pickupLGA = pickupInfo?.lga?.toLowerCase() || "";
+  const destLGA = destInfo?.lga?.toLowerCase() || "";
+
+  // Define route corridors: which suburb/LGA patterns suggest a toll road is used
+  const TOLL_CORRIDORS: { key: string; label: string; pickupPatterns: string[]; destPatterns: string[]; pickupLGAs?: string[]; destLGAs?: string[]; bidirectional?: boolean }[] = [
     {
       key: "toll_gateway_motorway",
       label: "Gateway Motorway",
-      // Gateway connects north Brisbane / Sunshine Coast to south Brisbane / Gold Coast
-      pickupPatterns: ["sunshine coast", "caloundra", "maroochydore", "noosa", "mooloolaba", "nambour", "caboolture", "morayfield", "north lakes", "redcliffe", "bribie", "deception bay", "burpengary", "narangba", "petrie"],
-      destPatterns: ["gold coast", "surfers paradise", "broadbeach", "coolangatta", "robina", "southport", "nerang", "ormeau", "coomera", "helensvale", "logan", "beenleigh", "springwood", "browns plains", "ipswich", "springfield"],
+      // Gateway connects north Brisbane / Sunshine Coast / Moreton Bay to south Brisbane / Gold Coast / Logan
+      pickupPatterns: ["caboolture", "morayfield", "north lakes", "redcliffe", "bribie", "deception bay", "burpengary", "narangba", "petrie"],
+      pickupLGAs: ["sunshine coast", "noosa", "moreton bay"],
+      destPatterns: [],
+      destLGAs: ["gold coast", "logan", "ipswich", "brisbane", "redland", "scenic rim"],
       bidirectional: true,
     },
     {
@@ -780,15 +789,24 @@ export async function calculatePrice(params: {
     const amt = getVal(corridor.key);
     if (amt <= 0) continue;
 
-    const pickupMatchesOrigin = corridor.pickupPatterns.some(p => pickupLower.includes(p));
-    const destMatchesDest = corridor.destPatterns.some(p => destLower.includes(p));
+    // Match by suburb name patterns OR by LGA
+    const pickupMatchesOriginByName = corridor.pickupPatterns.some(p => pickupLower.includes(p));
+    const pickupMatchesOriginByLGA = corridor.pickupLGAs?.some(lga => pickupLGA === lga) ?? false;
+    const pickupMatchesOrigin = pickupMatchesOriginByName || pickupMatchesOriginByLGA;
+
+    const destMatchesDestByName = corridor.destPatterns.some(p => destLower.includes(p));
+    const destMatchesDestByLGA = corridor.destLGAs?.some(lga => destLGA === lga) ?? false;
+    const destMatchesDest = destMatchesDestByName || destMatchesDestByLGA;
+
     const forwardMatch = pickupMatchesOrigin && destMatchesDest;
 
     let reverseMatch = false;
     if (corridor.bidirectional) {
-      const pickupMatchesDest = corridor.destPatterns.some(p => pickupLower.includes(p));
-      const destMatchesOrigin = corridor.pickupPatterns.some(p => destLower.includes(p));
-      reverseMatch = pickupMatchesDest && destMatchesOrigin;
+      const pickupMatchesDestByName = corridor.destPatterns.some(p => pickupLower.includes(p));
+      const pickupMatchesDestByLGA = corridor.destLGAs?.some(lga => pickupLGA === lga) ?? false;
+      const destMatchesOriginByName = corridor.pickupPatterns.some(p => destLower.includes(p));
+      const destMatchesOriginByLGA = corridor.pickupLGAs?.some(lga => destLGA === lga) ?? false;
+      reverseMatch = (pickupMatchesDestByName || pickupMatchesDestByLGA) && (destMatchesOriginByName || destMatchesOriginByLGA);
     }
 
     if (forwardMatch || reverseMatch) {

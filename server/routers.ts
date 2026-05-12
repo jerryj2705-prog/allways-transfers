@@ -62,7 +62,7 @@ import { createCheckoutSession } from "./stripe";
 import { notifyOwner } from "./_core/notification";
 import { sendBookingConfirmationEmail, sendCancellationConfirmationEmail, sendAdminNewBookingNotification, sendAdminCancellationNotification, sendPasswordResetEmail } from "./email";
 import crypto from "crypto";
-import { lookupSuburb, estimateDistance, isOutOfArea, getAllSuburbNames } from "@shared/suburbs";
+import { lookupSuburb, estimateDistance, isOutOfArea, getAllSuburbNames, getAllLocationsWithType } from "@shared/suburbs";
 
 export const appRouter = router({
   system: systemRouter,
@@ -932,6 +932,11 @@ export const appRouter = router({
     // Public: get all suburb names for autocomplete
     suburbs: publicProcedure.query(() => {
       return getAllSuburbNames();
+    }),
+
+    // Get all locations (suburbs + landmarks) with type info
+    locationsWithType: publicProcedure.query(() => {
+      return getAllLocationsWithType();
     }),
 
     // Admin: update a pricing setting

@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import {
   Plane, Clock, MapPin, Star, ArrowLeft, ArrowRight, Check,
   Users, Briefcase, Truck, ChevronLeft, CreditCard, Banknote, Wallet,
-  AlertTriangle, Search, MapPinned, Baby, Dog, Plus, Minus, CalendarIcon, Info, Package, Navigation,
+  AlertTriangle, Search, MapPinned, Baby, Dog, Plus, Minus, CalendarIcon, Info, Package, Navigation, Landmark,
 } from "lucide-react";
 import { SERVICE_TYPES, SUV_CAPACITY, PAYMENT_METHODS } from "@shared/types";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
@@ -65,6 +65,7 @@ function SuburbAutocomplete({
   suburbs,
   id,
   areaInfo,
+  landmarkSet,
 }: {
   label: string;
   placeholder: string;
@@ -73,6 +74,7 @@ function SuburbAutocomplete({
   suburbs: string[];
   id: string;
   areaInfo?: { area: string; lga: string } | null;
+  landmarkSet?: Set<string>;
 }) {
   const [query, setQuery] = useState(value);
   const [open, setOpen] = useState(false);
@@ -156,8 +158,15 @@ function SuburbAutocomplete({
                   setOpen(false);
                 }}
               >
-                <MapPinned className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                {suburb}
+                {landmarkSet?.has(suburb) ? (
+                  <Landmark className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                ) : (
+                  <MapPinned className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                )}
+                <span className="flex-1">{suburb}</span>
+                {landmarkSet?.has(suburb) && (
+                  <span className="text-[10px] text-amber-400/70 font-medium uppercase tracking-wide">Landmark</span>
+                )}
               </button>
             ))}
           </div>
@@ -243,6 +252,16 @@ export default function BookingForm() {
   // Fetch suburb list for autocomplete
   const { data: suburbList } = trpc.pricing.suburbs.useQuery();
   const suburbs = suburbList ?? [];
+  const { data: locationsWithType } = trpc.pricing.locationsWithType.useQuery();
+  const landmarkSet = useMemo(() => {
+    const set = new Set<string>();
+    if (locationsWithType) {
+      for (const loc of locationsWithType) {
+        if (loc.isLandmark) set.add(loc.name);
+      }
+    }
+    return set;
+  }, [locationsWithType]);
 
   // Fetch pricing settings for base prices on service cards
   const { data: pricingSettings } = trpc.pricing.getAll.useQuery();
@@ -585,13 +604,14 @@ export default function BookingForm() {
 
               {/* Pickup Suburb - Autocomplete */}
               <SuburbAutocomplete
-                label="Pickup Suburb"
-                placeholder="Start typing suburb name..."
+                label="Pickup Suburb / Landmark"
+                placeholder="Start typing suburb or landmark..."
                 value={pickupSuburb}
                 onChange={setPickupSuburb}
                 suburbs={suburbs}
                 id="pickupSuburb"
                 areaInfo={pickupInfo}
+                landmarkSet={landmarkSet}
               />
 
               {/* Drop-off (not for hourly hire) */}
@@ -609,13 +629,14 @@ export default function BookingForm() {
                   </div>
 
                   <SuburbAutocomplete
-                    label="Drop-off Suburb"
-                    placeholder="Start typing suburb name..."
+                    label="Drop-off Suburb / Landmark"
+                    placeholder="Start typing suburb or landmark..."
                     value={dropoffSuburb}
                     onChange={setDropoffSuburb}
                     suburbs={suburbs}
                     id="dropoffSuburb"
                     areaInfo={dropoffInfo}
+                    landmarkSet={landmarkSet}
                   />
                 </>
               )}
@@ -637,8 +658,8 @@ export default function BookingForm() {
                 </div>
               )}
 
-              {/* Route Preference — shown when road tolls are detected */}
-              {pricing.roadTollSurcharge > 0 || routePreference === "toll_free" ? (
+              {/* Route Preference — always shown for point-to-point, airport transfer, and freight services */}
+              {(serviceType === "point_to_point" || serviceType === "airport_transfer" || serviceType === "freight") ? (
                 <div className="p-4 rounded-lg bg-secondary/50 space-y-3">
                   <div className="flex items-center gap-2">
                     <Navigation className="w-4 h-4 text-primary" />
@@ -1692,7 +1713,7 @@ export default function BookingForm() {
                         <p className="font-medium text-amber-400">Secondary area surcharge applies</p>
                       </div>
                     )}
-                    {(pricing.roadTollSurcharge > 0 || routePreference === "toll_free") && (
+                    {(serviceType === "point_to_point" || serviceType === "airport_transfer" || serviceType === "freight") && (
                       <div>
                         <p className="text-muted-foreground">Route</p>
                         <p className={`font-medium flex items-center gap-1 ${

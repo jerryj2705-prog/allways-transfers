@@ -569,4 +569,10 @@
 - [x] Update payment receipt email tests to include routePreference
 - [x] Fix booking INSERT query missing routePreference and tollOverride columns (causes booking creation failure) — root cause: stale dist/index.js build; fixed by running pnpm build to regenerate
 - [x] Ensure road toll settings (7 QLD toll roads) are visible and editable in admin pricing dashboard
-- [x] Ensure airport toll settings (Sunshine Coast Airport, Brisbane Airport entry/exit) are visible and editable in admin pricing dashboard
+- [x] Ensure airport toll settings (Sunshine Coast Airport, Brisbane Airport entry/exit) are visible and editable in admin pricing dashboard- [x] Fix per-km rate showing $0 for 114km distance — was working correctly in code, issue was stale published build- [ ] Fix airport toll options not visible in admin pricing page (user reports they still can't see them)
+- [ ] Ensure published site has latest build with routePreference/tollOverride columns
+- [x] Verify route preference toggle (fastest/toll-free) is present in booking form source code and in the built dist
+- [x] Add QLD landmarks (Parkland, Roma Street Parkland, South Bank, theme parks, hospitals, universities, airports, shopping centres, stadiums, etc.) to suburb/location data
+- [x] Update SuburbAutocomplete to visually distinguish landmarks from suburbs
+- [x] Ensure landmarks work with distance estimation and pricing engine
+- [x] Add all Sunshine Coast and Noosa suburbs to Gateway Motorway toll corridor pickup patterns (refactored to LGA-based matching)

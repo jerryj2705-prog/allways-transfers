@@ -15,6 +15,8 @@ export interface SuburbInfo {
   /** Approximate lat/lng for distance estimation */
   lat: number;
   lng: number;
+  /** Whether this is a landmark rather than a suburb */
+  isLandmark?: boolean;
 }
 
 // LGA classification
@@ -362,17 +364,127 @@ const SUBURB_DATA: [string, string, number, number][] = [
   ["Lowood", "Somerset", -27.468, 152.578],
   ["Toogoolawah", "Somerset", -27.088, 152.378],
   ["Kilcoy", "Somerset", -26.948, 152.568],
+
+  // === LANDMARKS & KEY LOCATIONS ===
+  // Sunshine Coast Landmarks
+  ["Sunshine Coast Airport", "Sunshine Coast", -26.604, 153.091],
+  ["Sunshine Coast University Hospital", "Sunshine Coast", -26.737, 153.112],
+  ["Sunshine Coast University", "Sunshine Coast", -26.718, 153.063],
+  ["USC Sunshine Coast", "Sunshine Coast", -26.718, 153.063],
+  ["Sunshine Plaza", "Sunshine Coast", -26.654, 153.070],
+  ["Stockland Caloundra", "Sunshine Coast", -26.798, 153.130],
+  ["Big Pineapple", "Sunshine Coast", -26.670, 153.000],
+  ["Australia Zoo", "Sunshine Coast", -26.836, 152.960],
+  ["Aussie World", "Sunshine Coast", -26.810, 153.020],
+  ["SEA LIFE Sunshine Coast", "Sunshine Coast", -26.654, 153.100],
+  ["Nambour General Hospital", "Sunshine Coast", -26.628, 152.960],
+  ["Buderim Private Hospital", "Sunshine Coast", -26.680, 153.050],
+  ["Caloundra Private Hospital", "Sunshine Coast", -26.798, 153.125],
+  ["Kawana Shoppingworld", "Sunshine Coast", -26.720, 153.118],
+  ["Noosa Civic", "Noosa", -26.395, 153.050],
+  ["Noosa Junction", "Noosa", -26.385, 153.070],
+  ["Noosa Main Beach", "Noosa", -26.378, 153.090],
+  ["Noosa National Park", "Noosa", -26.380, 153.098],
+  ["Hastings Street Noosa", "Noosa", -26.380, 153.088],
+  ["Noosa Marina", "Noosa", -26.393, 153.058],
+  ["Eumundi Markets", "Noosa", -26.478, 152.952],
+
+  // Brisbane Landmarks
+  ["Roma Street Parkland", "Brisbane", -27.462, 153.014],
+  ["Parkland", "Brisbane", -27.462, 153.014],
+  ["South Bank Parklands", "Brisbane", -27.480, 153.022],
+  ["South Bank", "Brisbane", -27.480, 153.022],
+  ["Queen Street Mall", "Brisbane", -27.470, 153.026],
+  ["Brisbane Convention Centre", "Brisbane", -27.480, 153.018],
+  ["Suncorp Stadium", "Brisbane", -27.465, 153.009],
+  ["The Gabba", "Brisbane", -27.486, 153.038],
+  ["Brisbane Showgrounds", "Brisbane", -27.451, 153.032],
+  ["Royal Brisbane Hospital", "Brisbane", -27.449, 153.028],
+  ["RBWH", "Brisbane", -27.449, 153.028],
+  ["Mater Hospital Brisbane", "Brisbane", -27.484, 153.028],
+  ["PA Hospital", "Brisbane", -27.497, 153.033],
+  ["Princess Alexandra Hospital", "Brisbane", -27.497, 153.033],
+  ["QUT Gardens Point", "Brisbane", -27.477, 153.028],
+  ["QUT Kelvin Grove", "Brisbane", -27.451, 153.012],
+  ["University of Queensland", "Brisbane", -27.497, 153.013],
+  ["UQ St Lucia", "Brisbane", -27.497, 153.013],
+  ["Griffith University Nathan", "Brisbane", -27.554, 153.052],
+  ["Griffith University South Bank", "Brisbane", -27.480, 153.020],
+  ["Brisbane Cruise Terminal", "Brisbane", -27.418, 153.168],
+  ["Portside Wharf", "Brisbane", -27.418, 153.168],
+  ["Eagle Street Pier", "Brisbane", -27.467, 153.030],
+  ["Howard Smith Wharves", "Brisbane", -27.461, 153.035],
+  ["Eat Street Northshore", "Brisbane", -27.430, 153.080],
+  ["Westfield Chermside", "Brisbane", -27.387, 153.032],
+  ["Westfield Carindale", "Brisbane", -27.505, 153.102],
+  ["Westfield Garden City", "Brisbane", -27.555, 153.072],
+  ["Indooroopilly Shopping Centre", "Brisbane", -27.498, 152.972],
+  ["DFO Brisbane Airport", "Brisbane", -27.395, 153.108],
+  ["Brisbane Entertainment Centre", "Brisbane", -27.450, 153.032],
+  ["QPAC", "Brisbane", -27.478, 153.020],
+  ["Queensland Museum", "Brisbane", -27.475, 153.018],
+  ["GOMA", "Brisbane", -27.472, 153.018],
+  ["State Library Queensland", "Brisbane", -27.472, 153.020],
+  ["Brisbane City Hall", "Brisbane", -27.468, 153.024],
+  ["Treasury Casino", "Brisbane", -27.472, 153.024],
+  ["Queens Wharf", "Brisbane", -27.472, 153.022],
+  ["Lone Pine Koala Sanctuary", "Brisbane", -27.534, 152.968],
+  ["Mount Coot-tha Lookout", "Brisbane", -27.476, 152.958],
+  ["Brisbane Botanic Gardens", "Brisbane", -27.476, 152.974],
+
+  // Gold Coast Landmarks
+  ["Gold Coast Airport", "Gold Coast", -28.165, 153.505],
+  ["Coolangatta Airport", "Gold Coast", -28.165, 153.505],
+  ["Dreamworld", "Gold Coast", -27.862, 153.312],
+  ["Movie World", "Gold Coast", -27.907, 153.318],
+  ["Sea World", "Gold Coast", -27.958, 153.425],
+  ["Wet'n'Wild", "Gold Coast", -27.908, 153.318],
+  ["WhiteWater World", "Gold Coast", -27.862, 153.310],
+  ["Currumbin Wildlife Sanctuary", "Gold Coast", -28.138, 153.478],
+  ["Pacific Fair", "Gold Coast", -28.038, 153.432],
+  ["Robina Town Centre", "Gold Coast", -28.078, 153.388],
+  ["Gold Coast University Hospital", "Gold Coast", -27.962, 153.382],
+  ["Griffith University Gold Coast", "Gold Coast", -27.962, 153.380],
+  ["Bond University", "Gold Coast", -28.073, 153.415],
+  ["Star Casino Gold Coast", "Gold Coast", -28.028, 153.432],
+  ["Gold Coast Convention Centre", "Gold Coast", -28.028, 153.428],
+  ["Metricon Stadium", "Gold Coast", -28.005, 153.368],
+  ["Harbour Town Gold Coast", "Gold Coast", -27.935, 153.368],
+  ["Surfers Paradise Beach", "Gold Coast", -28.002, 153.432],
+  ["SkyPoint Observation Deck", "Gold Coast", -28.002, 153.430],
+  ["Springbrook National Park", "Gold Coast", -28.198, 153.268],
+
+  // Moreton Bay Landmarks
+  ["Redcliffe Hospital", "Moreton Bay", -27.230, 153.098],
+  ["Westfield North Lakes", "Moreton Bay", -27.230, 153.028],
+  ["Morayfield Shopping Centre", "Moreton Bay", -27.098, 152.952],
+
+  // Ipswich Landmarks
+  ["Ipswich Hospital", "Ipswich", -27.608, 152.758],
+  ["USQ Ipswich", "Ipswich", -27.608, 152.760],
+  ["Riverlink Shopping Centre", "Ipswich", -27.608, 152.758],
+  ["Orion Springfield Central", "Ipswich", -27.668, 152.908],
+
+  // Toowoomba Landmarks
+  ["Toowoomba Hospital", "Toowoomba", -27.558, 151.948],
+  ["USQ Toowoomba", "Toowoomba", -27.558, 151.948],
+  ["Grand Central Toowoomba", "Toowoomba", -27.558, 151.958],
 ];
+
+// Landmark names — entries after this marker in SUBURB_DATA are landmarks
+const LANDMARK_START_INDEX = SUBURB_DATA.findIndex(([name]) => name === "Sunshine Coast Airport");
 
 // Build lookup map (lowercase suburb name -> SuburbInfo)
 const suburbMap = new Map<string, SuburbInfo>();
-for (const [name, lga, lat, lng] of SUBURB_DATA) {
+for (let i = 0; i < SUBURB_DATA.length; i++) {
+  const [name, lga, lat, lng] = SUBURB_DATA[i];
   const key = name.toLowerCase();
   // If duplicate, prefer primary area
   const existing = suburbMap.get(key);
   const area = classifyLGA(lga);
+  const isLandmark = LANDMARK_START_INDEX >= 0 && i >= LANDMARK_START_INDEX;
   if (!existing || (area === "primary" && existing.area !== "primary")) {
-    suburbMap.set(key, { name, lga, area, lat, lng });
+    suburbMap.set(key, { name, lga, area, lat, lng, isLandmark });
   }
 }
 
@@ -463,4 +575,29 @@ export function estimateDistance(
  */
 export function getAllSuburbNames(): string[] {
   return Array.from(new Set(SUBURB_DATA.map(([name]) => name))).sort();
+}
+
+/**
+ * Check if a location name is a landmark (not a suburb).
+ */
+export function isLandmark(name: string): boolean {
+  const info = suburbMap.get(name.toLowerCase());
+  return info?.isLandmark ?? false;
+}
+
+/**
+ * Get all locations with their type for the autocomplete.
+ */
+export function getAllLocationsWithType(): { name: string; isLandmark: boolean }[] {
+  const seen = new Set<string>();
+  const results: { name: string; isLandmark: boolean }[] = [];
+  for (let i = 0; i < SUBURB_DATA.length; i++) {
+    const name = SUBURB_DATA[i][0];
+    if (!seen.has(name)) {
+      seen.add(name);
+      const landmark = LANDMARK_START_INDEX >= 0 && i >= LANDMARK_START_INDEX;
+      results.push({ name, isLandmark: landmark });
+    }
+  }
+  return results.sort((a, b) => a.name.localeCompare(b.name));
 }
