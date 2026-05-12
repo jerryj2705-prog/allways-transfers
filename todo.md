@@ -610,3 +610,4 @@
 - [x] Add Delete button to each booking in admin dashboard
 - [x] Fix: Airport Tolls and Road Tolls sections show no pricing cards in admin pricing page (missing data on Hostinger - SQL migration provided)
 - [x] Add toll amounts to relevant price breakdowns (booking form, confirmation, admin detail, emails)
+- [x] Add Total Tolls Collected metric to admin dashboard stats overview

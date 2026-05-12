@@ -16,7 +16,7 @@ import { useLocation } from "wouter";
 import {
   Search, LayoutDashboard, Clock, CheckCircle, XCircle, AlertCircle,
   ChevronLeft, ChevronRight, LogOut, Home, DollarSign, MessageSquare, CalendarDays, Star,
-  Download, X, Banknote, CreditCard, RotateCcw, MapPin, Trash2,
+  Download, X, Banknote, CreditCard, RotateCcw, MapPin, Trash2, Navigation,
 } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -196,16 +196,25 @@ export default function AdminDashboard() {
       label: "Total Revenue", value: fmtAud(stats?.totalRevenue ?? "0"),
       icon: Banknote, color: "text-emerald-500", bg: "from-emerald-950/40 to-emerald-900/20",
       breakdown: stats?.revenueByMethod ?? { stripe: "0", square: "0", cash: "0" },
+      breakdownLabels: { col1: "Stripe", col2: "Card", col3: "Cash" },
     },
     {
       label: "Outstanding", value: fmtAud(stats?.unpaidAmount ?? "0"),
       icon: CreditCard, color: "text-amber-500", bg: "from-amber-950/40 to-amber-900/20",
       breakdown: stats?.unpaidByMethod ?? { stripe: "0", square: "0", cash: "0" },
+      breakdownLabels: { col1: "Stripe", col2: "Card", col3: "Cash" },
     },
     {
       label: "Refunded", value: fmtAud(stats?.refundedAmount ?? "0"),
       icon: RotateCcw, color: "text-blue-500", bg: "from-blue-950/40 to-blue-900/20",
       breakdown: stats?.refundedByMethod ?? { stripe: "0", square: "0", cash: "0" },
+      breakdownLabels: { col1: "Stripe", col2: "Card", col3: "Cash" },
+    },
+    {
+      label: "Total Tolls", value: fmtAud(stats?.totalTolls ?? "0"),
+      icon: Navigation, color: "text-amber-400", bg: "from-amber-950/40 to-amber-900/20",
+      breakdown: { stripe: stats?.totalAirportTolls ?? "0", square: stats?.totalRoadTolls ?? "0", cash: "0" },
+      breakdownLabels: { col1: "Airport", col2: "Road", col3: "" },
     },
   ];
 
@@ -332,7 +341,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Payment Summary */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {paymentCards.map((card) => (
             <Card key={card.label} className={`border-border/50 bg-gradient-to-br ${card.bg} group relative overflow-hidden transition-all duration-200 hover:border-border`}>
               <CardContent className="p-5">
@@ -345,18 +354,24 @@ export default function AdminDashboard() {
                 </div>
                 {/* Hover breakdown */}
                 <div className="grid grid-cols-3 gap-2 mt-0 max-h-0 opacity-0 group-hover:mt-3 group-hover:max-h-24 group-hover:opacity-100 transition-all duration-300 ease-in-out overflow-hidden border-t-0 group-hover:border-t border-border/30 group-hover:pt-3">
-                  <div className="text-center">
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Stripe</p>
-                    <p className="text-sm font-semibold text-foreground mt-0.5">{fmtAud(card.breakdown.stripe)}</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Card</p>
-                    <p className="text-sm font-semibold text-foreground mt-0.5">{fmtAud(card.breakdown.square)}</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Cash</p>
-                    <p className="text-sm font-semibold text-foreground mt-0.5">{fmtAud(card.breakdown.cash)}</p>
-                  </div>
+                  {card.breakdownLabels.col1 && (
+                    <div className="text-center">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{card.breakdownLabels.col1}</p>
+                      <p className="text-sm font-semibold text-foreground mt-0.5">{fmtAud(card.breakdown.stripe)}</p>
+                    </div>
+                  )}
+                  {card.breakdownLabels.col2 && (
+                    <div className="text-center">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{card.breakdownLabels.col2}</p>
+                      <p className="text-sm font-semibold text-foreground mt-0.5">{fmtAud(card.breakdown.square)}</p>
+                    </div>
+                  )}
+                  {card.breakdownLabels.col3 && (
+                    <div className="text-center">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{card.breakdownLabels.col3}</p>
+                      <p className="text-sm font-semibold text-foreground mt-0.5">{fmtAud(card.breakdown.cash)}</p>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

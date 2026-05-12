@@ -1787,7 +1787,10 @@ async function getBookingStats() {
     refundedAmount: "0",
     revenueByMethod: { stripe: "0", square: "0", cash: "0" },
     unpaidByMethod: { stripe: "0", square: "0", cash: "0" },
-    refundedByMethod: { stripe: "0", square: "0", cash: "0" }
+    refundedByMethod: { stripe: "0", square: "0", cash: "0" },
+    totalTolls: "0",
+    totalAirportTolls: "0",
+    totalRoadTolls: "0"
   };
   const result = await db.select({
     total: sql`count(*)`,
@@ -1809,7 +1812,11 @@ async function getBookingStats() {
     // Refunded by method
     refundedStripe: sql`coalesce(sum(case when paymentStatus = 'refunded' and paymentMethod = 'stripe_prepay' then totalPrice else 0 end), 0)`,
     refundedSquare: sql`coalesce(sum(case when paymentStatus = 'refunded' and paymentMethod = 'square_postpay' then totalPrice else 0 end), 0)`,
-    refundedCash: sql`coalesce(sum(case when paymentStatus = 'refunded' and paymentMethod = 'cash_postpay' then totalPrice else 0 end), 0)`
+    refundedCash: sql`coalesce(sum(case when paymentStatus = 'refunded' and paymentMethod = 'cash_postpay' then totalPrice else 0 end), 0)`,
+    // Toll totals
+    totalTolls: sql`coalesce(sum(case when status != 'cancelled' then coalesce(airportTollSurcharge, 0) + coalesce(roadTollSurcharge, 0) else 0 end), 0)`,
+    totalAirportTolls: sql`coalesce(sum(case when status != 'cancelled' then coalesce(airportTollSurcharge, 0) else 0 end), 0)`,
+    totalRoadTolls: sql`coalesce(sum(case when status != 'cancelled' then coalesce(roadTollSurcharge, 0) else 0 end), 0)`
   }).from(bookings);
   const row = result[0];
   return {
@@ -1835,7 +1842,10 @@ async function getBookingStats() {
       stripe: String(row?.refundedStripe ?? "0"),
       square: String(row?.refundedSquare ?? "0"),
       cash: String(row?.refundedCash ?? "0")
-    }
+    },
+    totalTolls: String(row?.totalTolls ?? "0"),
+    totalAirportTolls: String(row?.totalAirportTolls ?? "0"),
+    totalRoadTolls: String(row?.totalRoadTolls ?? "0")
   };
 }
 async function createReview(data) {

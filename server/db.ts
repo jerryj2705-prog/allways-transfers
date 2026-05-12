@@ -969,6 +969,7 @@ export async function getBookingStats() {
     revenueByMethod: { stripe: "0", square: "0", cash: "0" },
     unpaidByMethod: { stripe: "0", square: "0", cash: "0" },
     refundedByMethod: { stripe: "0", square: "0", cash: "0" },
+    totalTolls: "0", totalAirportTolls: "0", totalRoadTolls: "0",
   };
 
   const result = await db.select({
@@ -992,6 +993,10 @@ export async function getBookingStats() {
     refundedStripe: sql<string>`coalesce(sum(case when paymentStatus = 'refunded' and paymentMethod = 'stripe_prepay' then totalPrice else 0 end), 0)`,
     refundedSquare: sql<string>`coalesce(sum(case when paymentStatus = 'refunded' and paymentMethod = 'square_postpay' then totalPrice else 0 end), 0)`,
     refundedCash: sql<string>`coalesce(sum(case when paymentStatus = 'refunded' and paymentMethod = 'cash_postpay' then totalPrice else 0 end), 0)`,
+    // Toll totals
+    totalTolls: sql<string>`coalesce(sum(case when status != 'cancelled' then coalesce(airportTollSurcharge, 0) + coalesce(roadTollSurcharge, 0) else 0 end), 0)`,
+    totalAirportTolls: sql<string>`coalesce(sum(case when status != 'cancelled' then coalesce(airportTollSurcharge, 0) else 0 end), 0)`,
+    totalRoadTolls: sql<string>`coalesce(sum(case when status != 'cancelled' then coalesce(roadTollSurcharge, 0) else 0 end), 0)`,
   }).from(bookings);
 
   const row = result[0];
@@ -1019,6 +1024,9 @@ export async function getBookingStats() {
       square: String(row?.refundedSquare ?? "0"),
       cash: String(row?.refundedCash ?? "0"),
     },
+    totalTolls: String(row?.totalTolls ?? "0"),
+    totalAirportTolls: String(row?.totalAirportTolls ?? "0"),
+    totalRoadTolls: String(row?.totalRoadTolls ?? "0"),
   };
 }
 
