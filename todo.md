@@ -562,3 +562,6 @@
 - [x] Skip road tolls in pricing when customer selects toll-free route
 - [x] Add routePreference column to bookings table
 - [x] Display route preference on admin booking detail and confirmation pages
+- [x] Add route preference line to booking confirmation email template
+- [x] Add route preference line to admin new booking notification email template
+- [x] Update email tests to include routePreference in test payloads

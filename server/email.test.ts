@@ -53,10 +53,34 @@ describe("email sending - booking confirmation", () => {
       paymentMethod: "cash_postpay",
       paymentStatus: "unpaid",
       specialRequests: "Please arrive 10 minutes early",
+      routePreference: "fastest",
       origin: "https://example.com",
     });
 
     // Result should be true (successful send) or false (API issue) — not throw
+    expect(typeof result).toBe("boolean");
+  });
+
+  it("includes toll-free route preference in confirmation email", async () => {
+    const { sendBookingConfirmationEmail } = await import("./email");
+
+    const result = await sendBookingConfirmationEmail({
+      referenceNumber: "AWT-ROUTE01",
+      clientName: "Toll Free Client",
+      clientEmail: "delivered@resend.dev",
+      serviceType: "point_to_point",
+      pickupAddress: "Brisbane CBD",
+      dropoffAddress: "Gold Coast",
+      pickupDate: Date.now() + 86400000,
+      passengerCount: 2,
+      vehicleName: "Luxury SUV",
+      totalPrice: "200.00",
+      paymentMethod: "cash_postpay",
+      paymentStatus: "unpaid",
+      routePreference: "toll_free",
+      origin: "https://example.com",
+    });
+
     expect(typeof result).toBe("boolean");
   });
 });
@@ -122,6 +146,30 @@ describe("email sending - admin new booking notification", () => {
       totalPrice: "150.00",
       paymentMethod: "cash_postpay",
       paymentStatus: "unpaid",
+      routePreference: "fastest",
+      origin: "https://example.com",
+    });
+
+    expect(typeof result).toBe("boolean");
+  });
+
+  it("includes toll-free route preference in admin notification", async () => {
+    const { sendAdminNewBookingNotification } = await import("./email");
+
+    const result = await sendAdminNewBookingNotification({
+      referenceNumber: "AWT-ROUTE02",
+      clientName: "Toll Free Admin Test",
+      clientEmail: "client@example.com",
+      serviceType: "airport_transfer",
+      pickupAddress: "Brisbane Airport",
+      dropoffAddress: "Gold Coast",
+      pickupDate: Date.now() + 86400000,
+      passengerCount: 3,
+      vehicleName: "Luxury SUV",
+      totalPrice: "250.00",
+      paymentMethod: "cash_postpay",
+      paymentStatus: "unpaid",
+      routePreference: "toll_free",
       origin: "https://example.com",
     });
 

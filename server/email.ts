@@ -285,6 +285,17 @@ export async function sendBookingConfirmationEmail(data: BookingEmailData): Prom
           <span style="color:#e5e5e5;font-size:15px;">${data.freightSpecialHandling}</span>
         </td>
       </tr>` : ""}
+      ${data.routePreference && data.routePreference !== "fastest" ? `<tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Route Preference</span><br/>
+          <span style="color:#22c55e;font-size:15px;">&#x1F6E3;&#xFE0F; Toll-Free Route</span>
+        </td>
+      </tr>` : data.routePreference === "fastest" ? `<tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Route Preference</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">&#x1F6E3;&#xFE0F; Fastest Route (may include toll roads)</span>
+        </td>
+      </tr>` : ""}
       ${buildAdditionalStopsHtml(data)}
       ${buildPublicHolidayHtml(data)}
       ${data.specialRequests ? `<tr>
@@ -621,6 +632,17 @@ export async function sendAdminNewBookingNotification(data: BookingEmailData): P
         <td style="padding:8px 0;border-bottom:1px solid #333;">
           <span style="color:#a3a3a3;font-size:13px;">Freight — Special Handling</span><br/>
           <span style="color:#e5e5e5;font-size:15px;">${data.freightSpecialHandling}</span>
+        </td>
+      </tr>` : ""}
+      ${data.routePreference && data.routePreference !== "fastest" ? `<tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Route Preference</span><br/>
+          <span style="color:#22c55e;font-size:15px;">&#x1F6E3;&#xFE0F; Toll-Free Route</span>
+        </td>
+      </tr>` : data.routePreference === "fastest" ? `<tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Route Preference</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">&#x1F6E3;&#xFE0F; Fastest Route (may include toll roads)</span>
         </td>
       </tr>` : ""}
       ${buildAdditionalStopsHtml(data)}
