@@ -742,23 +742,15 @@ export default function Home() {
                   <p className="text-sm text-muted-foreground leading-relaxed">
                     {service.description}
                   </p>
-                  {getBasePrice(service.priceKey) && (
-                    <div className="pt-2 border-t border-border/30">
-                      <span className="text-primary font-heading text-lg font-bold">
-                        From ${getBasePrice(service.priceKey)}
-                      </span>
-                      {service.priceLabel && (
-                        <span className="text-xs text-muted-foreground ml-1">/{service.priceLabel}</span>
-                      )}
-                      {(service as any).minHoursKey && (() => {
-                        const minSetting = pricingSettings?.find(s => s.settingKey === (service as any).minHoursKey);
-                        const minHrs = minSetting ? parseInt(minSetting.settingValue, 10) : null;
-                        return minHrs ? (
-                          <p className="text-xs text-muted-foreground mt-1">Minimum {minHrs} hour{minHrs !== 1 ? "s" : ""}</p>
-                        ) : null;
-                      })()}
-                    </div>
-                  )}
+                  {(service as any).minHoursKey && (() => {
+                    const minSetting = pricingSettings?.find(s => s.settingKey === (service as any).minHoursKey);
+                    const minHrs = minSetting ? parseInt(minSetting.settingValue, 10) : null;
+                    return minHrs ? (
+                      <div className="pt-2 border-t border-border/30">
+                        <p className="text-xs text-muted-foreground">Minimum {minHrs} hour{minHrs !== 1 ? "s" : ""}</p>
+                      </div>
+                    ) : null;
+                  })()}
                 </CardContent>
               </Card>
               );

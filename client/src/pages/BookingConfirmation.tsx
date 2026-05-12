@@ -361,7 +361,7 @@ export default function BookingConfirmation() {
                         const details = JSON.parse(booking.airportTollDetails || "[]");
                         return details.map((toll: { airport: string; direction: string; amount: number }, idx: number) => (
                           <p key={`at-${idx}`} className="text-amber-400 text-sm flex justify-between">
-                            <span className="flex items-center gap-1"><Navigation className="w-3 h-3" />{toll.airport} {toll.direction} Toll</span>
+                            <span className="flex items-center gap-1"><Navigation className="w-3 h-3" />{toll.airport} {toll.direction} toll</span>
                             <span>+${toll.amount.toFixed(2)}</span>
                           </p>
                         ));

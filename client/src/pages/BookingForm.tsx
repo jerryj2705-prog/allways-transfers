@@ -1995,13 +1995,13 @@ export default function BookingForm() {
                     {pricing.airportTollSurcharge > 0 && pricing.airportTollDetails.map((toll: { airport: string; direction: string; amount: number }, idx: number) => (
                       <div key={idx} className="flex justify-between text-sm text-amber-400">
                         <span className="flex items-center gap-1">
-                          {toll.airport} {toll.direction} Toll
+                          {toll.airport} {toll.direction} toll
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Info className="w-3.5 h-3.5 text-muted-foreground hover:text-amber-300 cursor-help transition-colors" />
                             </TooltipTrigger>
                             <TooltipContent side="top" className="max-w-[220px]">
-                              Airport {toll.direction.toLowerCase()} toll automatically applied for {toll.airport}.
+                              Airport access toll automatically applied for {toll.airport}.
                             </TooltipContent>
                           </Tooltip>
                         </span>

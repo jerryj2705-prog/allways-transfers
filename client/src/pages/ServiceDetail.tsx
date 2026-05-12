@@ -343,19 +343,11 @@ export default function ServiceDetail() {
               <p className="text-white/70 max-w-2xl text-lg leading-relaxed">
                 {service.heroDescription}
               </p>
-              {basePrice && (
+              {minHours && (
                 <div className="flex items-center gap-3">
-                  <span className="text-2xl font-bold text-amber-400">
-                    From ${basePrice}
+                  <span className="text-sm text-amber-400/80 border border-amber-400/30 rounded-full px-3 py-0.5">
+                    Minimum {minHours} hour{minHours !== 1 ? "s" : ""}
                   </span>
-                  {service.priceLabel && (
-                    <span className="text-white/50">/{service.priceLabel}</span>
-                  )}
-                  {minHours && (
-                    <span className="text-sm text-amber-400/80 border border-amber-400/30 rounded-full px-3 py-0.5">
-                      Minimum {minHours} hour{minHours !== 1 ? "s" : ""}
-                    </span>
-                  )}
                 </div>
               )}
             </div>

@@ -516,7 +516,7 @@ export default function AdminBookingDetail() {
                           const details = JSON.parse(booking.airportTollDetails || "[]");
                           return details.map((toll: { airport: string; direction: string; amount: number }, idx: number) => (
                             <div key={`airport-toll-${idx}`} className="flex justify-between text-amber-400">
-                              <span>{toll.airport} {toll.direction} Toll</span>
+                              <span>{toll.airport} {toll.direction} toll</span>
                               <span>${toll.amount.toFixed(2)}</span>
                             </div>
                           ));

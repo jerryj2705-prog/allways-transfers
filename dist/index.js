@@ -1579,28 +1579,28 @@ async function calculatePrice(params) {
     const amt = getVal("toll_sct_entry");
     if (amt > 0) {
       airportTollSurcharge += amt;
-      airportTollDetails.push({ airport: "Sunshine Coast Airport", direction: "Entry", amount: amt });
+      airportTollDetails.push({ airport: "Sunshine Coast Airport", direction: "Access", amount: amt });
     }
   }
   if (isSctDropoff && isActive("toll_sct_exit")) {
     const amt = getVal("toll_sct_exit");
     if (amt > 0) {
       airportTollSurcharge += amt;
-      airportTollDetails.push({ airport: "Sunshine Coast Airport", direction: "Exit", amount: amt });
+      airportTollDetails.push({ airport: "Sunshine Coast Airport", direction: "Access", amount: amt });
     }
   }
   if (isBnePickup && isActive("toll_bne_entry")) {
     const amt = getVal("toll_bne_entry");
     if (amt > 0) {
       airportTollSurcharge += amt;
-      airportTollDetails.push({ airport: "Brisbane Airport", direction: "Entry", amount: amt });
+      airportTollDetails.push({ airport: "Brisbane Airport", direction: "Access", amount: amt });
     }
   }
   if (isBneDropoff && isActive("toll_bne_exit")) {
     const amt = getVal("toll_bne_exit");
     if (amt > 0) {
       airportTollSurcharge += amt;
-      airportTollDetails.push({ airport: "Brisbane Airport", direction: "Exit", amount: amt });
+      airportTollDetails.push({ airport: "Brisbane Airport", direction: "Access", amount: amt });
     }
   }
   airportTollSurcharge = Math.round(airportTollSurcharge * 100) / 100;
@@ -2544,7 +2544,7 @@ function buildTollsHtml(data) {
     for (const toll of data.airportTollDetails) {
       html += `<tr>
         <td style="padding:8px 0;border-bottom:1px solid #333;">
-          <span style="color:#a3a3a3;font-size:13px;">${toll.airport} ${toll.direction} Toll</span><br/>
+          <span style="color:#a3a3a3;font-size:13px;">${toll.airport} ${toll.direction} toll</span><br/>
           <span style="color:#d4a843;font-size:15px;">+$${toll.amount.toFixed(2)}</span>
         </td>
       </tr>`;

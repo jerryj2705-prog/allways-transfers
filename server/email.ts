@@ -185,7 +185,7 @@ function buildTollsHtml(data: BookingEmailData): string {
     for (const toll of data.airportTollDetails) {
       html += `<tr>
         <td style="padding:8px 0;border-bottom:1px solid #333;">
-          <span style="color:#a3a3a3;font-size:13px;">${toll.airport} ${toll.direction} Toll</span><br/>
+          <span style="color:#a3a3a3;font-size:13px;">${toll.airport} ${toll.direction} toll</span><br/>
           <span style="color:#d4a843;font-size:15px;">+$${toll.amount.toFixed(2)}</span>
         </td>
       </tr>`;

@@ -286,7 +286,7 @@ export default function Receipt() {
                         const details = JSON.parse(booking.airportTollDetails || "[]");
                         return details.map((toll: { airport: string; direction: string; amount: number }, idx: number) => (
                           <p key={`at-${idx}`} className="font-medium text-sm text-amber-400 print:text-amber-700 flex justify-between">
-                            <span>{toll.airport} {toll.direction} Toll</span>
+                            <span>{toll.airport} {toll.direction} toll</span>
                             <span>+${toll.amount.toFixed(2)}</span>
                           </p>
                         ));

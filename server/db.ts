@@ -725,7 +725,7 @@ export async function calculatePrice(params: {
     const amt = getVal("toll_sct_entry");
     if (amt > 0) {
       airportTollSurcharge += amt;
-      airportTollDetails.push({ airport: "Sunshine Coast Airport", direction: "Entry", amount: amt });
+      airportTollDetails.push({ airport: "Sunshine Coast Airport", direction: "Access", amount: amt });
     }
   }
   // SCT dropoff = exit toll (driving out of airport after drop-off)
@@ -733,7 +733,7 @@ export async function calculatePrice(params: {
     const amt = getVal("toll_sct_exit");
     if (amt > 0) {
       airportTollSurcharge += amt;
-      airportTollDetails.push({ airport: "Sunshine Coast Airport", direction: "Exit", amount: amt });
+      airportTollDetails.push({ airport: "Sunshine Coast Airport", direction: "Access", amount: amt });
     }
   }
   // BNE pickup = entry toll
@@ -741,7 +741,7 @@ export async function calculatePrice(params: {
     const amt = getVal("toll_bne_entry");
     if (amt > 0) {
       airportTollSurcharge += amt;
-      airportTollDetails.push({ airport: "Brisbane Airport", direction: "Entry", amount: amt });
+      airportTollDetails.push({ airport: "Brisbane Airport", direction: "Access", amount: amt });
     }
   }
   // BNE dropoff = exit toll
@@ -749,7 +749,7 @@ export async function calculatePrice(params: {
     const amt = getVal("toll_bne_exit");
     if (amt > 0) {
       airportTollSurcharge += amt;
-      airportTollDetails.push({ airport: "Brisbane Airport", direction: "Exit", amount: amt });
+      airportTollDetails.push({ airport: "Brisbane Airport", direction: "Access", amount: amt });
     }
   }
   airportTollSurcharge = Math.round(airportTollSurcharge * 100) / 100;
