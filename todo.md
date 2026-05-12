@@ -595,3 +595,4 @@
 - [x] Integrate DB landmarks into autocomplete and pricing engine
 - [x] Add admin navigation entry for landmarks management
 - [x] Push updated code to GitHub
+- [ ] Fix Hostinger build failure — remove pnpm packageManager field and pnpm-lock.yaml, use npm for Hostinger compatibility
