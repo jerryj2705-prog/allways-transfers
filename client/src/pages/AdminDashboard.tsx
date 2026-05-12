@@ -323,6 +323,7 @@ export default function AdminDashboard() {
                   <TableHead className="hidden md:table-cell">Service</TableHead>
                   <TableHead className="hidden lg:table-cell">Pickup Date</TableHead>
                   <TableHead className="hidden lg:table-cell">Passengers</TableHead>
+                  <TableHead className="hidden lg:table-cell">Pets</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="hidden xl:table-cell">Payment</TableHead>
                   <TableHead className="text-right">Total</TableHead>
@@ -331,13 +332,13 @@ export default function AdminDashboard() {
               <TableBody>
                 {bookingsLoading ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
+                    <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">
                       Loading bookings...
                     </TableCell>
                   </TableRow>
                 ) : !bookingsData?.bookings.length ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
+                    <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">
                       No bookings found.
                     </TableCell>
                   </TableRow>
@@ -373,6 +374,9 @@ export default function AdminDashboard() {
                         </TableCell>
                         <TableCell className="hidden lg:table-cell text-sm">
                           {booking.passengerCount}
+                        </TableCell>
+                        <TableCell className="hidden lg:table-cell text-sm">
+                          {booking.numberOfPets ? booking.numberOfPets : "—"}
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline" className={`text-xs ${statusStyle}`}>

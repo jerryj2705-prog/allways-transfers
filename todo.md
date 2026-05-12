@@ -506,3 +506,4 @@
 - [x] Show number of pets in admin dashboard booking detail view
 - [x] Include number of pets in client confirmation email
 - [x] Include number of pets in admin notification email
+- [x] Add number of pets column to admin booking list table for quick visibility
