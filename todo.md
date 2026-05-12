@@ -523,3 +523,4 @@
 - [x] Create payment receipt email template
 - [x] Send payment receipt email from Stripe webhook on checkout.session.completed
 - [x] Include booking details, amount paid, and reference number in receipt
+- [x] Send copy of payment receipt email to admin email address

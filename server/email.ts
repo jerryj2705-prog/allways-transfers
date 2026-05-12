@@ -979,9 +979,11 @@ export async function sendPaymentReceiptEmail(data: PaymentReceiptEmailData): Pr
   `;
 
   try {
+    const adminEmail = ENV.adminEmail || "admin@allwaystransfers.com.au";
     const result = await resend.emails.send({
       from: `All Ways Transfers <${ENV.resendFromEmail}>`,
       to: [data.clientEmail],
+      bcc: [adminEmail],
       subject: `Payment Receipt — ${data.referenceNumber}`,
       html: wrapInTemplate(bodyContent),
     });
