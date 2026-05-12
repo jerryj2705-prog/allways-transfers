@@ -65,6 +65,7 @@ import {
   deleteLandmark,
   getLandmarkStats,
   deleteBooking,
+  markTollsAsReviewed,
 } from "./db";
 import { makeRequest, type PlaceDetailsResult } from "./_core/map";
 import { createCheckoutSession } from "./stripe";
@@ -1063,6 +1064,13 @@ export const appRouter = router({
       )
       .mutation(async ({ input }) => {
         return updatePricingSetting(input.id, input.value, input.isActive);
+      }),
+
+    markAsReviewed: adminProcedure
+      .input(z.object({ tollType: z.enum(["airport", "road"]) }))
+      .mutation(async ({ input }) => {
+        await markTollsAsReviewed(input.tollType);
+        return { success: true };
       }),
   }),
 

@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import {
   ChevronLeft, DollarSign, Percent, Save, Fuel, Clock, MapPin, Plane, Car, Star, Route,
-  CalendarDays, Plus, Trash2, Pencil, X, Check, Dog, Package, Navigation, CircleDot,
+  CalendarDays, Plus, Trash2, Pencil, X, Check, Dog, Package, Navigation, CircleDot, CheckCircle2,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 
@@ -72,6 +72,13 @@ export default function AdminPricing() {
     onSuccess: () => {
       refetch();
       toast.success("Pricing updated successfully");
+    },
+    onError: (err) => toast.error(err.message),
+  });
+  const markReviewedMutation = trpc.pricing.markAsReviewed.useMutation({
+    onSuccess: () => {
+      refetch();
+      toast.success("Tolls marked as reviewed");
     },
     onError: (err) => toast.error(err.message),
   });
@@ -276,9 +283,21 @@ export default function AdminPricing() {
               <h2 className="font-heading text-xl font-semibold">Airport Tolls</h2>
             </div>
             {airportTolls.length > 0 && (
-              <p className="text-xs text-muted-foreground">
-                Last updated: {new Date(Math.max(...airportTolls.map(t => new Date(t.updatedAt).getTime()))).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}
-              </p>
+              <div className="flex items-center gap-3">
+                <p className="text-xs text-muted-foreground">
+                  Last updated: {new Date(Math.max(...airportTolls.map(t => new Date(t.updatedAt).getTime()))).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs gap-1"
+                  disabled={markReviewedMutation.isPending}
+                  onClick={() => markReviewedMutation.mutate({ tollType: "airport" })}
+                >
+                  <CheckCircle2 className="w-3 h-3" />
+                  Mark as Reviewed
+                </Button>
+              </div>
             )}
           </div>
           <p className="text-sm text-muted-foreground">
@@ -297,9 +316,21 @@ export default function AdminPricing() {
               <h2 className="font-heading text-xl font-semibold">Road Tolls</h2>
             </div>
             {roadTolls.length > 0 && (
-              <p className="text-xs text-muted-foreground">
-                Last updated: {new Date(Math.max(...roadTolls.map(t => new Date(t.updatedAt).getTime()))).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}
-              </p>
+              <div className="flex items-center gap-3">
+                <p className="text-xs text-muted-foreground">
+                  Last updated: {new Date(Math.max(...roadTolls.map(t => new Date(t.updatedAt).getTime()))).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs gap-1"
+                  disabled={markReviewedMutation.isPending}
+                  onClick={() => markReviewedMutation.mutate({ tollType: "road" })}
+                >
+                  <CheckCircle2 className="w-3 h-3" />
+                  Mark as Reviewed
+                </Button>
+              </div>
             )}
           </div>
           <p className="text-sm text-muted-foreground">

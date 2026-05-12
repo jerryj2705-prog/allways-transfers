@@ -505,6 +505,28 @@ export async function updatePricingSetting(id: number, value: string, isActive?:
   return db.select().from(pricingSettings).where(eq(pricingSettings.id, id)).then((r: any[]) => r[0]);
 }
 
+export async function markTollsAsReviewed(tollType: "airport" | "road") {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  if (tollType === "airport") {
+    await db.update(pricingSettings)
+      .set({ updatedAt: new Date() })
+      .where(
+        and(
+          eq(pricingSettings.category, "surcharge"),
+          or(
+            like(pricingSettings.settingKey, "toll_sct_%"),
+            like(pricingSettings.settingKey, "toll_bne_%")
+          )
+        )
+      );
+  } else {
+    await db.update(pricingSettings)
+      .set({ updatedAt: new Date() })
+      .where(eq(pricingSettings.category, "road_toll"));
+  }
+}
+
 // ─── Public Holiday Queries ───
 
 export async function getAllPublicHolidays() {

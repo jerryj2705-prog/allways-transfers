@@ -614,3 +614,4 @@
 - [x] Add "Last Updated" timestamp display on toll pricing cards in admin pricing page
 - [x] Add quarterly scheduled notification reminding admin to review toll prices (in-app cron via node-cron, no Manus dependency)
 - [x] Add quick-reference link to Linkt toll calculator on admin pricing page
+- [x] Add Mark as Reviewed button to update toll timestamps without modifying prices

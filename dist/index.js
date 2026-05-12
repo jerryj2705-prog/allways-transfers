@@ -1052,6 +1052,7 @@ __export(db_exports, {
   listEnquiries: () => listEnquiries,
   listReviews: () => listReviews,
   markPasswordResetTokenUsed: () => markPasswordResetTokenUsed,
+  markTollsAsReviewed: () => markTollsAsReviewed,
   resetDbPool: () => resetDbPool,
   setAppSetting: () => setAppSetting,
   toggleLandmarkActive: () => toggleLandmarkActive,
@@ -1443,6 +1444,23 @@ async function updatePricingSetting(id, value, isActive) {
   }
   await db.update(pricingSettings).set(updateData).where(eq(pricingSettings.id, id));
   return db.select().from(pricingSettings).where(eq(pricingSettings.id, id)).then((r) => r[0]);
+}
+async function markTollsAsReviewed(tollType) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  if (tollType === "airport") {
+    await db.update(pricingSettings).set({ updatedAt: /* @__PURE__ */ new Date() }).where(
+      and(
+        eq(pricingSettings.category, "surcharge"),
+        or(
+          like(pricingSettings.settingKey, "toll_sct_%"),
+          like(pricingSettings.settingKey, "toll_bne_%")
+        )
+      )
+    );
+  } else {
+    await db.update(pricingSettings).set({ updatedAt: /* @__PURE__ */ new Date() }).where(eq(pricingSettings.category, "road_toll"));
+  }
 }
 async function getAllPublicHolidays() {
   const db = await getDb();
@@ -4216,6 +4234,10 @@ Pickup was: ${new Date(booking.pickupDate).toLocaleString("en-AU", { timeZone: "
       })
     ).mutation(async ({ input }) => {
       return updatePricingSetting(input.id, input.value, input.isActive);
+    }),
+    markAsReviewed: adminProcedure.input(z2.object({ tollType: z2.enum(["airport", "road"]) })).mutation(async ({ input }) => {
+      await markTollsAsReviewed(input.tollType);
+      return { success: true };
     })
   }),
   publicHolidays: router({
