@@ -576,3 +576,7 @@
 - [x] Update SuburbAutocomplete to visually distinguish landmarks from suburbs
 - [x] Ensure landmarks work with distance estimation and pricing engine
 - [x] Add all Sunshine Coast and Noosa suburbs to Gateway Motorway toll corridor pickup patterns (refactored to LGA-based matching)
+- [x] Add popular Sunshine Coast and Noosa resorts to landmark list (30+ resorts added)
+- [x] Add popular Sunshine Coast and Noosa golf courses to landmark list (18 golf courses added)
+- [x] Add popular Sunshine Coast and Noosa event venues to landmark list (30+ venues added)
+- [x] Rebuild dist with expanded landmarks
