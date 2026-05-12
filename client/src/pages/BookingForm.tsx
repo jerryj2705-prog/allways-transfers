@@ -13,9 +13,10 @@ import { toast } from "sonner";
 import {
   Plane, Clock, MapPin, Star, ArrowLeft, ArrowRight, Check,
   Users, Briefcase, Truck, ChevronLeft, CreditCard, Banknote, Wallet,
-  AlertTriangle, Search, MapPinned, Baby, Dog, Plus, Minus, CalendarIcon,
+  AlertTriangle, Search, MapPinned, Baby, Dog, Plus, Minus, CalendarIcon, Info,
 } from "lucide-react";
 import { SERVICE_TYPES, SUV_CAPACITY, PAYMENT_METHODS } from "@shared/types";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import type { PaymentMethod } from "@shared/types";
 
 const LOGO_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/logo-white_476df209.png";
@@ -1679,7 +1680,17 @@ export default function BookingForm() {
                     )}
                     {pricing.petSurcharge > 0 && (
                       <div className="flex justify-between text-sm text-amber-400">
-                        <span>Pet Surcharge ({numberOfPets} pet{numberOfPets !== 1 ? "s" : ""})</span>
+                        <span className="flex items-center gap-1">
+                          Pet Surcharge ({numberOfPets} pet{numberOfPets !== 1 ? "s" : ""})
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Info className="w-3.5 h-3.5 text-muted-foreground hover:text-amber-300 cursor-help transition-colors" />
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="max-w-[220px]">
+                              Covers professional cleaning, disinfecting, and deodorising of the vehicle after your trip.
+                            </TooltipContent>
+                          </Tooltip>
+                        </span>
                         <span>+${pricing.petSurcharge.toFixed(2)}</span>
                       </div>
                     )}

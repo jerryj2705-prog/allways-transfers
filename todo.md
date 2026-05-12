@@ -513,3 +513,4 @@
 - [x] Add pet surcharge (cleaning, disinfecting, deodorising) to pricing settings
 - [x] Update booking form price calculation to use new formula
 - [x] Update admin pricing UI for new fields
+- [x] Add tooltip next to pet surcharge in booking form pricing breakdown explaining it covers cleaning and deodorizing
