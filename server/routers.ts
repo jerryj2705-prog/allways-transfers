@@ -290,7 +290,7 @@ export const appRouter = router({
           pickupAddress: z.string().min(1, "Pickup address is required"),
           dropoffAddress: z.string().optional(),
           pickupDate: z.number().min(1, "Pickup date is required"),
-          passengerCount: z.number().min(1).max(7),
+          passengerCount: z.number().min(0).max(7),
           vehicleId: z.number(),
           vehicleName: z.string(),
           needsSupportVan: z.boolean().default(false),
@@ -550,7 +550,7 @@ export const appRouter = router({
         pickupAddress: z.string().optional(),
         dropoffAddress: z.string().nullable().optional(),
         pickupDate: z.number().optional(),
-        passengerCount: z.number().min(1).max(7).optional(),
+        passengerCount: z.number().min(0).max(7).optional(),
         specialRequests: z.string().nullable().optional(),
       }))
       .mutation(async ({ input }) => {
@@ -611,7 +611,7 @@ export const appRouter = router({
         pickupAddress: z.string().optional(),
         dropoffAddress: z.string().optional(),
         pickupDate: z.number().optional(),
-        passengerCount: z.number().min(1).max(7).optional(),
+        passengerCount: z.number().min(0).max(7).optional(),
         specialRequests: z.string().optional(),
       }))
       .mutation(async ({ input, ctx }) => {

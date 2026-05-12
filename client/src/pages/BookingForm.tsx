@@ -356,7 +356,7 @@ export default function BookingForm() {
       pickupAddress: `${pickupAddress} (${pickupSuburb})`,
       dropoffAddress: dropoffAddress ? `${dropoffAddress} (${dropoffSuburb})` : undefined,
       pickupDate: dateTime,
-      passengerCount: isVanStandalone ? 1 : passengerCount,
+      passengerCount,
       vehicleId: primaryVehicle.id,
       vehicleName: primaryVehicle.name,
       needsSupportVan,
@@ -722,6 +722,7 @@ export default function BookingForm() {
                     size="icon"
                     onClick={() => setPassengerCount(Math.max(isVanStandalone ? 0 : 1, passengerCount - 1))}
                     className="bg-background"
+                    disabled={passengerCount <= (isVanStandalone ? 0 : 1)}
                   >
                     -
                   </Button>
@@ -1567,10 +1568,16 @@ export default function BookingForm() {
                         </div>
                       )}
                       {isPetFriendly && (
-                        <div className="col-span-2">
-                          <p className="text-muted-foreground">Pet</p>
-                          <p className="font-medium">{petDescription}</p>
-                        </div>
+                        <>
+                          <div>
+                            <p className="text-muted-foreground">Number of Pets</p>
+                            <p className="font-medium">{numberOfPets}</p>
+                          </div>
+                          <div className="col-span-2">
+                            <p className="text-muted-foreground">Pet(s) Description</p>
+                            <p className="font-medium">{petDescription}</p>
+                          </div>
+                        </>
                       )}
                     </div>
                   </div>

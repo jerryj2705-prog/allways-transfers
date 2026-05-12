@@ -498,3 +498,7 @@
 - [x] Allow 0 passengers for standalone Support Van bookings (freight-only)
 - [x] Re-enable Pet Friendly option for standalone Van bookings (e.g. transporting pets)
 - [x] Add Number of Pets selector to Pet Friendly option
+- [x] BUG: Booking submission fails - numberOfPets column missing on Hostinger production DB
+- [x] BUG: Standalone Van booking summary shows "Luxury SUV" instead of "Support Van"
+- [x] BUG: Number of pets not displayed in booking summary
+- [x] BUG: Can't select 0 passengers for standalone Van (regression)
