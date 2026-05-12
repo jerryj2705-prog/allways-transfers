@@ -56,13 +56,21 @@ import {
   updateUserPassword,
   invalidateUserResetTokens,
   getUserById,
+  getActiveLandmarks,
+  getAllLandmarks,
+  getLandmarkById,
+  createLandmark,
+  updateLandmark,
+  toggleLandmarkActive,
+  deleteLandmark,
+  getLandmarkStats,
 } from "./db";
 import { makeRequest, type PlaceDetailsResult } from "./_core/map";
 import { createCheckoutSession } from "./stripe";
 import { notifyOwner } from "./_core/notification";
 import { sendBookingConfirmationEmail, sendCancellationConfirmationEmail, sendAdminNewBookingNotification, sendAdminCancellationNotification, sendPasswordResetEmail } from "./email";
 import crypto from "crypto";
-import { lookupSuburb, estimateDistance, isOutOfArea, getAllSuburbNames, getAllLocationsWithType } from "@shared/suburbs";
+import { lookupSuburb, estimateDistance, isOutOfArea, getAllSuburbNames, getAllLocationsWithType, calculateDistance, classifyLGA } from "@shared/suburbs";
 
 export const appRouter = router({
   system: systemRouter,
@@ -878,20 +886,42 @@ export const appRouter = router({
         })
       )
       .query(async ({ input }) => {
-        // Auto-detect out-of-area from suburbs
-        const outOfArea = input.pickupSuburb && input.destinationSuburb
-          ? isOutOfArea(input.pickupSuburb, input.destinationSuburb)
-          : input.pickupSuburb
-            ? isOutOfArea(input.pickupSuburb, input.pickupSuburb)
-            : false;
-
-        // Auto-estimate distance from suburbs
-        let distanceKm = input.distanceKm ?? 0;
-        if (input.pickupSuburb && input.destinationSuburb) {
-          const estimated = estimateDistance(input.pickupSuburb, input.destinationSuburb);
-          if (estimated !== null) {
-            distanceKm = estimated;
+        // Helper: resolve location from static data or DB landmarks
+        const dbLandmarks = await getActiveLandmarks();
+        const resolveLocation = (name: string) => {
+          const staticResult = lookupSuburb(name);
+          if (staticResult) return staticResult;
+          const cleaned = name.trim().toLowerCase();
+          const match = dbLandmarks.find((lm: any) => lm.name.toLowerCase() === cleaned);
+          if (match) {
+            return {
+              name: match.name,
+              lga: match.lga,
+              area: classifyLGA(match.lga),
+              lat: parseFloat(String(match.lat)),
+              lng: parseFloat(String(match.lng)),
+              isLandmark: true,
+            };
           }
+          return null;
+        };
+
+        const pickupResolved = input.pickupSuburb ? resolveLocation(input.pickupSuburb) : null;
+        const destResolved = input.destinationSuburb ? resolveLocation(input.destinationSuburb) : null;
+
+        // Auto-detect out-of-area
+        const pickupArea = pickupResolved?.area ?? "other";
+        const destArea = destResolved?.area ?? pickupArea;
+        const outOfArea = pickupArea === "secondary" || destArea === "secondary" ||
+                          pickupArea === "other" || destArea === "other";
+
+        // Auto-estimate distance
+        let distanceKm = input.distanceKm ?? 0;
+        if (pickupResolved && destResolved) {
+          distanceKm = calculateDistance(pickupResolved.lat, pickupResolved.lng, destResolved.lat, destResolved.lng);
+        } else if (input.pickupSuburb && input.destinationSuburb) {
+          const estimated = estimateDistance(input.pickupSuburb, input.destinationSuburb);
+          if (estimated !== null) distanceKm = estimated;
         }
 
         const breakdown = await calculatePrice({
@@ -917,26 +947,65 @@ export const appRouter = router({
           ...breakdown,
           distanceKm,
           isOutOfArea: outOfArea,
-          pickupArea: lookupSuburb(input.pickupSuburb)?.area ?? "other",
-          destinationArea: input.destinationSuburb ? (lookupSuburb(input.destinationSuburb)?.area ?? "other") : null,
+          pickupArea,
+          destinationArea: input.destinationSuburb ? destArea : null,
         };
       }),
 
-    // Public: lookup suburb info
+    // Public: lookup suburb info (checks static data first, then DB landmarks)
     lookupSuburb: publicProcedure
       .input(z.object({ suburb: z.string() }))
-      .query(({ input }) => {
-        return lookupSuburb(input.suburb);
+      .query(async ({ input }) => {
+        // Try static lookup first
+        const staticResult = lookupSuburb(input.suburb);
+        if (staticResult) return staticResult;
+        // Fall back to DB landmarks
+        const dbLandmarks = await getActiveLandmarks();
+        const cleaned = input.suburb.trim().toLowerCase();
+        const match = dbLandmarks.find((lm: any) => lm.name.toLowerCase() === cleaned);
+        if (match) {
+          return {
+            name: match.name,
+            lga: match.lga,
+            area: classifyLGA(match.lga),
+            lat: parseFloat(String(match.lat)),
+            lng: parseFloat(String(match.lng)),
+            isLandmark: true,
+          };
+        }
+        return null;
       }),
 
-    // Public: get all suburb names for autocomplete
-    suburbs: publicProcedure.query(() => {
-      return getAllSuburbNames();
+    // Public: get all suburb names for autocomplete (includes DB landmarks)
+    suburbs: publicProcedure.query(async () => {
+      const staticNames = getAllSuburbNames();
+      const dbLandmarks = await getActiveLandmarks();
+      const nameSet = new Set(staticNames.map(n => n.toLowerCase()));
+      const merged = [...staticNames];
+      for (const lm of dbLandmarks) {
+        if (!nameSet.has(lm.name.toLowerCase())) {
+          merged.push(lm.name);
+          nameSet.add(lm.name.toLowerCase());
+        }
+      }
+      return merged.sort();
     }),
 
     // Get all locations (suburbs + landmarks) with type info
-    locationsWithType: publicProcedure.query(() => {
-      return getAllLocationsWithType();
+    // Merges static SUBURB_DATA with active DB landmarks
+    locationsWithType: publicProcedure.query(async () => {
+      const staticLocations = getAllLocationsWithType();
+      // Fetch active DB landmarks and merge
+      const dbLandmarks = await getActiveLandmarks();
+      const existingNames = new Set(staticLocations.map(l => l.name.toLowerCase()));
+      const merged = [...staticLocations];
+      for (const lm of dbLandmarks) {
+        if (!existingNames.has(lm.name.toLowerCase())) {
+          merged.push({ name: lm.name, isLandmark: true });
+          existingNames.add(lm.name.toLowerCase());
+        }
+      }
+      return merged.sort((a, b) => a.name.localeCompare(b.name));
     }),
 
     // Admin: update a pricing setting
@@ -1341,6 +1410,75 @@ export const appRouter = router({
     stats: adminProcedure.query(async () => {
       return getEnquiryStats();
     }),
+  }),
+
+  landmarks: router({
+    // Public: get active landmarks for autocomplete
+    active: publicProcedure.query(async () => {
+      return getActiveLandmarks();
+    }),
+
+    // Admin: list all landmarks (including inactive)
+    list: adminProcedure.query(async () => {
+      return getAllLandmarks();
+    }),
+
+    // Admin: get landmark stats
+    stats: adminProcedure.query(async () => {
+      return getLandmarkStats();
+    }),
+
+    // Admin: get single landmark by ID
+    getById: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        return getLandmarkById(input.id);
+      }),
+
+    // Admin: create a new landmark
+    create: adminProcedure
+      .input(z.object({
+        name: z.string().min(1, "Landmark name is required"),
+        lat: z.string().regex(/^-?\d+\.\d+$/, "Latitude must be a decimal number"),
+        lng: z.string().regex(/^-?\d+\.\d+$/, "Longitude must be a decimal number"),
+        lga: z.string().min(1, "LGA is required"),
+        category: z.enum(["resort", "golf_course", "venue", "hospital", "university", "airport", "shopping", "stadium", "theme_park", "attraction", "other"]),
+        isActive: z.number().min(0).max(1).default(1),
+      }))
+      .mutation(async ({ input }) => {
+        return createLandmark(input);
+      }),
+
+    // Admin: update a landmark
+    update: adminProcedure
+      .input(z.object({
+        id: z.number(),
+        name: z.string().optional(),
+        lat: z.string().optional(),
+        lng: z.string().optional(),
+        lga: z.string().optional(),
+        category: z.enum(["resort", "golf_course", "venue", "hospital", "university", "airport", "shopping", "stadium", "theme_park", "attraction", "other"]).optional(),
+        isActive: z.number().min(0).max(1).optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        return updateLandmark(id, data);
+      }),
+
+    // Admin: toggle landmark active/inactive
+    toggleActive: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        return toggleLandmarkActive(input.id);
+      }),
+
+    // Admin: delete a landmark
+    delete: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await deleteLandmark(input.id);
+        return { success: true };
+      }),
   }),
 });
 

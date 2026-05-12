@@ -1,7 +1,7 @@
 import { eq, desc, and, or, like, sql, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
-import { InsertUser, users, vehicles, bookings, pricingSettings, enquiries, publicHolidays, passwordResetTokens, type InsertBooking, type Booking, type PricingSetting, type InsertEnquiry, type Enquiry, type InsertPublicHoliday, type PublicHoliday } from "../drizzle/schema";
+import { InsertUser, users, vehicles, bookings, pricingSettings, enquiries, publicHolidays, passwordResetTokens, landmarks, type InsertBooking, type Booking, type PricingSetting, type InsertEnquiry, type Enquiry, type InsertPublicHoliday, type PublicHoliday, type Landmark, type InsertLandmark } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import { lookupSuburb } from "@shared/suburbs";
 
@@ -1138,4 +1138,71 @@ export async function setAppSetting(key: string, value: string) {
   if (!db) throw new Error("Database not available");
   await db.insert(appSettings).values({ settingKey: key, settingValue: value })
     .onDuplicateKeyUpdate({ set: { settingValue: value } });
+}
+
+// ─── Landmarks ───
+
+export async function getActiveLandmarks(): Promise<Landmark[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(landmarks).where(eq(landmarks.isActive, 1)).orderBy(landmarks.name);
+}
+
+export async function getAllLandmarks(): Promise<Landmark[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(landmarks).orderBy(landmarks.name);
+}
+
+export async function getLandmarkById(id: number): Promise<Landmark | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(landmarks).where(eq(landmarks.id, id)).limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function createLandmark(data: Omit<InsertLandmark, "id" | "createdAt" | "updatedAt">): Promise<Landmark | null> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(landmarks).values(data);
+  const result = await db.select().from(landmarks).orderBy(desc(landmarks.id)).limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function updateLandmark(id: number, data: Partial<Omit<InsertLandmark, "id" | "createdAt" | "updatedAt">>): Promise<Landmark | null> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(landmarks).set(data).where(eq(landmarks.id, id));
+  const result = await db.select().from(landmarks).where(eq(landmarks.id, id)).limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function toggleLandmarkActive(id: number): Promise<Landmark | null> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const existing = await db.select().from(landmarks).where(eq(landmarks.id, id)).limit(1);
+  if (existing.length === 0) return null;
+  const newActive = existing[0].isActive === 1 ? 0 : 1;
+  await db.update(landmarks).set({ isActive: newActive }).where(eq(landmarks.id, id));
+  const result = await db.select().from(landmarks).where(eq(landmarks.id, id)).limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function deleteLandmark(id: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(landmarks).where(eq(landmarks.id, id));
+}
+
+export async function getLandmarkStats(): Promise<{ total: number; active: number; byCategory: { category: string; count: number }[] }> {
+  const db = await getDb();
+  if (!db) return { total: 0, active: 0, byCategory: [] };
+  const [totalResult] = await db.select({ count: sql<number>`count(*)` }).from(landmarks);
+  const [activeResult] = await db.select({ count: sql<number>`count(*)` }).from(landmarks).where(eq(landmarks.isActive, 1));
+  const byCategory = await db.select({ category: landmarks.category, count: sql<number>`count(*)` }).from(landmarks).groupBy(landmarks.category).orderBy(desc(sql<number>`count(*)`));
+  return {
+    total: totalResult?.count ?? 0,
+    active: activeResult?.count ?? 0,
+    byCategory: byCategory.map((r: any) => ({ category: r.category, count: r.count })),
+  };
 }

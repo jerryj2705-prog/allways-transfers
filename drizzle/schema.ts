@@ -203,3 +203,18 @@ export const passwordResetTokens = mysqlTable("password_reset_tokens", {
 
 export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
 export type InsertPasswordResetToken = typeof passwordResetTokens.$inferInsert;
+
+export const landmarks = mysqlTable("landmarks", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 300 }).notNull(),
+  lat: decimal("lat", { precision: 10, scale: 6 }).notNull(),
+  lng: decimal("lng", { precision: 10, scale: 6 }).notNull(),
+  lga: varchar("lga", { length: 200 }).notNull(),
+  category: mysqlEnum("category", ["resort", "golf_course", "venue", "hospital", "university", "airport", "shopping", "stadium", "theme_park", "attraction", "other"]).notNull().default("other"),
+  isActive: int("isActive").notNull().default(1),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Landmark = typeof landmarks.$inferSelect;
+export type InsertLandmark = typeof landmarks.$inferInsert;

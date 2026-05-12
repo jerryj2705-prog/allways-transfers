@@ -16,7 +16,7 @@ import { useLocation } from "wouter";
 import {
   Search, LayoutDashboard, Clock, CheckCircle, XCircle, AlertCircle,
   ChevronLeft, ChevronRight, LogOut, Home, DollarSign, MessageSquare, CalendarDays, Star,
-  Download, X, Banknote, CreditCard, RotateCcw,
+  Download, X, Banknote, CreditCard, RotateCcw, MapPin,
 } from "lucide-react";
 import { SERVICE_TYPES, BOOKING_STATUSES, PAYMENT_METHODS } from "@shared/types";
 import type { ServiceType, BookingStatus, PaymentMethod } from "@shared/types";
@@ -241,6 +241,15 @@ export default function AdminDashboard() {
             >
               <Star className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Reviews</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setLocation("/admin/landmarks")}
+              className="gap-1 bg-background"
+            >
+              <MapPin className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Landmarks</span>
             </Button>
             <span className="text-sm text-muted-foreground hidden sm:inline">{user.name}</span>
             <Button variant="outline" size="sm" onClick={logout} className="gap-1 bg-background">
