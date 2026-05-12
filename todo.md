@@ -535,3 +535,8 @@
 - [x] Update database schema enum to include freight
 - [x] Add Van as primary vehicle for Freight in booking form
 - [x] Update booking form UI to handle Freight category
+- [x] Add freight-specific columns to bookings table (freightDescription, freightWeight, freightItemCount)
+- [x] Add freight fields to booking form UI (visible only when Freight is selected)
+- [x] Pass freight fields through backend booking creation
+- [x] Display freight fields on admin booking detail and confirmation pages
+- [x] Include freight fields in booking confirmation email

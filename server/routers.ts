@@ -301,6 +301,11 @@ export const appRouter = router({
           isPetFriendly: z.boolean().default(false),
           numberOfPets: z.number().min(1).max(10).optional(),
           petDescription: z.string().optional(),
+          // Freight-specific fields
+          freightDescription: z.string().optional(),
+          freightWeight: z.string().optional(),
+          freightItemCount: z.number().min(1).max(100).optional(),
+          freightSpecialHandling: z.string().optional(),
           estimatedDistance: z.number().optional(),
           estimatedDuration: z.number().optional(),
           basePrice: z.number(),
@@ -326,7 +331,7 @@ export const appRouter = router({
         // Enforce minimum hours for hourly hire
         if (input.serviceType === "hourly_hire") {
           const settings = await getAllPricingSettings();
-          const minHoursSetting = settings.find(s => s.settingKey === "min_hourly_hours");
+          const minHoursSetting = settings.find((s: any) => s.settingKey === "min_hourly_hours");
           const minHours = minHoursSetting ? parseInt(minHoursSetting.settingValue, 10) : 3;
           const bookingHours = input.estimatedDuration ? Math.round(input.estimatedDuration / 60) : 0;
           if (bookingHours < minHours) {
@@ -358,6 +363,11 @@ export const appRouter = router({
           isPetFriendly: input.isPetFriendly ? 1 : 0,
           numberOfPets: input.isPetFriendly ? (input.numberOfPets ?? 1) : null,
           petDescription: input.isPetFriendly ? (input.petDescription ?? null) : null,
+          // Freight fields
+          freightDescription: input.serviceType === "freight" ? (input.freightDescription ?? null) : null,
+          freightWeight: input.serviceType === "freight" ? (input.freightWeight ?? null) : null,
+          freightItemCount: input.serviceType === "freight" ? (input.freightItemCount ?? null) : null,
+          freightSpecialHandling: input.serviceType === "freight" ? (input.freightSpecialHandling ?? null) : null,
           estimatedDistance: input.estimatedDistance?.toFixed(2) ?? null,
           estimatedDuration: input.estimatedDuration ?? null,
           basePrice: input.basePrice.toFixed(2),
@@ -426,6 +436,10 @@ export const appRouter = router({
               isPetFriendly: input.isPetFriendly,
               numberOfPets: input.numberOfPets ?? null,
               petDescription: input.petDescription ?? null,
+              freightDescription: input.freightDescription ?? null,
+              freightWeight: input.freightWeight ?? null,
+              freightItemCount: input.freightItemCount ?? null,
+              freightSpecialHandling: input.freightSpecialHandling ?? null,
               totalPrice: input.totalPrice.toFixed(2),
               paymentMethod: input.paymentMethod,
               paymentStatus: input.paymentMethod === "stripe_prepay" ? "unpaid" : "unpaid",
@@ -460,6 +474,10 @@ export const appRouter = router({
               isPetFriendly: input.isPetFriendly,
               numberOfPets: input.numberOfPets ?? null,
               petDescription: input.petDescription ?? null,
+              freightDescription: input.freightDescription ?? null,
+              freightWeight: input.freightWeight ?? null,
+              freightItemCount: input.freightItemCount ?? null,
+              freightSpecialHandling: input.freightSpecialHandling ?? null,
               totalPrice: input.totalPrice.toFixed(2),
               paymentMethod: input.paymentMethod,
               paymentStatus: input.paymentMethod === "stripe_prepay" ? "unpaid" : "unpaid",
@@ -688,7 +706,7 @@ export const appRouter = router({
 
         // Fetch the configured late cancellation charge percentage
         const settings = await getAllPricingSettings();
-        const chargeSetting = settings.find(s => s.settingKey === "late_cancel_charge_pct");
+        const chargeSetting = settings.find((s: any) => s.settingKey === "late_cancel_charge_pct");
         const chargePercent = chargeSetting ? parseFloat(chargeSetting.settingValue) : 50;
 
         const now = Date.now();
@@ -724,7 +742,7 @@ export const appRouter = router({
 
         // Fetch the configured late cancellation charge percentage
         const settings = await getAllPricingSettings();
-        const chargeSetting = settings.find(s => s.settingKey === "late_cancel_charge_pct");
+        const chargeSetting = settings.find((s: any) => s.settingKey === "late_cancel_charge_pct");
         const chargePercent = chargeSetting ? parseFloat(chargeSetting.settingValue) : 50;
 
         const now = Date.now();
@@ -1081,9 +1099,9 @@ export const appRouter = router({
       // If cache is fresh, return cached data
       if (cacheAge !== null && cacheAge < CACHE_TTL) {
         const cached = await getCachedGoogleReviews(placeId);
-        const avgRating = cached.length > 0 ? Math.round(cached.reduce((sum, r) => sum + r.rating, 0) / cached.length * 10) / 10 : 0;
+        const avgRating = cached.length > 0 ? Math.round(cached.reduce((sum: number, r: any) => sum + r.rating, 0) / cached.length * 10) / 10 : 0;
         return {
-          reviews: cached.map(r => ({
+          reviews: cached.map((r: any) => ({
             id: r.id,
             authorName: r.authorName,
             rating: r.rating,
@@ -1109,9 +1127,9 @@ export const appRouter = router({
         if (result.status !== "OK" || !result.result) {
           // Return stale cache if available
           const cached = await getCachedGoogleReviews(placeId);
-          const avgRating = cached.length > 0 ? Math.round(cached.reduce((sum, r) => sum + r.rating, 0) / cached.length * 10) / 10 : 0;
+          const avgRating = cached.length > 0 ? Math.round(cached.reduce((sum: number, r: any) => sum + r.rating, 0) / cached.length * 10) / 10 : 0;
           return {
-            reviews: cached.map(r => ({
+            reviews: cached.map((r: any) => ({
               id: r.id,
               authorName: r.authorName,
               rating: r.rating,
@@ -1132,7 +1150,7 @@ export const appRouter = router({
         // Clear old cache and insert new
         await clearGoogleReviewsCache(placeId);
         if (googleReviews.length > 0) {
-          await insertGoogleReviews(googleReviews.map(r => ({
+          await insertGoogleReviews(googleReviews.map((r: any) => ({
             placeId,
             authorName: r.author_name || "Anonymous",
             rating: r.rating,
@@ -1144,7 +1162,7 @@ export const appRouter = router({
         }
 
         return {
-          reviews: googleReviews.map((r, i) => ({
+          reviews: googleReviews.map((r: any, i: number) => ({
             id: i + 1,
             authorName: r.author_name || "Anonymous",
             rating: r.rating,
@@ -1162,9 +1180,9 @@ export const appRouter = router({
         console.error("[GoogleReviews] Failed to fetch:", error);
         // Return stale cache on error
         const cached = await getCachedGoogleReviews(placeId);
-        const avgRating = cached.length > 0 ? Math.round(cached.reduce((sum, r) => sum + r.rating, 0) / cached.length * 10) / 10 : 0;
+        const avgRating = cached.length > 0 ? Math.round(cached.reduce((sum: number, r: any) => sum + r.rating, 0) / cached.length * 10) / 10 : 0;
         return {
-          reviews: cached.map(r => ({
+          reviews: cached.map((r: any) => ({
             id: r.id,
             authorName: r.authorName,
             rating: r.rating,

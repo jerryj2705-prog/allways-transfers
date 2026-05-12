@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { useParams, useLocation } from "wouter";
 import {
   Printer, Download, ArrowLeft, CheckCircle, MapPin,
-  Calendar, Users, Car, Dog, Loader2
+  Calendar, Users, Car, Dog, Loader2, Package
 } from "lucide-react";
 import { SERVICE_TYPES, PAYMENT_METHODS } from "@shared/types";
 import type { ServiceType, PaymentMethod } from "@shared/types";
@@ -221,6 +221,44 @@ export default function Receipt() {
                   {booking.numberOfPets} pet{booking.numberOfPets !== 1 ? "s" : ""}
                   {booking.petDescription ? ` — ${booking.petDescription}` : ""}
                 </p>
+              </div>
+            )}
+
+            {booking.serviceType === "freight" && booking.freightDescription && (
+              <div className="pt-2 border-t border-border/30">
+                <p className="text-xs font-medium tracking-widest uppercase text-primary mb-2">Freight Details</p>
+                <div className="space-y-2">
+                  <div>
+                    <p className="text-xs text-muted-foreground flex items-center gap-1 mb-1">
+                      <Package className="w-3 h-3" /> Item Description
+                    </p>
+                    <p className="font-medium text-sm">{booking.freightDescription}</p>
+                  </div>
+                  {booking.freightWeight && (
+                    <div>
+                      <p className="text-xs text-muted-foreground flex items-center gap-1 mb-1">
+                        <Package className="w-3 h-3" /> Estimated Weight
+                      </p>
+                      <p className="font-medium text-sm">{booking.freightWeight === "under_10kg" ? "Under 10 kg" : booking.freightWeight === "10_25kg" ? "10\u201325 kg" : booking.freightWeight === "25_50kg" ? "25\u201350 kg" : booking.freightWeight === "50_100kg" ? "50\u2013100 kg" : booking.freightWeight === "100_plus" ? "100+ kg" : booking.freightWeight}</p>
+                    </div>
+                  )}
+                  {booking.freightItemCount != null && booking.freightItemCount > 0 && (
+                    <div>
+                      <p className="text-xs text-muted-foreground flex items-center gap-1 mb-1">
+                        <Package className="w-3 h-3" /> Number of Items
+                      </p>
+                      <p className="font-medium text-sm">{booking.freightItemCount}</p>
+                    </div>
+                  )}
+                  {booking.freightSpecialHandling && (
+                    <div>
+                      <p className="text-xs text-muted-foreground flex items-center gap-1 mb-1">
+                        <Package className="w-3 h-3" /> Special Handling
+                      </p>
+                      <p className="font-medium text-sm">{booking.freightSpecialHandling}</p>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 

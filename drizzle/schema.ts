@@ -70,6 +70,11 @@ export const bookings = mysqlTable("bookings", {
   rearFacingSeats: int("rearFacingSeats").notNull().default(0),
   forwardFacingSeats: int("forwardFacingSeats").notNull().default(0),
   boosterSeats: int("boosterSeats").notNull().default(0),
+  // Freight-specific fields
+  freightDescription: text("freightDescription"),
+  freightWeight: varchar("freightWeight", { length: 50 }), // e.g. "Under 10kg", "10-25kg", etc.
+  freightItemCount: int("freightItemCount"),
+  freightSpecialHandling: text("freightSpecialHandling"), // fragile, keep upright, etc.
   // Pet-friendly
   isPetFriendly: int("isPetFriendly").notNull().default(0),
   numberOfPets: int("numberOfPets"),

@@ -235,7 +235,7 @@ export default function ServiceDetail() {
   const { data: pricingSettings } = trpc.pricing.getAll.useQuery();
 
   const getBasePrice = (key: string) => {
-    const setting = pricingSettings?.find(s => s.settingKey === key);
+    const setting = pricingSettings?.find((s: any) => s.settingKey === key);
     if (!setting) return null;
     const val = parseFloat(setting.settingValue);
     return isNaN(val) ? null : val.toFixed(0);
@@ -260,7 +260,7 @@ export default function ServiceDetail() {
   const basePrice = getBasePrice(service.priceKey);
   const minHours = service.minHoursKey
     ? (() => {
-        const s = pricingSettings?.find(p => p.settingKey === service.minHoursKey);
+        const s = pricingSettings?.find((p: any) => p.settingKey === service.minHoursKey);
         return s ? parseInt(s.settingValue, 10) : null;
       })()
     : null;

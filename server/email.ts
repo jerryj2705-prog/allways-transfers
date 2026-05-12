@@ -122,6 +122,11 @@ export interface BookingEmailData {
   isPetFriendly?: boolean;
   numberOfPets?: number | null;
   petDescription?: string | null;
+  // Freight fields
+  freightDescription?: string | null;
+  freightWeight?: string | null;
+  freightItemCount?: number | null;
+  freightSpecialHandling?: string | null;
   totalPrice: string;
   paymentMethod: string;
   paymentStatus: string;
@@ -253,6 +258,30 @@ export async function sendBookingConfirmationEmail(data: BookingEmailData): Prom
         <td style="padding:8px 0;border-bottom:1px solid #333;">
           <span style="color:#a3a3a3;font-size:13px;">Pet(s) Description</span><br/>
           <span style="color:#e5e5e5;font-size:15px;">${data.petDescription ?? "Yes"}</span>
+        </td>
+      </tr>` : ""}
+      ${data.freightDescription ? `<tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Freight — Item Description</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${data.freightDescription}</span>
+        </td>
+      </tr>` : ""}
+      ${data.freightWeight ? `<tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Freight — Estimated Weight</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${{under_10kg:"Under 10 kg","10_25kg":"10–25 kg","25_50kg":"25–50 kg","50_100kg":"50–100 kg","100_plus":"100+ kg"}[data.freightWeight] || data.freightWeight}</span>
+        </td>
+      </tr>` : ""}
+      ${data.freightItemCount ? `<tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Freight — Number of Items</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${data.freightItemCount}</span>
+        </td>
+      </tr>` : ""}
+      ${data.freightSpecialHandling ? `<tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Freight — Special Handling</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${data.freightSpecialHandling}</span>
         </td>
       </tr>` : ""}
       ${buildAdditionalStopsHtml(data)}
@@ -567,6 +596,30 @@ export async function sendAdminNewBookingNotification(data: BookingEmailData): P
         <td style="padding:8px 0;border-bottom:1px solid #333;">
           <span style="color:#a3a3a3;font-size:13px;">Pet(s) Description</span><br/>
           <span style="color:#e5e5e5;font-size:15px;">${data.petDescription ?? "Yes"}</span>
+        </td>
+      </tr>` : ""}
+      ${data.freightDescription ? `<tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Freight — Item Description</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${data.freightDescription}</span>
+        </td>
+      </tr>` : ""}
+      ${data.freightWeight ? `<tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Freight — Estimated Weight</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${{under_10kg:"Under 10 kg","10_25kg":"10–25 kg","25_50kg":"25–50 kg","50_100kg":"50–100 kg","100_plus":"100+ kg"}[data.freightWeight] || data.freightWeight}</span>
+        </td>
+      </tr>` : ""}
+      ${data.freightItemCount ? `<tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Freight — Number of Items</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${data.freightItemCount}</span>
+        </td>
+      </tr>` : ""}
+      ${data.freightSpecialHandling ? `<tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Freight — Special Handling</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${data.freightSpecialHandling}</span>
         </td>
       </tr>` : ""}
       ${buildAdditionalStopsHtml(data)}

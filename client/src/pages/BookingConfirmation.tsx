@@ -2,7 +2,7 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useLocation, useParams } from "wouter";
-import { CheckCircle, XCircle, Copy, Home, Calendar, MapPin, Users, Car, CreditCard, Wallet, Banknote, Baby, Dog, AlertTriangle, Loader2, Receipt } from "lucide-react";
+import { CheckCircle, XCircle, Copy, Home, Calendar, MapPin, Users, Car, CreditCard, Wallet, Banknote, Baby, Dog, AlertTriangle, Loader2, Receipt, Package } from "lucide-react";
 import { toast } from "sonner";
 import { SERVICE_TYPES, PAYMENT_METHODS } from "@shared/types";
 import type { ServiceType, PaymentMethod } from "@shared/types";
@@ -229,6 +229,38 @@ export default function BookingConfirmation() {
                     <p className="text-muted-foreground flex items-center gap-1"><Dog className="w-3 h-3" /> Pet(s) Description</p>
                     <p className="font-medium">{booking.petDescription || "Yes"}</p>
                   </div>
+                </>
+              )}
+              {booking.serviceType === "freight" && booking.freightDescription && (
+                <>
+                  <div className="col-span-2">
+                    <p className="text-muted-foreground flex items-center gap-1"><Package className="w-3 h-3" /> Item Description</p>
+                    <p className="font-medium">{booking.freightDescription}</p>
+                  </div>
+                  {booking.freightWeight && (
+                    <div>
+                      <p className="text-muted-foreground flex items-center gap-1"><Package className="w-3 h-3" /> Estimated Weight</p>
+                      <p className="font-medium">{{
+                        under_10kg: "Under 10 kg",
+                        "10_25kg": "10 \u2013 25 kg",
+                        "25_50kg": "25 \u2013 50 kg",
+                        "50_100kg": "50 \u2013 100 kg",
+                        "100_plus": "100+ kg",
+                      }[booking.freightWeight] || booking.freightWeight}</p>
+                    </div>
+                  )}
+                  {booking.freightItemCount != null && booking.freightItemCount > 0 && (
+                    <div>
+                      <p className="text-muted-foreground flex items-center gap-1"><Package className="w-3 h-3" /> Number of Items</p>
+                      <p className="font-medium">{booking.freightItemCount}</p>
+                    </div>
+                  )}
+                  {booking.freightSpecialHandling && (
+                    <div className="col-span-2">
+                      <p className="text-muted-foreground flex items-center gap-1"><Package className="w-3 h-3" /> Special Handling</p>
+                      <p className="font-medium">{booking.freightSpecialHandling}</p>
+                    </div>
+                  )}
                 </>
               )}
               {((booking.additionalPickupCount ?? 0) > 0 || (booking.additionalDropoffCount ?? 0) > 0) && (

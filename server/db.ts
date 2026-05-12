@@ -479,7 +479,7 @@ export async function updatePricingSetting(id: number, value: string, isActive?:
     updateData.isActive = isActive;
   }
   await db.update(pricingSettings).set(updateData).where(eq(pricingSettings.id, id));
-  return db.select().from(pricingSettings).where(eq(pricingSettings.id, id)).then(r => r[0]);
+  return db.select().from(pricingSettings).where(eq(pricingSettings.id, id)).then((r: any[]) => r[0]);
 }
 
 // ─── Public Holiday Queries ───
@@ -573,11 +573,11 @@ export async function calculatePrice(params: {
 }): Promise<PriceBreakdown> {
   const settings = await getAllPricingSettings();
   const getVal = (key: string) => {
-    const s = settings.find(s => s.settingKey === key);
+    const s = settings.find((s: any) => s.settingKey === key);
     return s ? parseFloat(s.settingValue) : 0;
   };
   const isActive = (key: string) => {
-    const s = settings.find(s => s.settingKey === key);
+    const s = settings.find((s: any) => s.settingKey === key);
     return s ? s.isActive === 1 : false;
   };
 

@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
@@ -199,6 +200,11 @@ export default function BookingForm() {
       setBoosterSeats(0);
     }
   };
+  // Freight-specific state
+  const [freightDescription, setFreightDescription] = useState("");
+  const [freightWeight, setFreightWeight] = useState("");
+  const [freightItemCount, setFreightItemCount] = useState(1);
+  const [freightSpecialHandling, setFreightSpecialHandling] = useState("");
   const [pickupAddress, setPickupAddress] = useState("");
   const [pickupSuburb, setPickupSuburb] = useState("");
   const [dropoffAddress, setDropoffAddress] = useState("");
@@ -355,7 +361,7 @@ export default function BookingForm() {
         }
         return baseValid && !!(dropoffAddress && dropoffSuburb) && pickupAddrsValid && dropoffAddrsValid;
       }
-      case 2: return (vehicleSelection === "van" ? !!van : !!suv) && (!isPetFriendly || petDescription.trim().length > 0);
+      case 2: return (vehicleSelection === "van" ? !!van : !!suv) && (!isPetFriendly || petDescription.trim().length > 0) && (!isFreight || (freightDescription.trim().length > 0 && freightWeight !== ""));
       case 3: return clientName && clientEmail && clientPhone;
       case 4: return paymentMethod !== "";
       case 5: return termsAccepted;
@@ -388,6 +394,11 @@ export default function BookingForm() {
       isPetFriendly,
       numberOfPets: isPetFriendly ? numberOfPets : undefined,
       petDescription: isPetFriendly ? petDescription : undefined,
+      // Freight fields
+      freightDescription: isFreight ? freightDescription : undefined,
+      freightWeight: isFreight ? freightWeight : undefined,
+      freightItemCount: isFreight ? freightItemCount : undefined,
+      freightSpecialHandling: isFreight && freightSpecialHandling.trim() ? freightSpecialHandling : undefined,
       estimatedDistance,
       estimatedDuration: serviceType === "hourly_hire" ? hireHours * 60 : undefined,
       basePrice: pricing.basePrice,
@@ -978,6 +989,99 @@ export default function BookingForm() {
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Freight Details (only when freight service is selected) */}
+              {isFreight && (
+                <Card className="ring-2 ring-primary/50 shadow-lg">
+                  <CardContent className="p-6 space-y-4">
+                    <div className="flex items-center gap-3">
+                      <Package className="w-5 h-5 text-primary" />
+                      <div>
+                        <h3 className="font-heading text-lg font-semibold">Freight Details</h3>
+                        <p className="text-sm text-muted-foreground">Tell us about the items you need delivered</p>
+                      </div>
+                    </div>
+
+                    {/* Item Description */}
+                    <div className="space-y-2">
+                      <Label htmlFor="freightDesc" className="text-sm font-medium">
+                        Item Description <span className="text-red-400">*</span>
+                      </Label>
+                      <Textarea
+                        id="freightDesc"
+                        placeholder="Describe the items to be transported (e.g. 2x golf bags, 1x surfboard, office equipment boxes)..."
+                        value={freightDescription}
+                        onChange={(e) => setFreightDescription(e.target.value)}
+                        rows={3}
+                        className={!freightDescription.trim() ? "border-red-500/50" : ""}
+                      />
+                      {!freightDescription.trim() && (
+                        <p className="text-xs text-red-400">Please describe the items to be transported.</p>
+                      )}
+                    </div>
+
+                    {/* Estimated Weight & Number of Items */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="freightWeight" className="text-sm font-medium">
+                          Estimated Weight <span className="text-red-400">*</span>
+                        </Label>
+                        <Select value={freightWeight} onValueChange={setFreightWeight}>
+                          <SelectTrigger className={!freightWeight ? "border-red-500/50" : ""}>
+                            <SelectValue placeholder="Select weight range" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="under_10kg">Under 10 kg</SelectItem>
+                            <SelectItem value="10_25kg">10 – 25 kg</SelectItem>
+                            <SelectItem value="25_50kg">25 – 50 kg</SelectItem>
+                            <SelectItem value="50_100kg">50 – 100 kg</SelectItem>
+                            <SelectItem value="100_plus">100+ kg</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        {!freightWeight && (
+                          <p className="text-xs text-red-400">Please select an estimated weight.</p>
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Number of Items</Label>
+                        <div className="flex items-center gap-3">
+                          <Button
+                            type="button" variant="outline" size="icon"
+                            className="h-9 w-9 bg-background"
+                            onClick={() => setFreightItemCount(Math.max(1, freightItemCount - 1))}
+                            disabled={freightItemCount === 1}
+                          >
+                            <Minus className="w-3.5 h-3.5" />
+                          </Button>
+                          <span className="text-lg font-heading font-bold w-8 text-center">{freightItemCount}</span>
+                          <Button
+                            type="button" variant="outline" size="icon"
+                            className="h-9 w-9 bg-background"
+                            onClick={() => setFreightItemCount(Math.min(50, freightItemCount + 1))}
+                            disabled={freightItemCount === 50}
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Special Handling */}
+                    <div className="space-y-2">
+                      <Label htmlFor="freightHandling" className="text-sm font-medium">
+                        Special Handling Instructions <span className="text-muted-foreground text-xs">(optional)</span>
+                      </Label>
+                      <Textarea
+                        id="freightHandling"
+                        placeholder="e.g. Fragile — handle with care, keep upright, temperature sensitive..."
+                        value={freightSpecialHandling}
+                        onChange={(e) => setFreightSpecialHandling(e.target.value)}
+                        rows={2}
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Pet-Friendly Option (available for standalone Van too) */}
               <Card className={`transition-all duration-200 ${
@@ -1601,6 +1705,39 @@ export default function BookingForm() {
                             <p className="font-medium">{petDescription}</p>
                           </div>
                         </>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Freight Details */}
+                {isFreight && (
+                  <div className="space-y-3 border-t border-border/50 pt-4">
+                    <p className="text-xs font-medium tracking-widest uppercase text-primary">Freight Details</p>
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div className="col-span-2">
+                        <p className="text-muted-foreground">Item Description</p>
+                        <p className="font-medium">{freightDescription}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Estimated Weight</p>
+                        <p className="font-medium">{{
+                          under_10kg: "Under 10 kg",
+                          "10_25kg": "10 \u2013 25 kg",
+                          "25_50kg": "25 \u2013 50 kg",
+                          "50_100kg": "50 \u2013 100 kg",
+                          "100_plus": "100+ kg",
+                        }[freightWeight] || freightWeight}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Number of Items</p>
+                        <p className="font-medium">{freightItemCount}</p>
+                      </div>
+                      {freightSpecialHandling.trim() && (
+                        <div className="col-span-2">
+                          <p className="text-muted-foreground">Special Handling</p>
+                          <p className="font-medium">{freightSpecialHandling}</p>
+                        </div>
                       )}
                     </div>
                   </div>

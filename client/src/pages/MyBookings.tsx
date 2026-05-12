@@ -233,8 +233,8 @@ export default function MyBookings() {
   }, [modifyBooking, modifyPickupAddress, modifyDropoffAddress, modifyDate, modifyTime, modifyPassengers, modifySpecialRequests]);
 
   const now = Date.now();
-  const upcoming = bookings?.filter(b => b.pickupDate >= now && b.status !== "cancelled") ?? [];
-  const past = bookings?.filter(b => b.pickupDate < now || b.status === "cancelled") ?? [];
+  const upcoming = bookings?.filter((b: any) => b.pickupDate >= now && b.status !== "cancelled") ?? [];
+  const past = bookings?.filter((b: any) => b.pickupDate < now || b.status === "cancelled") ?? [];
 
   if (authLoading) {
     return (
@@ -520,7 +520,7 @@ export default function MyBookings() {
                   <span className="text-sm text-muted-foreground">({upcoming.length})</span>
                 </div>
                 <div className="space-y-3">
-                  {upcoming.map(b => renderBookingCard(b, true))}
+                  {upcoming.map((b: any) => renderBookingCard(b, true))}
                 </div>
               </section>
             )}
@@ -534,7 +534,7 @@ export default function MyBookings() {
                   <span className="text-sm text-muted-foreground">({past.length})</span>
                 </div>
                 <div className="space-y-3">
-                  {past.map(b => renderBookingCard(b, false))}
+                  {past.map((b: any) => renderBookingCard(b, false))}
                 </div>
               </section>
             )}
