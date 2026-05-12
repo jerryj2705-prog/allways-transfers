@@ -344,13 +344,24 @@ export default function AdminBookingDetail() {
                     </div>
                   )}
                   {booking.isPetFriendly === 1 && (
-                    <div className="flex items-start gap-3 col-span-2">
-                      <Dog className="w-4 h-4 text-muted-foreground mt-0.5" />
-                      <div>
-                        <p className="text-muted-foreground">Pet</p>
-                        <p className="font-medium">{booking.petDescription || "Yes"}</p>
+                    <>
+                      {booking.numberOfPets != null && booking.numberOfPets > 0 && (
+                        <div className="flex items-start gap-3">
+                          <Dog className="w-4 h-4 text-muted-foreground mt-0.5" />
+                          <div>
+                            <p className="text-muted-foreground">Number of Pets</p>
+                            <p className="font-medium">{booking.numberOfPets}</p>
+                          </div>
+                        </div>
+                      )}
+                      <div className={`flex items-start gap-3 ${!booking.numberOfPets ? 'col-span-2' : ''}`}>
+                        <Dog className="w-4 h-4 text-muted-foreground mt-0.5" />
+                        <div>
+                          <p className="text-muted-foreground">Pet(s) Description</p>
+                          <p className="font-medium">{booking.petDescription || "Yes"}</p>
+                        </div>
                       </div>
-                    </div>
+                    </>
                   )}
                   {((booking.additionalPickupCount ?? 0) > 0 || (booking.additionalDropoffCount ?? 0) > 0) && (
                     <div className="flex items-start gap-3 col-span-2">
