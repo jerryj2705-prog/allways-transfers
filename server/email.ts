@@ -127,6 +127,7 @@ export interface BookingEmailData {
   freightWeight?: string | null;
   freightItemCount?: number | null;
   freightSpecialHandling?: string | null;
+  routePreference?: string;
   totalPrice: string;
   paymentMethod: string;
   paymentStatus: string;

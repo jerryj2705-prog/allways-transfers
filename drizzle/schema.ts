@@ -74,7 +74,9 @@ export const bookings = mysqlTable("bookings", {
   freightDescription: text("freightDescription"),
   freightWeight: varchar("freightWeight", { length: 50 }), // e.g. "Under 10kg", "10-25kg", etc.
   freightItemCount: int("freightItemCount"),
-  freightSpecialHandling: text("freightSpecialHandling"), // fragile, keep upright, etc.
+  freightSpecialHandling: text("freightSpecialHandling"),
+  routePreference: varchar("routePreference", { length: 20 }).default("fastest"), // 'fastest' or 'toll_free'
+  tollOverride: decimal("tollOverride", { precision: 10, scale: 2 }), // Admin manual toll override amount
   // Pet-friendly
   isPetFriendly: int("isPetFriendly").notNull().default(0),
   numberOfPets: int("numberOfPets"),
@@ -110,7 +112,7 @@ export const pricingSettings = mysqlTable("pricing_settings", {
   settingValue: decimal("settingValue", { precision: 10, scale: 2 }).notNull().default("0"),
   label: varchar("label", { length: 200 }).notNull(),
   description: text("description"),
-  category: mysqlEnum("category", ["base_price", "surcharge", "rate", "toggle"]).notNull(),
+  category: mysqlEnum("category", ["base_price", "surcharge", "rate", "toggle", "road_toll"]).notNull(),
   isActive: int("isActive").notNull().default(1),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

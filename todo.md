@@ -551,3 +551,14 @@
 - [x] Auto-detect airport pickup/dropoff and apply toll surcharges in pricing engine
 - [x] Display airport toll surcharges in booking form price breakdown
 - [x] Add admin UI to manage airport toll settings with entry/exit toggle per airport
+- [x] Update airport toll defaults: SCT entry+exit active, BNE entry active / exit inactive
+- [x] Add 7 QLD toll road settings (Gateway, Logan, Clem7, Go Between Bridge, Legacy Way, AirportlinkM7, Toowoomba Bypass)
+- [x] Define route corridor auto-detection logic for each toll road
+- [x] Update pricing engine to auto-apply road tolls based on pickup/dropoff suburbs
+- [x] Display road toll surcharges in booking form price breakdown
+- [x] Add admin toll override field on booking detail page
+- [x] Add tollOverride column to bookings table
+- [x] Add customer route preference option (fastest with tolls vs toll-free) to booking form
+- [x] Skip road tolls in pricing when customer selects toll-free route
+- [x] Add routePreference column to bookings table
+- [x] Display route preference on admin booking detail and confirmation pages

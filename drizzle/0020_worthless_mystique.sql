@@ -1,0 +1,1 @@
+ALTER TABLE `bookings` ADD `routePreference` varchar(20) DEFAULT 'fastest';

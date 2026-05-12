@@ -306,6 +306,7 @@ export const appRouter = router({
           freightWeight: z.string().optional(),
           freightItemCount: z.number().min(1).max(100).optional(),
           freightSpecialHandling: z.string().optional(),
+          routePreference: z.enum(["fastest", "toll_free"]).default("fastest"),
           estimatedDistance: z.number().optional(),
           estimatedDuration: z.number().optional(),
           basePrice: z.number(),
@@ -368,6 +369,7 @@ export const appRouter = router({
           freightWeight: input.serviceType === "freight" ? (input.freightWeight ?? null) : null,
           freightItemCount: input.serviceType === "freight" ? (input.freightItemCount ?? null) : null,
           freightSpecialHandling: input.serviceType === "freight" ? (input.freightSpecialHandling ?? null) : null,
+          routePreference: input.routePreference ?? "fastest",
           estimatedDistance: input.estimatedDistance?.toFixed(2) ?? null,
           estimatedDuration: input.estimatedDuration ?? null,
           basePrice: input.basePrice.toFixed(2),
@@ -440,6 +442,7 @@ export const appRouter = router({
               freightWeight: input.freightWeight ?? null,
               freightItemCount: input.freightItemCount ?? null,
               freightSpecialHandling: input.freightSpecialHandling ?? null,
+              routePreference: input.routePreference ?? "fastest",
               totalPrice: input.totalPrice.toFixed(2),
               paymentMethod: input.paymentMethod,
               paymentStatus: input.paymentMethod === "stripe_prepay" ? "unpaid" : "unpaid",
@@ -478,6 +481,7 @@ export const appRouter = router({
               freightWeight: input.freightWeight ?? null,
               freightItemCount: input.freightItemCount ?? null,
               freightSpecialHandling: input.freightSpecialHandling ?? null,
+              routePreference: input.routePreference ?? "fastest",
               totalPrice: input.totalPrice.toFixed(2),
               paymentMethod: input.paymentMethod,
               paymentStatus: input.paymentMethod === "stripe_prepay" ? "unpaid" : "unpaid",
@@ -870,6 +874,7 @@ export const appRouter = router({
           isPetFriendly: z.boolean().default(false),
           numberOfPets: z.number().min(0).default(0),
           freightWeight: z.string().optional(),
+          preferTollFree: z.boolean().default(false),
         })
       )
       .query(async ({ input }) => {
@@ -905,6 +910,7 @@ export const appRouter = router({
           freightWeight: input.freightWeight,
           pickupSuburb: input.pickupSuburb,
           destinationSuburb: input.destinationSuburb,
+          preferTollFree: input.preferTollFree,
         });
 
         return {

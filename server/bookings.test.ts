@@ -528,3 +528,203 @@ describe("bookings.calendarBookings (admin)", () => {
     ).rejects.toThrow();
   });
 });
+
+describe("bookings.create with route preference", () => {
+  it("creates a booking with fastest route (default)", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+
+    const vehicles = await caller.vehicles.list();
+    const suv = vehicles.find((v) => v.type === "suv");
+    expect(suv).toBeDefined();
+
+    const booking = await caller.bookings.create({
+      clientName: "Route Default Client",
+      clientEmail: "routedefault@example.com",
+      clientPhone: "+61 400 900 001",
+      serviceType: "airport_transfer",
+      pickupAddress: "Brisbane Airport",
+      dropoffAddress: "Gold Coast",
+      pickupDate: Date.now() + 86400000,
+      passengerCount: 2,
+      vehicleId: suv!.id,
+      vehicleName: suv!.name,
+      needsSupportVan: false,
+      supportVanPrice: 0,
+      basePrice: 170,
+      totalPrice: 170,
+      termsAccepted: true,
+      paymentMethod: "cash_postpay",
+    });
+
+    expect(booking).toBeDefined();
+    expect(booking.routePreference).toBe("fastest");
+  });
+
+  it("creates a booking with toll-free route preference", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+
+    const vehicles = await caller.vehicles.list();
+    const suv = vehicles.find((v) => v.type === "suv");
+    expect(suv).toBeDefined();
+
+    const booking = await caller.bookings.create({
+      clientName: "Toll Free Client",
+      clientEmail: "tollfree@example.com",
+      clientPhone: "+61 400 900 002",
+      serviceType: "point_to_point",
+      pickupAddress: "Brisbane CBD",
+      dropoffAddress: "Gold Coast",
+      pickupDate: Date.now() + 86400000,
+      passengerCount: 3,
+      vehicleId: suv!.id,
+      vehicleName: suv!.name,
+      needsSupportVan: false,
+      supportVanPrice: 0,
+      basePrice: 200,
+      totalPrice: 200,
+      routePreference: "toll_free",
+      termsAccepted: true,
+      paymentMethod: "cash_postpay",
+    });
+
+    expect(booking).toBeDefined();
+    expect(booking.routePreference).toBe("toll_free");
+  });
+
+  it("returns routePreference when fetching by reference", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+
+    const vehicles = await caller.vehicles.list();
+    const suv = vehicles.find((v) => v.type === "suv");
+
+    const created = await caller.bookings.create({
+      clientName: "Route Ref Test",
+      clientEmail: "routeref@example.com",
+      clientPhone: "+61 400 900 003",
+      serviceType: "airport_transfer",
+      pickupAddress: "Gold Coast Airport",
+      dropoffAddress: "Surfers Paradise",
+      pickupDate: Date.now() + 86400000,
+      passengerCount: 2,
+      vehicleId: suv!.id,
+      vehicleName: suv!.name,
+      needsSupportVan: false,
+      supportVanPrice: 0,
+      basePrice: 100,
+      totalPrice: 100,
+      routePreference: "toll_free",
+      termsAccepted: true,
+      paymentMethod: "cash_postpay",
+    });
+
+    const found = await caller.bookings.getByReference({
+      referenceNumber: created.referenceNumber,
+    });
+
+    expect(found).toBeDefined();
+    expect(found?.routePreference).toBe("toll_free");
+  });
+});
+
+describe("bookings.create with route preference", () => {
+  it("creates a booking with fastest route (default)", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+
+    const vehicles = await caller.vehicles.list();
+    const suv = vehicles.find((v) => v.type === "suv");
+    expect(suv).toBeDefined();
+
+    const booking = await caller.bookings.create({
+      clientName: "Route Default Client",
+      clientEmail: "routedefault@example.com",
+      clientPhone: "+61 400 900 001",
+      serviceType: "airport_transfer",
+      pickupAddress: "Brisbane Airport",
+      dropoffAddress: "Gold Coast",
+      pickupDate: Date.now() + 86400000,
+      passengerCount: 2,
+      vehicleId: suv!.id,
+      vehicleName: suv!.name,
+      needsSupportVan: false,
+      supportVanPrice: 0,
+      basePrice: 170,
+      totalPrice: 170,
+      termsAccepted: true,
+      paymentMethod: "cash_postpay",
+    });
+
+    expect(booking).toBeDefined();
+    expect(booking.routePreference).toBe("fastest");
+  });
+
+  it("creates a booking with toll-free route preference", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+
+    const vehicles = await caller.vehicles.list();
+    const suv = vehicles.find((v) => v.type === "suv");
+    expect(suv).toBeDefined();
+
+    const booking = await caller.bookings.create({
+      clientName: "Toll Free Client",
+      clientEmail: "tollfree@example.com",
+      clientPhone: "+61 400 900 002",
+      serviceType: "point_to_point",
+      pickupAddress: "Brisbane CBD",
+      dropoffAddress: "Gold Coast",
+      pickupDate: Date.now() + 86400000,
+      passengerCount: 3,
+      vehicleId: suv!.id,
+      vehicleName: suv!.name,
+      needsSupportVan: false,
+      supportVanPrice: 0,
+      basePrice: 200,
+      totalPrice: 200,
+      routePreference: "toll_free",
+      termsAccepted: true,
+      paymentMethod: "cash_postpay",
+    });
+
+    expect(booking).toBeDefined();
+    expect(booking.routePreference).toBe("toll_free");
+  });
+
+  it("returns routePreference when fetching by reference", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+
+    const vehicles = await caller.vehicles.list();
+    const suv = vehicles.find((v) => v.type === "suv");
+
+    const created = await caller.bookings.create({
+      clientName: "Route Ref Test",
+      clientEmail: "routeref@example.com",
+      clientPhone: "+61 400 900 003",
+      serviceType: "airport_transfer",
+      pickupAddress: "Gold Coast Airport",
+      dropoffAddress: "Surfers Paradise",
+      pickupDate: Date.now() + 86400000,
+      passengerCount: 2,
+      vehicleId: suv!.id,
+      vehicleName: suv!.name,
+      needsSupportVan: false,
+      supportVanPrice: 0,
+      basePrice: 100,
+      totalPrice: 100,
+      routePreference: "toll_free",
+      termsAccepted: true,
+      paymentMethod: "cash_postpay",
+    });
+
+    const found = await caller.bookings.getByReference({
+      referenceNumber: created.referenceNumber,
+    });
+
+    expect(found).toBeDefined();
+    expect(found?.routePreference).toBe("toll_free");
+  });
+});

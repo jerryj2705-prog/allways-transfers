@@ -1,0 +1,9 @@
+{
+  "query": "\nUPDATE pricing_settings SET settingValue = '5.00' WHERE settingKey = 'toll_sct_entry';\nUPDATE pricing_settings SET settingValue = '5.00' WHERE settingKey = 'toll_sct_exit';\nUPDATE pricing_settings SET settingValue = '5.00', isActive = 1 WHERE settingKey = 'toll_bne_entry';\nUPDATE pricing_settings SET settingValue = '0.00', isActive = 0 WHERE settingKey = 'toll_bne_exit';\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway05.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3HWZfK7Ep6HZCJY.9379f7ca03be --database 2tTLZKCNzV8jFwxBsLMjpn --execute \nUPDATE pricing_settings SET settingValue = '5.00' WHERE settingKey = 'toll_sct_entry';\nUPDATE pricing_settings SET settingValue = '5.00' WHERE settingKey = 'toll_sct_exit';\nUPDATE pricing_settings SET settingValue = '5.00', isActive = 1 WHERE settingKey = 'toll_bne_entry';\nUPDATE pricing_settings SET settingValue = '0.00', isActive = 0 WHERE settingKey = 'toll_bne_exit';\n",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 2461
+}

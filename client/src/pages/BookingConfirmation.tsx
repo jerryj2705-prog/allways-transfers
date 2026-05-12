@@ -2,7 +2,7 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useLocation, useParams } from "wouter";
-import { CheckCircle, XCircle, Copy, Home, Calendar, MapPin, Users, Car, CreditCard, Wallet, Banknote, Baby, Dog, AlertTriangle, Loader2, Receipt, Package } from "lucide-react";
+import { CheckCircle, XCircle, Copy, Home, Calendar, MapPin, Users, Car, CreditCard, Wallet, Banknote, Baby, Dog, AlertTriangle, Loader2, Receipt, Package, Navigation } from "lucide-react";
 import { toast } from "sonner";
 import { SERVICE_TYPES, PAYMENT_METHODS } from "@shared/types";
 import type { ServiceType, PaymentMethod } from "@shared/types";
@@ -296,6 +296,18 @@ export default function BookingConfirmation() {
                       })()}
                     </div>
                   )}
+                </div>
+              )}
+              {booking.routePreference && booking.routePreference !== "fastest" && (
+                <div>
+                  <p className="text-muted-foreground flex items-center gap-1"><Navigation className="w-3 h-3" /> Route</p>
+                  <p className="font-medium text-emerald-400">Toll-Free Route</p>
+                </div>
+              )}
+              {booking.routePreference === "fastest" && booking.routePreference && (
+                <div>
+                  <p className="text-muted-foreground flex items-center gap-1"><Navigation className="w-3 h-3" /> Route</p>
+                  <p className="font-medium">Fastest Route</p>
                 </div>
               )}
               <div>

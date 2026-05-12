@@ -85,9 +85,10 @@ export default function MyBookings() {
   const [reviewComment, setReviewComment] = useState("");
   const [reviewHoverRating, setReviewHoverRating] = useState(0);
 
-  const cancelBooking = bookings?.find(b => b.id === cancelBookingId);
-  const modifyBooking = bookings?.find(b => b.id === modifyBookingId);
-  const reviewBooking = bookings?.find(b => b.id === reviewBookingId);
+  type BookingRow = NonNullable<typeof bookings>[number];
+  const cancelBooking = bookings?.find((b: BookingRow) => b.id === cancelBookingId);
+  const modifyBooking = bookings?.find((b: BookingRow) => b.id === modifyBookingId);
+  const reviewBooking = bookings?.find((b: BookingRow) => b.id === reviewBookingId);
 
   const { data: cancellationPolicy, isLoading: policyLoading } = trpc.bookings.cancellationPolicy.useQuery(
     { bookingId: cancelBookingId! },
@@ -172,7 +173,7 @@ export default function MyBookings() {
 
   const handleModifyClick = (e: React.MouseEvent, bookingId: number) => {
     e.stopPropagation();
-    const booking = bookings?.find(b => b.id === bookingId);
+    const booking = bookings?.find((b: BookingRow) => b.id === bookingId);
     if (!booking) return;
 
     const pickupDt = new Date(booking.pickupDate);

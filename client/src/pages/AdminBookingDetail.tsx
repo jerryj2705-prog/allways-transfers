@@ -17,7 +17,7 @@ import { useLocation, useParams } from "wouter";
 import { toast } from "sonner";
 import {
   ChevronLeft, MapPin, Calendar, Users, Car, Truck, Phone, Mail, User,
-  Clock, Baby, Dog, Pencil, Package,
+  Clock, Baby, Dog, Pencil, Package, Navigation,
 } from "lucide-react";
 import { SERVICE_TYPES, BOOKING_STATUSES, PAYMENT_METHODS } from "@shared/types";
 import type { ServiceType, BookingStatus, PaymentMethod } from "@shared/types";
@@ -409,6 +409,26 @@ export default function AdminBookingDetail() {
                         </div>
                       )}
                     </>
+                  )}
+                  {booking.routePreference && (
+                    <div className="flex items-start gap-3">
+                      <Navigation className="w-4 h-4 text-muted-foreground mt-0.5" />
+                      <div>
+                        <p className="text-muted-foreground">Route Preference</p>
+                        <p className={`font-medium ${booking.routePreference === 'toll_free' ? 'text-emerald-400' : ''}`}>
+                          {booking.routePreference === 'toll_free' ? 'Toll-Free Route' : 'Fastest Route'}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  {booking.tollOverride != null && parseFloat(booking.tollOverride) > 0 && (
+                    <div className="flex items-start gap-3">
+                      <Navigation className="w-4 h-4 text-amber-400 mt-0.5" />
+                      <div>
+                        <p className="text-muted-foreground">Toll Override</p>
+                        <p className="font-medium text-amber-400">${parseFloat(booking.tollOverride).toFixed(2)}</p>
+                      </div>
+                    </div>
                   )}
                   {((booking.additionalPickupCount ?? 0) > 0 || (booking.additionalDropoffCount ?? 0) > 0) && (
                     <div className="flex items-start gap-3 col-span-2">

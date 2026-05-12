@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import {
   Plane, Clock, MapPin, Star, ArrowLeft, ArrowRight, Check,
   Users, Briefcase, Truck, ChevronLeft, CreditCard, Banknote, Wallet,
-  AlertTriangle, Search, MapPinned, Baby, Dog, Plus, Minus, CalendarIcon, Info, Package,
+  AlertTriangle, Search, MapPinned, Baby, Dog, Plus, Minus, CalendarIcon, Info, Package, Navigation,
 } from "lucide-react";
 import { SERVICE_TYPES, SUV_CAPACITY, PAYMENT_METHODS } from "@shared/types";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
@@ -233,6 +233,7 @@ export default function BookingForm() {
   const [additionalDropoffCount, setAdditionalDropoffCount] = useState(0);
   const [additionalPickupAddresses, setAdditionalPickupAddresses] = useState<string[]>([]);
   const [additionalDropoffAddresses, setAdditionalDropoffAddresses] = useState<string[]>([]);
+  const [routePreference, setRoutePreference] = useState<"fastest" | "toll_free">("fastest");
 
   const { data: vehiclesData } = trpc.vehicles.list.useQuery();
   const vehicles = vehiclesData ?? [];
@@ -294,8 +295,9 @@ export default function BookingForm() {
       isPetFriendly,
       numberOfPets: isPetFriendly ? numberOfPets : 0,
       freightWeight: serviceType === "freight" ? freightWeight : undefined,
+      preferTollFree: routePreference === "toll_free",
     };
-  }, [serviceType, pickupSuburb, dropoffSuburb, pickupHour, pickupDate, needsSupportVan, paymentMethod, hireHours, additionalPickupCount, additionalDropoffCount, isPetFriendly, numberOfPets, freightWeight]);
+  }, [serviceType, pickupSuburb, dropoffSuburb, pickupHour, pickupDate, needsSupportVan, paymentMethod, hireHours, additionalPickupCount, additionalDropoffCount, isPetFriendly, numberOfPets, freightWeight, routePreference]);
 
   const { data: priceBreakdown } = trpc.pricing.calculate.useQuery(
     priceInput!,
@@ -316,6 +318,8 @@ export default function BookingForm() {
     weightSurcharge: 0,
     airportTollSurcharge: 0,
     airportTollDetails: [] as { airport: string; direction: string; amount: number }[],
+    roadTollSurcharge: 0,
+    roadTollDetails: [] as { road: string; amount: number }[],
     supportVanPrice: 0,
     squareSurcharge: 0,
     roundingDiscount: 0,
@@ -416,6 +420,7 @@ export default function BookingForm() {
       publicHolidaySurcharge: pricing.publicHolidaySurcharge,
       publicHolidayName: pricing.publicHolidayName || undefined,
       specialRequests: specialRequests || undefined,
+      routePreference,
       termsAccepted,
       paymentMethod,
       origin: window.location.origin,
@@ -631,6 +636,60 @@ export default function BookingForm() {
                   )}
                 </div>
               )}
+
+              {/* Route Preference — shown when road tolls are detected */}
+              {pricing.roadTollSurcharge > 0 || routePreference === "toll_free" ? (
+                <div className="p-4 rounded-lg bg-secondary/50 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Navigation className="w-4 h-4 text-primary" />
+                    <span className="text-sm font-medium">Route Preference</span>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="w-3.5 h-3.5 text-muted-foreground hover:text-primary cursor-help transition-colors" />
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-[260px]">
+                        Your route may pass through toll roads. Choose the fastest route (tolls included in fare) or a toll-free alternative (may take longer).
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setRoutePreference("fastest")}
+                      className={`p-3 rounded-lg border-2 text-left transition-all duration-200 ${
+                        routePreference === "fastest"
+                          ? "border-primary bg-primary/10 shadow-sm"
+                          : "border-border/50 hover:border-border"
+                      }`}
+                    >
+                      <p className={`text-sm font-medium ${
+                        routePreference === "fastest" ? "text-primary" : "text-foreground"
+                      }`}>Fastest Route</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">May include toll roads</p>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRoutePreference("toll_free")}
+                      className={`p-3 rounded-lg border-2 text-left transition-all duration-200 ${
+                        routePreference === "toll_free"
+                          ? "border-emerald-500 bg-emerald-500/10 shadow-sm"
+                          : "border-border/50 hover:border-border"
+                      }`}
+                    >
+                      <p className={`text-sm font-medium ${
+                        routePreference === "toll_free" ? "text-emerald-400" : "text-foreground"
+                      }`}>Toll-Free Route</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">May take longer</p>
+                    </button>
+                  </div>
+                  {routePreference === "toll_free" && (
+                    <p className="text-xs text-emerald-400 flex items-center gap-1">
+                      <Check className="w-3 h-3" />
+                      Road tolls will not be included in your fare.
+                    </p>
+                  )}
+                </div>
+              ) : null}
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -1633,6 +1692,17 @@ export default function BookingForm() {
                         <p className="font-medium text-amber-400">Secondary area surcharge applies</p>
                       </div>
                     )}
+                    {(pricing.roadTollSurcharge > 0 || routePreference === "toll_free") && (
+                      <div>
+                        <p className="text-muted-foreground">Route</p>
+                        <p className={`font-medium flex items-center gap-1 ${
+                          routePreference === "toll_free" ? "text-emerald-400" : "text-foreground"
+                        }`}>
+                          <Navigation className="w-3.5 h-3.5" />
+                          {routePreference === "toll_free" ? "Toll-Free Route" : "Fastest Route (tolls included)"}
+                        </p>
+                      </div>
+                    )}
                   </div>
                   {/* Additional Stops in Review */}
                   {(additionalPickupCount > 0 || additionalDropoffCount > 0) && (
@@ -1880,6 +1950,22 @@ export default function BookingForm() {
                             </TooltipTrigger>
                             <TooltipContent side="top" className="max-w-[220px]">
                               Airport {toll.direction.toLowerCase()} toll automatically applied for {toll.airport}.
+                            </TooltipContent>
+                          </Tooltip>
+                        </span>
+                        <span>+${toll.amount.toFixed(2)}</span>
+                      </div>
+                    ))}
+                    {pricing.roadTollSurcharge > 0 && pricing.roadTollDetails.map((toll: { road: string; amount: number }, idx: number) => (
+                      <div key={`road-toll-${idx}`} className="flex justify-between text-sm text-amber-400">
+                        <span className="flex items-center gap-1">
+                          {toll.road} Toll
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Info className="w-3.5 h-3.5 text-muted-foreground hover:text-amber-300 cursor-help transition-colors" />
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="max-w-[220px]">
+                              Road toll auto-detected for your route via {toll.road}.
                             </TooltipContent>
                           </Tooltip>
                         </span>

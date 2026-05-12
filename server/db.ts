@@ -554,6 +554,8 @@ export interface PriceBreakdown {
   weightSurcharge: number;
   airportTollSurcharge: number;
   airportTollDetails: { airport: string; direction: string; amount: number }[];
+  roadTollSurcharge: number;
+  roadTollDetails: { road: string; amount: number }[];
   supportVanPrice: number;
   squareSurcharge: number;
   roundingDiscount: number;
@@ -577,6 +579,7 @@ export async function calculatePrice(params: {
   freightWeight?: string;
   pickupSuburb?: string;
   destinationSuburb?: string;
+  preferTollFree?: boolean;
 }): Promise<PriceBreakdown> {
   const settings = await getAllPricingSettings();
   const getVal = (key: string) => {
@@ -705,11 +708,101 @@ export async function calculatePrice(params: {
   }
   airportTollSurcharge = Math.round(airportTollSurcharge * 100) / 100;
 
+  // Road toll surcharges (auto-detect from route corridors)
+  // Skip if customer prefers toll-free route
+  let roadTollSurcharge = 0;
+  const roadTollDetails: { road: string; amount: number }[] = [];
+  const hasTollRoads = !params.preferTollFree; // only apply if customer accepts tolls
+
+  // Define route corridors: which suburb patterns suggest a toll road is used
+  const TOLL_CORRIDORS: { key: string; label: string; pickupPatterns: string[]; destPatterns: string[]; bidirectional?: boolean }[] = [
+    {
+      key: "toll_gateway_motorway",
+      label: "Gateway Motorway",
+      // Gateway connects north Brisbane / Sunshine Coast to south Brisbane / Gold Coast
+      pickupPatterns: ["sunshine coast", "caloundra", "maroochydore", "noosa", "mooloolaba", "nambour", "caboolture", "morayfield", "north lakes", "redcliffe", "bribie", "deception bay", "burpengary", "narangba", "petrie"],
+      destPatterns: ["gold coast", "surfers paradise", "broadbeach", "coolangatta", "robina", "southport", "nerang", "ormeau", "coomera", "helensvale", "logan", "beenleigh", "springwood", "browns plains", "ipswich", "springfield"],
+      bidirectional: true,
+    },
+    {
+      key: "toll_logan_motorway",
+      label: "Logan Motorway",
+      // Logan connects Ipswich/Springfield to Gateway/Gold Coast corridor
+      pickupPatterns: ["ipswich", "springfield", "goodna", "redbank", "forest lake", "inala", "richlands"],
+      destPatterns: ["logan", "beenleigh", "springwood", "browns plains", "gold coast", "coomera", "ormeau", "helensvale"],
+      bidirectional: true,
+    },
+    {
+      key: "toll_clem7",
+      label: "Clem7 Tunnel",
+      // Clem7 connects Woolloongabba/south to Bowen Hills/north through CBD
+      pickupPatterns: ["woolloongabba", "south brisbane", "kangaroo point", "east brisbane", "coorparoo", "greenslopes", "stones corner"],
+      destPatterns: ["bowen hills", "fortitude valley", "newstead", "teneriffe", "new farm", "herston", "kelvin grove", "lutwyche"],
+      bidirectional: true,
+    },
+    {
+      key: "toll_go_between_bridge",
+      label: "Go Between Bridge",
+      // Connects Hale St (Milton) to south bank area
+      pickupPatterns: ["milton", "paddington", "auchenflower", "toowong", "bardon", "ashgrove"],
+      destPatterns: ["south brisbane", "west end", "south bank", "woolloongabba", "highgate hill"],
+      bidirectional: true,
+    },
+    {
+      key: "toll_legacy_way",
+      label: "Legacy Way",
+      // Connects Toowong/western suburbs to Kelvin Grove/inner north
+      pickupPatterns: ["toowong", "indooroopilly", "st lucia", "taringa", "chapel hill", "kenmore", "fig tree pocket", "brookfield"],
+      destPatterns: ["kelvin grove", "herston", "bowen hills", "fortitude valley", "newstead", "windsor", "lutwyche"],
+      bidirectional: true,
+    },
+    {
+      key: "toll_airportlink_m7",
+      label: "AirportlinkM7",
+      // Connects Bowen Hills / inner city to airport / north side
+      pickupPatterns: ["bowen hills", "fortitude valley", "spring hill", "brisbane cbd", "brisbane city", "south brisbane", "west end", "woolloongabba"],
+      destPatterns: ["brisbane airport", "brisbane domestic", "brisbane international", "kedron", "toombul", "nundah", "banyo", "nudgee", "eagle farm", "hendra"],
+      bidirectional: true,
+    },
+    {
+      key: "toll_toowoomba_bypass",
+      label: "Toowoomba Bypass",
+      // Toowoomba Second Range Crossing
+      pickupPatterns: ["toowoomba", "highfields", "crows nest", "oakey", "dalby", "warwick"],
+      destPatterns: ["toowoomba", "highfields", "gatton", "laidley", "ipswich", "brisbane", "sunshine coast"],
+      bidirectional: false, // only applies when crossing the range
+    },
+  ];
+
+  for (const corridor of TOLL_CORRIDORS) {
+    if (!hasTollRoads) break; // customer prefers toll-free route
+    if (!isActive(corridor.key)) continue;
+    const amt = getVal(corridor.key);
+    if (amt <= 0) continue;
+
+    const pickupMatchesOrigin = corridor.pickupPatterns.some(p => pickupLower.includes(p));
+    const destMatchesDest = corridor.destPatterns.some(p => destLower.includes(p));
+    const forwardMatch = pickupMatchesOrigin && destMatchesDest;
+
+    let reverseMatch = false;
+    if (corridor.bidirectional) {
+      const pickupMatchesDest = corridor.destPatterns.some(p => pickupLower.includes(p));
+      const destMatchesOrigin = corridor.pickupPatterns.some(p => destLower.includes(p));
+      reverseMatch = pickupMatchesDest && destMatchesOrigin;
+    }
+
+    if (forwardMatch || reverseMatch) {
+      roadTollSurcharge += amt;
+      roadTollDetails.push({ road: corridor.label, amount: amt });
+    }
+  }
+  roadTollSurcharge = Math.round(roadTollSurcharge * 100) / 100;
+
   // Support van
   const supportVanPrice = params.needsSupportVan ? getVal("rate_support_van") : 0;
 
   // Subtotal before payment surcharge
-  const subtotal = Math.round((basePrice + distanceCharge + outOfHoursSurcharge + outOfAreaSurcharge + fuelLevySurcharge + additionalStopsSurcharge + publicHolidaySurcharge + petSurcharge + weightSurcharge + airportTollSurcharge + supportVanPrice) * 100) / 100;
+  const subtotal = Math.round((basePrice + distanceCharge + outOfHoursSurcharge + outOfAreaSurcharge + fuelLevySurcharge + additionalStopsSurcharge + publicHolidaySurcharge + petSurcharge + weightSurcharge + airportTollSurcharge + roadTollSurcharge + supportVanPrice) * 100) / 100;
 
   // Square 2% surcharge
   const squareSurcharge = params.paymentMethod === "square_postpay" ? Math.round(subtotal * 0.02 * 100) / 100 : 0;
@@ -738,6 +831,8 @@ export async function calculatePrice(params: {
     weightSurcharge,
     airportTollSurcharge,
     airportTollDetails,
+    roadTollSurcharge,
+    roadTollDetails,
     supportVanPrice,
     squareSurcharge,
     roundingDiscount,
