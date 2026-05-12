@@ -502,3 +502,4 @@
 - [x] BUG: Standalone Van booking summary shows "Luxury SUV" instead of "Support Van"
 - [x] BUG: Number of pets not displayed in booking summary
 - [x] BUG: Can't select 0 passengers for standalone Van (regression)
+- [x] BUG: Number of pets not shown on booking confirmation page (after submission)

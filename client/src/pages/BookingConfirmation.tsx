@@ -153,10 +153,18 @@ export default function BookingConfirmation() {
                 </div>
               )}
               {booking.isPetFriendly === 1 && (
-                <div className="col-span-2">
-                  <p className="text-muted-foreground flex items-center gap-1"><Dog className="w-3 h-3" /> Pet</p>
-                  <p className="font-medium">{booking.petDescription || "Yes"}</p>
-                </div>
+                <>
+                  {booking.numberOfPets != null && booking.numberOfPets > 0 && (
+                    <div>
+                      <p className="text-muted-foreground flex items-center gap-1"><Dog className="w-3 h-3" /> Number of Pets</p>
+                      <p className="font-medium">{booking.numberOfPets}</p>
+                    </div>
+                  )}
+                  <div className={booking.numberOfPets ? "" : "col-span-2"}>
+                    <p className="text-muted-foreground flex items-center gap-1"><Dog className="w-3 h-3" /> Pet(s) Description</p>
+                    <p className="font-medium">{booking.petDescription || "Yes"}</p>
+                  </div>
+                </>
               )}
               {((booking.additionalPickupCount ?? 0) > 0 || (booking.additionalDropoffCount ?? 0) > 0) && (
                 <div className="col-span-2 space-y-2">
