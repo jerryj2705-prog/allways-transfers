@@ -603,4 +603,4 @@
 - [x] Update frontend to auto-fill address field when landmark is selected
 - [x] Reorder booking form: Suburb/Landmark field above Address field (pickup and dropoff)
 - [x] Add address field to AdminLandmarks create/edit dialog
-- [ ] Rebuild dist and push to GitHub for Hostinger deployment
+- [x] Rebuild dist and push to GitHub for Hostinger deployment
