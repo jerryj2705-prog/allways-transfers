@@ -580,3 +580,11 @@
 - [x] Add popular Sunshine Coast and Noosa golf courses to landmark list (18 golf courses added)
 - [x] Add popular Sunshine Coast and Noosa event venues to landmark list (30+ venues added)
 - [x] Rebuild dist with expanded landmarks
+- [ ] Create landmarks database table (name, lga, lat, lng, category, isActive)
+- [ ] Seed landmarks table with existing hardcoded landmark data
+- [ ] Build server-side CRUD tRPC procedures for landmarks (list, create, update, delete)
+- [ ] Integrate DB landmarks into autocomplete and pricing engine (merge with hardcoded suburbs)
+- [ ] Build admin landmarks management page with search, add, edit, delete UI
+- [ ] Add landmarks management link to admin navigation sidebar
+- [ ] Rebuild dist and test end-to-end
+- [ ] Fix $0/km distance charge — pricing engine not applying per-km rate despite distance being calculated
