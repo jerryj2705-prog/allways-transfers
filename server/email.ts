@@ -120,6 +120,7 @@ export interface BookingEmailData {
   forwardFacingSeats?: number;
   boosterSeats?: number;
   isPetFriendly?: boolean;
+  numberOfPets?: number | null;
   petDescription?: string | null;
   totalPrice: string;
   paymentMethod: string;
@@ -242,9 +243,15 @@ export async function sendBookingConfirmationEmail(data: BookingEmailData): Prom
           <span style="color:#e5e5e5;font-size:15px;">${childSeats.join(", ")}</span>
         </td>
       </tr>` : ""}
+      ${data.isPetFriendly && data.numberOfPets ? `<tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Number of Pets</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${data.numberOfPets}</span>
+        </td>
+      </tr>` : ""}
       ${data.isPetFriendly ? `<tr>
         <td style="padding:8px 0;border-bottom:1px solid #333;">
-          <span style="color:#a3a3a3;font-size:13px;">Pet</span><br/>
+          <span style="color:#a3a3a3;font-size:13px;">Pet(s) Description</span><br/>
           <span style="color:#e5e5e5;font-size:15px;">${data.petDescription ?? "Yes"}</span>
         </td>
       </tr>` : ""}
@@ -550,9 +557,15 @@ export async function sendAdminNewBookingNotification(data: BookingEmailData): P
           <span style="color:#e5e5e5;font-size:15px;">${childSeats.join(", ")}</span>
         </td>
       </tr>` : ""}
+      ${data.isPetFriendly && data.numberOfPets ? `<tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Number of Pets</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${data.numberOfPets}</span>
+        </td>
+      </tr>` : ""}
       ${data.isPetFriendly ? `<tr>
         <td style="padding:8px 0;border-bottom:1px solid #333;">
-          <span style="color:#a3a3a3;font-size:13px;">Pet</span><br/>
+          <span style="color:#a3a3a3;font-size:13px;">Pet(s) Description</span><br/>
           <span style="color:#e5e5e5;font-size:15px;">${data.petDescription ?? "Yes"}</span>
         </td>
       </tr>` : ""}

@@ -504,3 +504,5 @@
 - [x] BUG: Can't select 0 passengers for standalone Van (regression)
 - [x] BUG: Number of pets not shown on booking confirmation page (after submission)
 - [x] Show number of pets in admin dashboard booking detail view
+- [x] Include number of pets in client confirmation email
+- [x] Include number of pets in admin notification email
