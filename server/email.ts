@@ -929,6 +929,7 @@ export interface PaymentReceiptEmailData {
   petDescription?: string | null;
   publicHolidayName?: string | null;
   publicHolidaySurcharge?: string | null;
+  routePreference?: string;
 }
 
 export async function sendPaymentReceiptEmail(data: PaymentReceiptEmailData): Promise<boolean> {
@@ -1035,6 +1036,17 @@ export async function sendPaymentReceiptEmail(data: PaymentReceiptEmailData): Pr
         <td style="padding:8px 0;border-bottom:1px solid #333;">
           <span style="color:#a3a3a3;font-size:13px;">Public Holiday</span><br/>
           <span style="color:#d4a843;font-size:15px;">&#127881; ${data.publicHolidayName}${parseFloat(data.publicHolidaySurcharge ?? "0") > 0 ? ` — $${parseFloat(data.publicHolidaySurcharge!).toFixed(2)} surcharge` : ""}</span>
+        </td>
+      </tr>` : ""}
+      ${data.routePreference && data.routePreference !== "fastest" ? `<tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Route Preference</span><br/>
+          <span style="color:#22c55e;font-size:15px;">&#x1F6E3;&#xFE0F; Toll-Free Route</span>
+        </td>
+      </tr>` : data.routePreference === "fastest" ? `<tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Route Preference</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">&#x1F6E3;&#xFE0F; Fastest Route (may include toll roads)</span>
         </td>
       </tr>` : ""}
     </table>

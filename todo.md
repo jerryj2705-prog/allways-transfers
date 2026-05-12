@@ -565,3 +565,5 @@
 - [x] Add route preference line to booking confirmation email template
 - [x] Add route preference line to admin new booking notification email template
 - [x] Update email tests to include routePreference in test payloads
+- [x] Add route preference line to Stripe payment receipt email template
+- [x] Update payment receipt email tests to include routePreference

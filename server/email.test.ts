@@ -221,6 +221,7 @@ describe("email sending - payment receipt", () => {
       petDescription: null,
       publicHolidayName: null,
       publicHolidaySurcharge: null,
+      routePreference: "fastest",
     });
 
     expect(typeof result).toBe("boolean");
@@ -246,6 +247,33 @@ describe("email sending - payment receipt", () => {
       petDescription: "Two small dogs",
       publicHolidayName: "Australia Day",
       publicHolidaySurcharge: "50.00",
+      routePreference: "fastest",
+    });
+
+    expect(typeof result).toBe("boolean");
+  });
+
+  it("sendPaymentReceiptEmail includes toll-free route preference", async () => {
+    const { sendPaymentReceiptEmail } = await import("./email");
+
+    const result = await sendPaymentReceiptEmail({
+      referenceNumber: "AWT-ROUTE03",
+      clientName: "Toll Free Receipt Client",
+      clientEmail: "delivered@resend.dev",
+      serviceType: "airport_transfer",
+      pickupAddress: "Brisbane Airport",
+      dropoffAddress: "Gold Coast",
+      pickupDate: Date.now() + 86400000,
+      passengerCount: 2,
+      vehicleName: "Luxury SUV",
+      totalPrice: "220.00",
+      paymentMethod: "stripe_prepay",
+      isPetFriendly: false,
+      numberOfPets: null,
+      petDescription: null,
+      publicHolidayName: null,
+      publicHolidaySurcharge: null,
+      routePreference: "toll_free",
     });
 
     expect(typeof result).toBe("boolean");

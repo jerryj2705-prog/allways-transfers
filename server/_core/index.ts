@@ -78,6 +78,7 @@ async function startServer() {
                   petDescription: booking.petDescription,
                   publicHolidayName: booking.publicHolidayName,
                   publicHolidaySurcharge: booking.publicHolidaySurcharge,
+                  routePreference: booking.routePreference ?? undefined,
                 });
               }
             } catch (emailErr) {
