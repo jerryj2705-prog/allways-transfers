@@ -746,7 +746,13 @@ export async function getEnquiryStats() {
 
 export async function getBookingStats() {
   const db = await getDb();
-  if (!db) return { total: 0, pending: 0, confirmed: 0, completed: 0, cancelled: 0, totalRevenue: "0", unpaidAmount: "0", refundedAmount: "0" };
+  if (!db) return {
+    total: 0, pending: 0, confirmed: 0, completed: 0, cancelled: 0,
+    totalRevenue: "0", unpaidAmount: "0", refundedAmount: "0",
+    revenueByMethod: { stripe: "0", square: "0", cash: "0" },
+    unpaidByMethod: { stripe: "0", square: "0", cash: "0" },
+    refundedByMethod: { stripe: "0", square: "0", cash: "0" },
+  };
 
   const result = await db.select({
     total: sql<number>`count(*)`,
@@ -757,6 +763,18 @@ export async function getBookingStats() {
     totalRevenue: sql<string>`coalesce(sum(case when paymentStatus = 'paid' then totalPrice else 0 end), 0)`,
     unpaidAmount: sql<string>`coalesce(sum(case when paymentStatus = 'unpaid' and status != 'cancelled' then totalPrice else 0 end), 0)`,
     refundedAmount: sql<string>`coalesce(sum(case when paymentStatus = 'refunded' then totalPrice else 0 end), 0)`,
+    // Revenue by method
+    revenueStripe: sql<string>`coalesce(sum(case when paymentStatus = 'paid' and paymentMethod = 'stripe_prepay' then totalPrice else 0 end), 0)`,
+    revenueSquare: sql<string>`coalesce(sum(case when paymentStatus = 'paid' and paymentMethod = 'square_postpay' then totalPrice else 0 end), 0)`,
+    revenueCash: sql<string>`coalesce(sum(case when paymentStatus = 'paid' and paymentMethod = 'cash_postpay' then totalPrice else 0 end), 0)`,
+    // Unpaid by method
+    unpaidStripe: sql<string>`coalesce(sum(case when paymentStatus = 'unpaid' and status != 'cancelled' and paymentMethod = 'stripe_prepay' then totalPrice else 0 end), 0)`,
+    unpaidSquare: sql<string>`coalesce(sum(case when paymentStatus = 'unpaid' and status != 'cancelled' and paymentMethod = 'square_postpay' then totalPrice else 0 end), 0)`,
+    unpaidCash: sql<string>`coalesce(sum(case when paymentStatus = 'unpaid' and status != 'cancelled' and paymentMethod = 'cash_postpay' then totalPrice else 0 end), 0)`,
+    // Refunded by method
+    refundedStripe: sql<string>`coalesce(sum(case when paymentStatus = 'refunded' and paymentMethod = 'stripe_prepay' then totalPrice else 0 end), 0)`,
+    refundedSquare: sql<string>`coalesce(sum(case when paymentStatus = 'refunded' and paymentMethod = 'square_postpay' then totalPrice else 0 end), 0)`,
+    refundedCash: sql<string>`coalesce(sum(case when paymentStatus = 'refunded' and paymentMethod = 'cash_postpay' then totalPrice else 0 end), 0)`,
   }).from(bookings);
 
   const row = result[0];
@@ -769,6 +787,21 @@ export async function getBookingStats() {
     totalRevenue: String(row?.totalRevenue ?? "0"),
     unpaidAmount: String(row?.unpaidAmount ?? "0"),
     refundedAmount: String(row?.refundedAmount ?? "0"),
+    revenueByMethod: {
+      stripe: String(row?.revenueStripe ?? "0"),
+      square: String(row?.revenueSquare ?? "0"),
+      cash: String(row?.revenueCash ?? "0"),
+    },
+    unpaidByMethod: {
+      stripe: String(row?.unpaidStripe ?? "0"),
+      square: String(row?.unpaidSquare ?? "0"),
+      cash: String(row?.unpaidCash ?? "0"),
+    },
+    refundedByMethod: {
+      stripe: String(row?.refundedStripe ?? "0"),
+      square: String(row?.refundedSquare ?? "0"),
+      cash: String(row?.refundedCash ?? "0"),
+    },
   };
 }
 

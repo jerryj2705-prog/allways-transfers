@@ -169,10 +169,24 @@ export default function AdminDashboard() {
     { label: "Completed", value: stats?.completed ?? 0, icon: CheckCircle, color: "text-green-600" },
   ];
 
+  const fmtAud = (v: string) => `$${parseFloat(v).toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
   const paymentCards = [
-    { label: "Total Revenue", value: `$${parseFloat(stats?.totalRevenue ?? "0").toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, icon: Banknote, color: "text-emerald-500", bg: "from-emerald-950/40 to-emerald-900/20" },
-    { label: "Outstanding", value: `$${parseFloat(stats?.unpaidAmount ?? "0").toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, icon: CreditCard, color: "text-amber-500", bg: "from-amber-950/40 to-amber-900/20" },
-    { label: "Refunded", value: `$${parseFloat(stats?.refundedAmount ?? "0").toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, icon: RotateCcw, color: "text-blue-500", bg: "from-blue-950/40 to-blue-900/20" },
+    {
+      label: "Total Revenue", value: fmtAud(stats?.totalRevenue ?? "0"),
+      icon: Banknote, color: "text-emerald-500", bg: "from-emerald-950/40 to-emerald-900/20",
+      breakdown: stats?.revenueByMethod ?? { stripe: "0", square: "0", cash: "0" },
+    },
+    {
+      label: "Outstanding", value: fmtAud(stats?.unpaidAmount ?? "0"),
+      icon: CreditCard, color: "text-amber-500", bg: "from-amber-950/40 to-amber-900/20",
+      breakdown: stats?.unpaidByMethod ?? { stripe: "0", square: "0", cash: "0" },
+    },
+    {
+      label: "Refunded", value: fmtAud(stats?.refundedAmount ?? "0"),
+      icon: RotateCcw, color: "text-blue-500", bg: "from-blue-950/40 to-blue-900/20",
+      breakdown: stats?.refundedByMethod ?? { stripe: "0", square: "0", cash: "0" },
+    },
   ];
 
   return (
@@ -291,7 +305,7 @@ export default function AdminDashboard() {
         {/* Payment Summary */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
           {paymentCards.map((card) => (
-            <Card key={card.label} className={`border-border/50 bg-gradient-to-br ${card.bg}`}>
+            <Card key={card.label} className={`border-border/50 bg-gradient-to-br ${card.bg} group relative overflow-hidden transition-all duration-200 hover:border-border`}>
               <CardContent className="p-5">
                 <div className="flex items-center justify-between">
                   <div>
@@ -299,6 +313,21 @@ export default function AdminDashboard() {
                     <p className={`text-2xl font-heading font-bold mt-1 ${card.color}`}>{card.value}</p>
                   </div>
                   <card.icon className={`w-8 h-8 ${card.color} opacity-30`} />
+                </div>
+                {/* Hover breakdown */}
+                <div className="grid grid-cols-3 gap-2 mt-0 max-h-0 opacity-0 group-hover:mt-3 group-hover:max-h-24 group-hover:opacity-100 transition-all duration-300 ease-in-out overflow-hidden border-t-0 group-hover:border-t border-border/30 group-hover:pt-3">
+                  <div className="text-center">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Stripe</p>
+                    <p className="text-sm font-semibold text-foreground mt-0.5">{fmtAud(card.breakdown.stripe)}</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Card</p>
+                    <p className="text-sm font-semibold text-foreground mt-0.5">{fmtAud(card.breakdown.square)}</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Cash</p>
+                    <p className="text-sm font-semibold text-foreground mt-0.5">{fmtAud(card.breakdown.cash)}</p>
+                  </div>
                 </div>
               </CardContent>
             </Card>

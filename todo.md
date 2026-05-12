@@ -530,3 +530,4 @@
 - [x] Admin can change payment status with a reason (e.g. cash payment, card to driver)
 - [x] Add paymentNote column to bookings table for payment status change reason
 - [x] Add payment summary cards (total revenue, unpaid, refunded) to admin dashboard
+- [x] Add hover effect on payment summary cards showing payment method breakdown
