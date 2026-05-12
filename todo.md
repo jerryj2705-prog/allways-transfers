@@ -519,3 +519,4 @@
 - [x] Ensure payment status updates booking record on successful payment
 - [x] Verify Stripe keys and webhook secret are correctly configured
 - [x] Test end-to-end Stripe checkout flow
+- [x] Add loading spinner animation to Pay Now retry button on confirmation page

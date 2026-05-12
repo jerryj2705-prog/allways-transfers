@@ -2,7 +2,7 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useLocation, useParams } from "wouter";
-import { CheckCircle, XCircle, Copy, Home, Calendar, MapPin, Users, Car, CreditCard, Wallet, Banknote, Baby, Dog, AlertTriangle } from "lucide-react";
+import { CheckCircle, XCircle, Copy, Home, Calendar, MapPin, Users, Car, CreditCard, Wallet, Banknote, Baby, Dog, AlertTriangle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { SERVICE_TYPES, PAYMENT_METHODS } from "@shared/types";
 import type { ServiceType, PaymentMethod } from "@shared/types";
@@ -327,8 +327,12 @@ export default function BookingConfirmation() {
                     disabled={retryPayment.isPending}
                     className="w-full gap-2 gold-gradient text-gold-foreground border-0 hover:opacity-90"
                   >
-                    <CreditCard className="w-4 h-4" />
-                    {retryPayment.isPending ? "Preparing payment..." : `Pay Now — $${parseFloat(booking.totalPrice ?? "0").toFixed(2)}`}
+                    {retryPayment.isPending ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <CreditCard className="w-4 h-4" />
+                    )}
+                    {retryPayment.isPending ? "Preparing secure checkout..." : `Pay Now — $${parseFloat(booking.totalPrice ?? "0").toFixed(2)}`}
                   </Button>
                 </div>
               </div>
