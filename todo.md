@@ -567,3 +567,4 @@
 - [x] Update email tests to include routePreference in test payloads
 - [x] Add route preference line to Stripe payment receipt email template
 - [x] Update payment receipt email tests to include routePreference
+- [x] Fix booking INSERT query missing routePreference and tollOverride columns (causes booking creation failure) — fixed by server restart to pick up schema changes
