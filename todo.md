@@ -526,3 +526,6 @@
 - [x] Send copy of payment receipt email to admin email address
 - [x] Add "View Receipt" button to My Bookings page for paid Stripe bookings
 - [x] Create receipt page/modal with printable/downloadable receipt
+- [x] Add payment status filter (paid/unpaid/refunded) to admin dashboard bookings list
+- [x] Admin can change payment status with a reason (e.g. cash payment, card to driver)
+- [x] Add paymentNote column to bookings table for payment status change reason

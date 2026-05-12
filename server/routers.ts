@@ -491,6 +491,7 @@ export const appRouter = router({
       .input(
         z.object({
           status: z.string().optional(),
+          paymentStatus: z.string().optional(),
           search: z.string().optional(),
           limit: z.number().optional(),
           offset: z.number().optional(),
@@ -523,12 +524,13 @@ export const appRouter = router({
         z.object({
           id: z.number(),
           paymentStatus: z.enum(["unpaid", "paid", "refunded"]),
+          paymentNote: z.string().optional(),
         })
       )
       .mutation(async ({ input }) => {
         const booking = await getBookingById(input.id);
         if (!booking) throw new Error("Booking not found");
-        return updateBookingPaymentStatus(input.id, input.paymentStatus);
+        return updateBookingPaymentStatus(input.id, input.paymentStatus, input.paymentNote);
       }),
 
     stats: adminProcedure.query(async () => {
@@ -1268,12 +1270,13 @@ export const appRouter = router({
 
     // Admin: list all enquiries
     list: adminProcedure
-      .input(z.object({
-        status: z.string().optional(),
-        search: z.string().optional(),
-        limit: z.number().optional(),
-        offset: z.number().optional(),
-      }))
+      .input(
+        z.object({
+          status: z.string().optional(),
+          limit: z.number().optional(),
+          offset: z.number().optional(),
+        })
+      )
       .query(async ({ input }) => {
         return listEnquiries(input);
       }),

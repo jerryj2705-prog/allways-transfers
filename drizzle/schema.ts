@@ -83,6 +83,7 @@ export const bookings = mysqlTable("bookings", {
   paymentMethod: mysqlEnum("paymentMethod", ["stripe_prepay", "square_postpay", "cash_postpay"]).notNull().default("cash_postpay"),
   paymentStatus: mysqlEnum("paymentStatus", ["unpaid", "paid", "refunded"]).notNull().default("unpaid"),
   stripeSessionId: varchar("stripeSessionId", { length: 255 }),
+  paymentNote: text("paymentNote"),
   // Status
   status: mysqlEnum("status", ["pending", "confirmed", "completed", "cancelled"]).default("pending").notNull(),
   // Notes

@@ -305,6 +305,7 @@ export async function getBookingById(id: number) {
 
 export async function listBookings(params: {
   status?: string;
+  paymentStatus?: string;
   search?: string;
   limit?: number;
   offset?: number;
@@ -316,6 +317,10 @@ export async function listBookings(params: {
 
   if (params.status && params.status !== "all") {
     conditions.push(eq(bookings.status, params.status as Booking["status"]));
+  }
+
+  if (params.paymentStatus && params.paymentStatus !== "all") {
+    conditions.push(eq(bookings.paymentStatus, params.paymentStatus as "unpaid" | "paid" | "refunded"));
   }
 
   if (params.search) {
@@ -366,10 +371,14 @@ export async function updateBookingStatus(id: number, status: Booking["status"],
   return getBookingById(id);
 }
 
-export async function updateBookingPaymentStatus(id: number, paymentStatus: "unpaid" | "paid" | "refunded") {
+export async function updateBookingPaymentStatus(id: number, paymentStatus: "unpaid" | "paid" | "refunded", paymentNote?: string | null) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  await db.update(bookings).set({ paymentStatus }).where(eq(bookings.id, id));
+  const updateData: Record<string, unknown> = { paymentStatus };
+  if (paymentNote !== undefined) {
+    updateData.paymentNote = paymentNote;
+  }
+  await db.update(bookings).set(updateData).where(eq(bookings.id, id));
   return getBookingById(id);
 }
 

@@ -53,6 +53,9 @@ export default function AdminBookingDetail() {
   const [newStatus, setNewStatus] = useState<string>("");
   const [adminNotes, setAdminNotes] = useState("");
   const [editOpen, setEditOpen] = useState(false);
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [pendingPaymentStatus, setPendingPaymentStatus] = useState<"unpaid" | "paid" | "refunded">("paid");
+  const [paymentNote, setPaymentNote] = useState("");
 
   // Edit form state
   const [editPickupAddress, setEditPickupAddress] = useState("");
@@ -470,6 +473,12 @@ export default function AdminBookingDetail() {
                     </Badge>
                   </div>
                 </div>
+                {booking.paymentNote && (
+                  <div className="flex justify-between items-start">
+                    <span className="text-muted-foreground">Note</span>
+                    <span className="text-xs text-right max-w-[200px]">{booking.paymentNote}</span>
+                  </div>
+                )}
                 <div className="border-t border-border/50 pt-3 space-y-2">
                   <p className="text-xs text-muted-foreground">Update Payment Status</p>
                   <div className="flex gap-2">
@@ -478,7 +487,7 @@ export default function AdminBookingDetail() {
                       variant={booking.paymentStatus === "unpaid" ? "default" : "outline"}
                       className={`flex-1 text-xs ${booking.paymentStatus === "unpaid" ? "bg-amber-600 hover:bg-amber-700 text-white border-0" : "bg-transparent"}`}
                       disabled={booking.paymentStatus === "unpaid" || updatePaymentStatus.isPending}
-                      onClick={() => updatePaymentStatus.mutate({ id: bookingId, paymentStatus: "unpaid" })}
+                      onClick={() => { setPendingPaymentStatus("unpaid"); setPaymentNote(""); setPaymentDialogOpen(true); }}
                     >
                       Unpaid
                     </Button>
@@ -487,7 +496,7 @@ export default function AdminBookingDetail() {
                       variant={booking.paymentStatus === "paid" ? "default" : "outline"}
                       className={`flex-1 text-xs ${booking.paymentStatus === "paid" ? "bg-emerald-600 hover:bg-emerald-700 text-white border-0" : "bg-transparent"}`}
                       disabled={booking.paymentStatus === "paid" || updatePaymentStatus.isPending}
-                      onClick={() => updatePaymentStatus.mutate({ id: bookingId, paymentStatus: "paid" })}
+                      onClick={() => { setPendingPaymentStatus("paid"); setPaymentNote(""); setPaymentDialogOpen(true); }}
                     >
                       Paid
                     </Button>
@@ -496,7 +505,7 @@ export default function AdminBookingDetail() {
                       variant={booking.paymentStatus === "refunded" ? "default" : "outline"}
                       className={`flex-1 text-xs ${booking.paymentStatus === "refunded" ? "bg-blue-600 hover:bg-blue-700 text-white border-0" : "bg-transparent"}`}
                       disabled={booking.paymentStatus === "refunded" || updatePaymentStatus.isPending}
-                      onClick={() => updatePaymentStatus.mutate({ id: bookingId, paymentStatus: "refunded" })}
+                      onClick={() => { setPendingPaymentStatus("refunded"); setPaymentNote(""); setPaymentDialogOpen(true); }}
                     >
                       Refunded
                     </Button>
@@ -661,6 +670,62 @@ export default function AdminBookingDetail() {
               className="gold-gradient text-gold-foreground border-0 hover:opacity-90"
             >
               {adminModify.isPending ? "Saving..." : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Payment Status Change Dialog */}
+      <Dialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Update Payment Status</DialogTitle>
+            <DialogDescription>
+              Change payment status to <span className="font-semibold capitalize">{pendingPaymentStatus}</span>. Please provide a reason for this change.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Reason / Note</Label>
+              <div className="flex flex-wrap gap-2 mb-2">
+                {["Cash payment", "Card to driver", "Bank transfer", "Refund processed", "Payment reversed"].map((preset) => (
+                  <Button
+                    key={preset}
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className={`text-xs h-7 ${paymentNote === preset ? "bg-primary/20 border-primary" : "bg-transparent"}`}
+                    onClick={() => setPaymentNote(preset)}
+                  >
+                    {preset}
+                  </Button>
+                ))}
+              </div>
+              <Textarea
+                value={paymentNote}
+                onChange={(e) => setPaymentNote(e.target.value)}
+                placeholder="Enter reason for payment status change..."
+                rows={2}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPaymentDialogOpen(false)} className="bg-transparent">
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                updatePaymentStatus.mutate({
+                  id: bookingId,
+                  paymentStatus: pendingPaymentStatus,
+                  paymentNote: paymentNote || undefined,
+                });
+                setPaymentDialogOpen(false);
+              }}
+              disabled={updatePaymentStatus.isPending}
+              className="gold-gradient text-gold-foreground border-0 hover:opacity-90"
+            >
+              {updatePaymentStatus.isPending ? "Updating..." : "Confirm"}
             </Button>
           </DialogFooter>
         </DialogContent>

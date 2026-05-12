@@ -90,6 +90,7 @@ export default function AdminDashboard() {
   const { user, loading, logout } = useAuth();
   const [, setLocation] = useLocation();
   const [statusFilter, setStatusFilter] = useState("all");
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(0);
   const pageSize = 15;
@@ -109,10 +110,11 @@ export default function AdminDashboard() {
 
   const queryInput = useMemo(() => ({
     status: statusFilter !== "all" ? statusFilter : undefined,
+    paymentStatus: paymentStatusFilter !== "all" ? paymentStatusFilter : undefined,
     search: debouncedSearch || undefined,
     limit: pageSize,
     offset: page * pageSize,
-  }), [statusFilter, debouncedSearch, page]);
+  }), [statusFilter, paymentStatusFilter, debouncedSearch, page]);
 
   const { data: bookingsData, isLoading: bookingsLoading } = trpc.bookings.list.useQuery(
     queryInput,
@@ -308,6 +310,20 @@ export default function AdminDashboard() {
               <SelectItem value="confirmed">Confirmed</SelectItem>
               <SelectItem value="completed">Completed</SelectItem>
               <SelectItem value="cancelled">Cancelled</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select
+            value={paymentStatusFilter}
+            onValueChange={(val) => { setPaymentStatusFilter(val); setPage(0); }}
+          >
+            <SelectTrigger className="w-full sm:w-[180px] h-10">
+              <SelectValue placeholder="Filter by payment" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Payments</SelectItem>
+              <SelectItem value="paid">Paid</SelectItem>
+              <SelectItem value="unpaid">Unpaid</SelectItem>
+              <SelectItem value="refunded">Refunded</SelectItem>
             </SelectContent>
           </Select>
         </div>
