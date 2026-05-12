@@ -507,3 +507,9 @@
 - [x] Include number of pets in client confirmation email
 - [x] Include number of pets in admin notification email
 - [x] Add number of pets column to admin booking list table for quick visibility
+- [x] Change fare formula to: Base Price + (price per km × estimated km) + surcharges + fuel levy + pet surcharge
+- [x] Remove 50km block distance surcharge entirely
+- [x] Add per-km rate to pricing settings
+- [x] Add pet surcharge (cleaning, disinfecting, deodorising) to pricing settings
+- [x] Update booking form price calculation to use new formula
+- [x] Update admin pricing UI for new fields

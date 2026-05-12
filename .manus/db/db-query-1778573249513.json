@@ -1,0 +1,9 @@
+{
+  "query": "INSERT INTO pricing_settings (settingKey, settingValue, label, description, category, isActive) VALUES ('surcharge_pet', '25.00', 'Pet Surcharge (per pet)', 'Cleaning, disinfecting and deodorising charge per pet', 'surcharge', 1); UPDATE pricing_settings SET isActive = 0 WHERE settingKey = 'distance_surcharge_per_50km'; UPDATE pricing_settings SET isActive = 1 WHERE settingKey = 'rate_per_km';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway05.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3HWZfK7Ep6HZCJY.9379f7ca03be --database 2tTLZKCNzV8jFwxBsLMjpn --execute INSERT INTO pricing_settings (settingKey, settingValue, label, description, category, isActive) VALUES ('surcharge_pet', '25.00', 'Pet Surcharge (per pet)', 'Cleaning, disinfecting and deodorising charge per pet', 'surcharge', 1); UPDATE pricing_settings SET isActive = 0 WHERE settingKey = 'distance_surcharge_per_50km'; UPDATE pricing_settings SET isActive = 1 WHERE settingKey = 'rate_per_km';",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 2144
+}

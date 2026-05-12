@@ -1,0 +1,28 @@
+{
+  "query": "SELECT id, settingKey, settingValue, isActive, label, description, category FROM pricing_settings WHERE settingKey IN ('rate_per_km', 'surcharge_pet', 'distance_surcharge_per_50km');",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway05.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3HWZfK7Ep6HZCJY.9379f7ca03be --database 2tTLZKCNzV8jFwxBsLMjpn --execute SELECT id, settingKey, settingValue, isActive, label, description, category FROM pricing_settings WHERE settingKey IN ('rate_per_km', 'surcharge_pet', 'distance_surcharge_per_50km');",
+  "rows": [
+    {
+      "id": "5",
+      "settingKey": "rate_per_km",
+      "settingValue": "2.50",
+      "isActive": "0",
+      "label": "Per Kilometre Rate",
+      "description": "Additional charge per kilometre travelled",
+      "category": "rate"
+    },
+    {
+      "id": "12",
+      "settingKey": "distance_surcharge_per_50km",
+      "settingValue": "25.00",
+      "isActive": "1",
+      "label": "Distance Surcharge (per 50km)",
+      "description": "Surcharge per additional 50km block beyond the first 50km",
+      "category": "surcharge"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tsettingKey\tsettingValue\tisActive\tlabel\tdescription\tcategory\n5\trate_per_km\t2.50\t0\tPer Kilometre Rate\tAdditional charge per kilometre travelled\trate\n12\tdistance_surcharge_per_50km\t25.00\t1\tDistance Surcharge (per 50km)\tSurcharge per additional 50km block beyond the first 50km\tsurcharge\n",
+  "stderr": "",
+  "execution_time_ms": 1817
+}

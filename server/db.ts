@@ -532,6 +532,7 @@ export function isDatePublicHoliday(dateStr: string, holidays: PublicHoliday[]):
 export interface PriceBreakdown {
   basePrice: number;
   distanceCharge: number;
+  pricePerKm: number;
   outOfHoursSurcharge: number;
   outOfAreaSurcharge: number;
   fuelLevySurcharge: number;
@@ -540,6 +541,7 @@ export interface PriceBreakdown {
   perStopRate: number;
   publicHolidaySurcharge: number;
   publicHolidayName: string | null;
+  petSurcharge: number;
   supportVanPrice: number;
   squareSurcharge: number;
   subtotal: number;
@@ -557,6 +559,8 @@ export async function calculatePrice(params: {
   hireHours?: number; // for hourly hire
   additionalPickupCount?: number;
   additionalDropoffCount?: number;
+  isPetFriendly?: boolean;
+  numberOfPets?: number;
 }): Promise<PriceBreakdown> {
   const settings = await getAllPricingSettings();
   const getVal = (key: string) => {
@@ -582,14 +586,9 @@ export async function calculatePrice(params: {
     basePrice = Math.round(basePrice * params.hireHours * 100) / 100;
   }
 
-  // Distance surcharge (tiered 50km blocks: $0 for first 50km, then per-50km rate)
-  let distanceCharge = 0;
-  if (params.distanceKm > 50 && isActive("distance_surcharge_per_50km")) {
-    const surchargePerBlock = getVal("distance_surcharge_per_50km");
-    const extraKm = params.distanceKm - 50;
-    const blocks = Math.ceil(extraKm / 50);
-    distanceCharge = Math.round(blocks * surchargePerBlock * 100) / 100;
-  }
+  // Distance charge (price per km × estimated km)
+  const pricePerKm = isActive("rate_per_km") ? getVal("rate_per_km") : 0;
+  const distanceCharge = Math.round(params.distanceKm * pricePerKm * 100) / 100;
 
   // Out-of-hours surcharge (7pm-7am)
   const isOutOfHours = params.pickupHour >= 19 || params.pickupHour < 7;
@@ -619,11 +618,17 @@ export async function calculatePrice(params: {
     }
   }
 
+  // Pet surcharge (cleaning, disinfecting, deodorising)
+  let petSurcharge = 0;
+  if (params.isPetFriendly && params.numberOfPets && params.numberOfPets > 0 && isActive("surcharge_pet")) {
+    petSurcharge = Math.round(getVal("surcharge_pet") * params.numberOfPets * 100) / 100;
+  }
+
   // Support van
   const supportVanPrice = params.needsSupportVan ? getVal("rate_support_van") : 0;
 
   // Subtotal before payment surcharge
-  const subtotal = Math.round((basePrice + distanceCharge + outOfHoursSurcharge + outOfAreaSurcharge + fuelLevySurcharge + additionalStopsSurcharge + publicHolidaySurcharge + supportVanPrice) * 100) / 100;
+  const subtotal = Math.round((basePrice + distanceCharge + outOfHoursSurcharge + outOfAreaSurcharge + fuelLevySurcharge + additionalStopsSurcharge + publicHolidaySurcharge + petSurcharge + supportVanPrice) * 100) / 100;
 
   // Square 2% surcharge
   const squareSurcharge = params.paymentMethod === "square_postpay" ? Math.round(subtotal * 0.02 * 100) / 100 : 0;
@@ -633,6 +638,7 @@ export async function calculatePrice(params: {
   return {
     basePrice,
     distanceCharge,
+    pricePerKm,
     outOfHoursSurcharge,
     outOfAreaSurcharge,
     fuelLevySurcharge,
@@ -641,6 +647,7 @@ export async function calculatePrice(params: {
     perStopRate,
     publicHolidaySurcharge,
     publicHolidayName,
+    petSurcharge,
     supportVanPrice,
     squareSurcharge,
     subtotal,

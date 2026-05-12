@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import {
   ChevronLeft, DollarSign, Percent, Save, Fuel, Clock, MapPin, Plane, Car, Star, Route,
-  CalendarDays, Plus, Trash2, Pencil, X, Check,
+  CalendarDays, Plus, Trash2, Pencil, X, Check, Dog,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 
@@ -31,7 +31,7 @@ const CATEGORY_ICONS: Record<string, React.ElementType> = {
   surcharge_public_holiday: CalendarDays,
   min_hourly_hours: Clock,
   late_cancel_charge_pct: Percent,
-  distance_surcharge_per_50km: Route,
+  surcharge_pet: Dog,
 };
 
 export default function AdminPricing() {

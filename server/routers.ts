@@ -819,6 +819,8 @@ export const appRouter = router({
           hireHours: z.number().min(0).optional(),
           additionalPickupCount: z.number().min(0).max(5).default(0),
           additionalDropoffCount: z.number().min(0).max(5).default(0),
+          isPetFriendly: z.boolean().default(false),
+          numberOfPets: z.number().min(0).default(0),
         })
       )
       .query(async ({ input }) => {
@@ -849,6 +851,8 @@ export const appRouter = router({
           hireHours: input.hireHours,
           additionalPickupCount: input.additionalPickupCount,
           additionalDropoffCount: input.additionalDropoffCount,
+          isPetFriendly: input.isPetFriendly,
+          numberOfPets: input.numberOfPets,
         });
 
         return {

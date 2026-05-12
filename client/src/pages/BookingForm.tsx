@@ -267,8 +267,10 @@ export default function BookingForm() {
       hireHours: serviceType === "hourly_hire" ? hireHours : undefined,
       additionalPickupCount,
       additionalDropoffCount,
+      isPetFriendly,
+      numberOfPets: isPetFriendly ? numberOfPets : 0,
     };
-  }, [serviceType, pickupSuburb, dropoffSuburb, pickupHour, pickupDate, needsSupportVan, paymentMethod, hireHours, additionalPickupCount, additionalDropoffCount]);
+  }, [serviceType, pickupSuburb, dropoffSuburb, pickupHour, pickupDate, needsSupportVan, paymentMethod, hireHours, additionalPickupCount, additionalDropoffCount, isPetFriendly, numberOfPets]);
 
   const { data: priceBreakdown } = trpc.pricing.calculate.useQuery(
     priceInput!,
@@ -278,12 +280,14 @@ export default function BookingForm() {
   const pricing = priceBreakdown ?? {
     basePrice: 0,
     distanceCharge: 0,
+    pricePerKm: 0,
     outOfHoursSurcharge: 0,
     outOfAreaSurcharge: 0,
     fuelLevySurcharge: 0,
     additionalStopsSurcharge: 0,
     publicHolidaySurcharge: 0,
     publicHolidayName: null as string | null,
+    petSurcharge: 0,
     supportVanPrice: 0,
     squareSurcharge: 0,
     subtotal: 0,
@@ -1637,16 +1641,10 @@ export default function BookingForm() {
                       <span>{serviceType ? SERVICE_TYPES[serviceType].label : "Service"} – Base</span>
                       <span>${pricing.basePrice.toFixed(2)}</span>
                     </div>
-                    {pricing.distanceCharge > 0 && (
+                    {estimatedDistance > 0 && (
                       <div className="flex justify-between text-sm">
-                        <span>Distance surcharge ({Math.ceil((estimatedDistance - 50) / 50)} x 50km block{Math.ceil((estimatedDistance - 50) / 50) > 1 ? "s" : ""})</span>
+                        <span>Distance ({estimatedDistance.toFixed(1)} km {pricing.pricePerKm > 0 ? `× $${pricing.pricePerKm.toFixed(2)}/km` : ""})</span>
                         <span>${pricing.distanceCharge.toFixed(2)}</span>
-                      </div>
-                    )}
-                    {estimatedDistance > 0 && pricing.distanceCharge === 0 && (
-                      <div className="flex justify-between text-sm text-muted-foreground">
-                        <span>Distance ({estimatedDistance} km — within 50km, no surcharge)</span>
-                        <span>$0.00</span>
                       </div>
                     )}
                     {pricing.outOfHoursSurcharge > 0 && (
@@ -1677,6 +1675,12 @@ export default function BookingForm() {
                       <div className="flex justify-between text-sm text-amber-400">
                         <span>Public Holiday ({pricing.publicHolidayName})</span>
                         <span>+${pricing.publicHolidaySurcharge.toFixed(2)}</span>
+                      </div>
+                    )}
+                    {pricing.petSurcharge > 0 && (
+                      <div className="flex justify-between text-sm text-amber-400">
+                        <span>Pet Surcharge ({numberOfPets} pet{numberOfPets !== 1 ? "s" : ""})</span>
+                        <span>+${pricing.petSurcharge.toFixed(2)}</span>
                       </div>
                     )}
                     {needsSupportVan && pricing.supportVanPrice > 0 && (
