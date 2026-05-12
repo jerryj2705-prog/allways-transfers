@@ -270,9 +270,16 @@ export default function AdminPricing() {
 
         {/* Airport Tolls */}
         <section className="space-y-4">
-          <div className="flex items-center gap-2">
-            <Plane className="w-5 h-5 text-primary" />
-            <h2 className="font-heading text-xl font-semibold">Airport Tolls</h2>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Plane className="w-5 h-5 text-primary" />
+              <h2 className="font-heading text-xl font-semibold">Airport Tolls</h2>
+            </div>
+            {airportTolls.length > 0 && (
+              <p className="text-xs text-muted-foreground">
+                Last updated: {new Date(Math.max(...airportTolls.map(t => new Date(t.updatedAt).getTime()))).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}
+              </p>
+            )}
           </div>
           <p className="text-sm text-muted-foreground">
             Entry and exit toll charges for airport pickups and drop-offs. Toggle active/inactive to control which tolls are applied.
@@ -284,13 +291,28 @@ export default function AdminPricing() {
 
         {/* Road Tolls */}
         <section className="space-y-4">
-          <div className="flex items-center gap-2">
-            <Navigation className="w-5 h-5 text-primary" />
-            <h2 className="font-heading text-xl font-semibold">Road Tolls</h2>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Navigation className="w-5 h-5 text-primary" />
+              <h2 className="font-heading text-xl font-semibold">Road Tolls</h2>
+            </div>
+            {roadTolls.length > 0 && (
+              <p className="text-xs text-muted-foreground">
+                Last updated: {new Date(Math.max(...roadTolls.map(t => new Date(t.updatedAt).getTime()))).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}
+              </p>
+            )}
           </div>
           <p className="text-sm text-muted-foreground">
             QLD toll road charges automatically applied when a booking route passes through these corridors. Toggle active/inactive and adjust amounts as toll prices change.
           </p>
+          <a
+            href="https://www.linkt.com.au/using-toll-roads/toll-calculator"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+          >
+            Check current Linkt toll prices →
+          </a>
           <div className="grid sm:grid-cols-2 gap-4">
             {roadTolls.map(renderSettingCard)}
           </div>
