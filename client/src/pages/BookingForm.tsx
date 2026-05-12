@@ -316,7 +316,7 @@ export default function BookingForm() {
     switch (step) {
       case 0: return serviceType !== "";
       case 1: {
-        const baseValid = !!(pickupAddress && pickupSuburb && pickupDate && pickupTime && passengerCount >= 1);
+        const baseValid = !!(pickupAddress && pickupSuburb && pickupDate && pickupTime && passengerCount >= (isVanStandalone ? 0 : 1));
         // Validate additional pickup addresses are filled
         const pickupAddrsValid = additionalPickupCount === 0 || (
           additionalPickupAddresses.length === additionalPickupCount &&
@@ -384,7 +384,7 @@ export default function BookingForm() {
   };
 
   const passengerNote = isVanStandalone
-    ? "Support Van — maximum 1 passenger (front seat)"
+    ? "Support Van — 0 passengers (freight only) or 1 passenger (front seat)"
     : passengerCount > SUV_CAPACITY.withLuggage
       ? "With limited check-in luggage allowance"
       : "With standard check-in luggage + personal belongings";
@@ -718,7 +718,7 @@ export default function BookingForm() {
                     type="button"
                     variant="outline"
                     size="icon"
-                    onClick={() => setPassengerCount(Math.max(1, passengerCount - 1))}
+                    onClick={() => setPassengerCount(Math.max(isVanStandalone ? 0 : 1, passengerCount - 1))}
                     className="bg-background"
                   >
                     -
