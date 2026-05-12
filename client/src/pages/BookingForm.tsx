@@ -176,6 +176,7 @@ export default function BookingForm() {
   const urlParams = new URLSearchParams(window.location.search);
   const preSelectedService = urlParams.get("service") as ServiceType | null;
   const isPreSelected = preSelectedService && preSelectedService in SERVICE_TYPES;
+  const isVanStandalone = urlParams.get("vehicle") === "van";
 
   const [step, setStep] = useState(isPreSelected ? 1 : 0);
 
@@ -190,7 +191,8 @@ export default function BookingForm() {
   const [pickupTime, setPickupTime] = useState("");
   const [timeOpen, setTimeOpen] = useState(false);
   const [passengerCount, setPassengerCount] = useState(1);
-  const [needsSupportVan, setNeedsSupportVan] = useState(false);
+  const [vehicleSelection, setVehicleSelection] = useState<"suv" | "van" | "both">(isVanStandalone ? "van" : "suv");
+  const needsSupportVan = vehicleSelection === "both";
   const [rearFacingSeats, setRearFacingSeats] = useState(0);
   const [forwardFacingSeats, setForwardFacingSeats] = useState(0);
   const [boosterSeats, setBoosterSeats] = useState(0);
@@ -331,7 +333,7 @@ export default function BookingForm() {
         }
         return baseValid && !!(dropoffAddress && dropoffSuburb) && pickupAddrsValid && dropoffAddrsValid;
       }
-      case 2: return !!suv && (!isPetFriendly || petDescription.trim().length > 0);
+      case 2: return (vehicleSelection === "van" ? !!van : !!suv) && (isVanStandalone || !isPetFriendly || petDescription.trim().length > 0);
       case 3: return clientName && clientEmail && clientPhone;
       case 4: return paymentMethod !== "";
       case 5: return termsAccepted;
@@ -340,7 +342,8 @@ export default function BookingForm() {
   };
 
   const handleSubmit = () => {
-    if (!suv || !serviceType || !paymentMethod) return;
+    const primaryVehicle = vehicleSelection === "van" ? van : suv;
+    if (!primaryVehicle || !serviceType || !paymentMethod) return;
 
     const dateTime = new Date(`${pickupDate}T${pickupTime}`).getTime();
 
@@ -352,16 +355,16 @@ export default function BookingForm() {
       pickupAddress: `${pickupAddress} (${pickupSuburb})`,
       dropoffAddress: dropoffAddress ? `${dropoffAddress} (${dropoffSuburb})` : undefined,
       pickupDate: dateTime,
-      passengerCount,
-      vehicleId: suv.id,
-      vehicleName: suv.name,
+      passengerCount: isVanStandalone ? 1 : passengerCount,
+      vehicleId: primaryVehicle.id,
+      vehicleName: primaryVehicle.name,
       needsSupportVan,
-      supportVanPrice: pricing.supportVanPrice,
-      rearFacingSeats,
-      forwardFacingSeats,
-      boosterSeats,
-      isPetFriendly,
-      petDescription: isPetFriendly ? petDescription : undefined,
+      supportVanPrice: needsSupportVan ? pricing.supportVanPrice : 0,
+      rearFacingSeats: isVanStandalone ? 0 : rearFacingSeats,
+      forwardFacingSeats: isVanStandalone ? 0 : forwardFacingSeats,
+      boosterSeats: isVanStandalone ? 0 : boosterSeats,
+      isPetFriendly: isVanStandalone ? false : isPetFriendly,
+      petDescription: isVanStandalone ? undefined : (isPetFriendly ? petDescription : undefined),
       estimatedDistance,
       estimatedDuration: serviceType === "hourly_hire" ? hireHours * 60 : undefined,
       basePrice: pricing.basePrice,
@@ -380,9 +383,11 @@ export default function BookingForm() {
     });
   };
 
-  const passengerNote = passengerCount > SUV_CAPACITY.withLuggage
-    ? "With limited check-in luggage allowance"
-    : "With standard check-in luggage + personal belongings";
+  const passengerNote = isVanStandalone
+    ? "Support Van — maximum 1 passenger (front seat)"
+    : passengerCount > SUV_CAPACITY.withLuggage
+      ? "With limited check-in luggage allowance"
+      : "With standard check-in luggage + personal belongings";
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -726,8 +731,9 @@ export default function BookingForm() {
                     type="button"
                     variant="outline"
                     size="icon"
-                    onClick={() => setPassengerCount(Math.min(SUV_CAPACITY.limitedLuggage, passengerCount + 1))}
+                    onClick={() => setPassengerCount(Math.min(isVanStandalone ? 1 : SUV_CAPACITY.limitedLuggage, passengerCount + 1))}
                     className="bg-background"
+                    disabled={isVanStandalone}
                   >
                     +
                   </Button>
@@ -913,212 +919,291 @@ export default function BookingForm() {
         {step === 2 && (
           <div className="space-y-6">
             <div className="space-y-2">
-              <h2 className="font-heading text-2xl font-bold">Vehicle & Options</h2>
-              <p className="text-muted-foreground">Your vehicle and optional add-ons.</p>
+              <h2 className="font-heading text-2xl font-bold">{isVanStandalone ? "Your Vehicle" : "Vehicle & Options"}</h2>
+              <p className="text-muted-foreground">{isVanStandalone ? "Your selected vehicle for this booking." : "Your vehicle and optional add-ons."}</p>
             </div>
 
-            {/* Primary Vehicle */}
-            <Card className="ring-2 ring-primary shadow-lg">
-              <CardContent className="p-6">
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-lg gold-gradient flex items-center justify-center shrink-0">
-                    <Briefcase className="w-6 h-6 text-gold-foreground" />
-                  </div>
-                  <div className="flex-1 space-y-2">
-                    <h3 className="font-heading text-lg font-semibold">{suv?.name ?? "Luxury SUV"}</h3>
-                    <p className="text-sm text-muted-foreground">{suv?.description}</p>
-                    <div className="flex items-center gap-4 text-sm">
-                      <span className="flex items-center gap-1">
-                        <Users className="w-4 h-4 text-primary" />
-                        Up to {SUV_CAPACITY.withLuggage} pax (with luggage)
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Users className="w-4 h-4 text-primary" />
-                        Up to {SUV_CAPACITY.limitedLuggage} pax (limited luggage)
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Support Van Option */}
-            {van && (
-              <Card
-                className={`cursor-pointer transition-all duration-200 ${
-                  needsSupportVan ? "ring-2 ring-primary shadow-lg" : "border-border/50 hover:shadow-md"
-                }`}
-                onClick={() => setNeedsSupportVan(!needsSupportVan)}
-              >
+            {isVanStandalone ? (
+              /* ── Standalone Van: confirmation only, no selector ── */
+              <Card className="ring-2 ring-primary shadow-lg">
                 <CardContent className="p-6">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start gap-4">
-                      <Checkbox
-                        checked={needsSupportVan}
-                        onCheckedChange={(checked) => setNeedsSupportVan(!!checked)}
-                        className="mt-1"
-                      />
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <Truck className="w-5 h-5 text-muted-foreground" />
-                          <h3 className="font-heading text-lg font-semibold">{van.name}</h3>
-                        </div>
-                        <p className="text-sm text-muted-foreground max-w-md">{van.description}</p>
-                      </div>
+                  <div className="flex items-start gap-4">
+                    <div className="w-5 h-5 rounded-full border-2 mt-0.5 shrink-0 flex items-center justify-center border-primary">
+                      <div className="w-2.5 h-2.5 rounded-full gold-gradient" />
                     </div>
-                    <div className="text-right">
-                      <p className="text-lg font-heading font-bold">+${pricing.supportVanPrice.toFixed(2)}</p>
-                      <p className="text-xs text-muted-foreground">add-on</p>
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Truck className="w-5 h-5 text-primary" />
+                        <h3 className="font-heading text-lg font-semibold">{van?.name || "Support / Freight Van"}</h3>
+                      </div>
+                      <p className="text-sm text-muted-foreground">{van?.description || "Mercedes-Benz Vito — ideal for extra luggage, oversized items, or freight."}</p>
+                      <div className="flex items-center gap-4 text-sm">
+                        <span className="flex items-center gap-1">
+                          <Briefcase className="w-4 h-4 text-primary" />
+                          Large cargo capacity
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Users className="w-4 h-4 text-primary" />
+                          1 passenger (front seat)
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </CardContent>
               </Card>
-            )}
+            ) : (
+              /* ── Normal flow: full vehicle selector ── */
+              <>
+                <p className="text-xs font-medium tracking-widest uppercase text-primary">Select Your Vehicle</p>
 
-            {/* Child Seat Options */}
-            <Card className="border-border/50">
-              <CardContent className="p-6 space-y-5">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                    <Baby className="w-5 h-5 text-muted-foreground" />
-                  </div>
-                  <div>
-                    <h3 className="font-heading text-lg font-semibold">Child Seats</h3>
-                    <p className="text-sm text-muted-foreground">Select the child seats you require (max 2 of each type)</p>
-                  </div>
-                </div>
-
-                {/* Rear-Facing */}
-                <div className="flex items-center justify-between py-2 border-t border-border/30">
-                  <div>
-                    <p className="text-sm font-medium">Rear-Facing Seat</p>
-                    <p className="text-xs text-muted-foreground">For infants (birth to ~12 months)</p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Button
-                      type="button" variant="outline" size="icon"
-                      className="h-8 w-8 bg-background"
-                      onClick={() => setRearFacingSeats(Math.max(0, rearFacingSeats - 1))}
-                      disabled={rearFacingSeats === 0}
-                    >
-                      <Minus className="w-3.5 h-3.5" />
-                    </Button>
-                    <span className="text-lg font-heading font-bold w-6 text-center">{rearFacingSeats}</span>
-                    <Button
-                      type="button" variant="outline" size="icon"
-                      className="h-8 w-8 bg-background"
-                      onClick={() => setRearFacingSeats(Math.min(2, rearFacingSeats + 1))}
-                      disabled={rearFacingSeats === 2}
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Forward-Facing */}
-                <div className="flex items-center justify-between py-2 border-t border-border/30">
-                  <div>
-                    <p className="text-sm font-medium">Forward-Facing Seat</p>
-                    <p className="text-xs text-muted-foreground">For toddlers (~1 to 4 years)</p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Button
-                      type="button" variant="outline" size="icon"
-                      className="h-8 w-8 bg-background"
-                      onClick={() => setForwardFacingSeats(Math.max(0, forwardFacingSeats - 1))}
-                      disabled={forwardFacingSeats === 0}
-                    >
-                      <Minus className="w-3.5 h-3.5" />
-                    </Button>
-                    <span className="text-lg font-heading font-bold w-6 text-center">{forwardFacingSeats}</span>
-                    <Button
-                      type="button" variant="outline" size="icon"
-                      className="h-8 w-8 bg-background"
-                      onClick={() => setForwardFacingSeats(Math.min(2, forwardFacingSeats + 1))}
-                      disabled={forwardFacingSeats === 2}
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Booster */}
-                <div className="flex items-center justify-between py-2 border-t border-border/30">
-                  <div>
-                    <p className="text-sm font-medium">Booster Seat</p>
-                    <p className="text-xs text-muted-foreground">For children (~4 to 7 years)</p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Button
-                      type="button" variant="outline" size="icon"
-                      className="h-8 w-8 bg-background"
-                      onClick={() => setBoosterSeats(Math.max(0, boosterSeats - 1))}
-                      disabled={boosterSeats === 0}
-                    >
-                      <Minus className="w-3.5 h-3.5" />
-                    </Button>
-                    <span className="text-lg font-heading font-bold w-6 text-center">{boosterSeats}</span>
-                    <Button
-                      type="button" variant="outline" size="icon"
-                      className="h-8 w-8 bg-background"
-                      onClick={() => setBoosterSeats(Math.min(2, boosterSeats + 1))}
-                      disabled={boosterSeats === 2}
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Pet-Friendly Option */}
-            <Card className={`transition-all duration-200 ${
-              isPetFriendly ? "ring-2 ring-primary shadow-lg" : "border-border/50 hover:shadow-md"
-            }`}>
-              <CardContent className="p-6 space-y-4">
-                <div
-                  className="flex items-start gap-4 cursor-pointer"
-                  onClick={() => {
-                    setIsPetFriendly(!isPetFriendly);
-                    if (isPetFriendly) setPetDescription("");
-                  }}
-                >
-                  <Checkbox
-                    checked={isPetFriendly}
-                    onCheckedChange={(checked) => {
-                      setIsPetFriendly(!!checked);
-                      if (!checked) setPetDescription("");
-                    }}
-                    className="mt-1"
-                  />
-                  <div className="flex items-center gap-3">
-                    <Dog className="w-5 h-5 text-muted-foreground" />
-                    <div>
-                      <h3 className="font-heading text-lg font-semibold">Pet Friendly</h3>
-                      <p className="text-sm text-muted-foreground">I will be travelling with a pet</p>
-                    </div>
-                  </div>
-                </div>
-                {isPetFriendly && (
-                  <div className="space-y-2 pl-8">
-                    <Label htmlFor="petDesc" className="text-sm font-medium">
-                      Pet Description <span className="text-red-400">*</span>
-                    </Label>
-                    <Textarea
-                      id="petDesc"
-                      placeholder="Please describe your pet (e.g. breed, size, temperament, any special needs)..."
-                      value={petDescription}
-                      onChange={(e) => setPetDescription(e.target.value)}
-                      rows={3}
-                      className={!petDescription.trim() ? "border-red-500/50" : ""}
-                    />
-                    {!petDescription.trim() && (
-                      <p className="text-xs text-red-400">Pet description is required when travelling with a pet.</p>
-                    )}
-                  </div>
+                {/* Option 1: Luxury SUV */}
+                {suv && (
+                  <Card
+                    className={`cursor-pointer transition-all duration-200 ${
+                      vehicleSelection === "suv" ? "ring-2 ring-primary shadow-lg" : "border-border/50 hover:shadow-md"
+                    }`}
+                    onClick={() => setVehicleSelection("suv")}
+                  >
+                    <CardContent className="p-6">
+                      <div className="flex items-start gap-4">
+                        <div className={`w-5 h-5 rounded-full border-2 mt-0.5 shrink-0 flex items-center justify-center ${
+                          vehicleSelection === "suv" ? "border-primary" : "border-muted-foreground/40"
+                        }`}>
+                          {vehicleSelection === "suv" && <div className="w-2.5 h-2.5 rounded-full gold-gradient" />}
+                        </div>
+                        <div className="flex-1 space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Briefcase className="w-5 h-5 text-primary" />
+                            <h3 className="font-heading text-lg font-semibold">{suv.name}</h3>
+                          </div>
+                          <p className="text-sm text-muted-foreground">{suv.description}</p>
+                          <div className="flex items-center gap-4 text-sm flex-wrap">
+                            <span className="flex items-center gap-1">
+                              <Users className="w-4 h-4 text-primary" />
+                              Up to {SUV_CAPACITY.withLuggage} pax (with luggage)
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Users className="w-4 h-4 text-primary" />
+                              Up to {SUV_CAPACITY.limitedLuggage} pax (limited luggage)
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
                 )}
-              </CardContent>
-            </Card>
+
+                {/* Option 2: Support / Freight Van */}
+                {van && (
+                  <Card
+                    className={`cursor-pointer transition-all duration-200 ${
+                      vehicleSelection === "van" ? "ring-2 ring-primary shadow-lg" : "border-border/50 hover:shadow-md"
+                    }`}
+                    onClick={() => setVehicleSelection("van")}
+                  >
+                    <CardContent className="p-6">
+                      <div className="flex items-start gap-4">
+                        <div className={`w-5 h-5 rounded-full border-2 mt-0.5 shrink-0 flex items-center justify-center ${
+                          vehicleSelection === "van" ? "border-primary" : "border-muted-foreground/40"
+                        }`}>
+                          {vehicleSelection === "van" && <div className="w-2.5 h-2.5 rounded-full gold-gradient" />}
+                        </div>
+                        <div className="flex-1 space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Truck className="w-5 h-5 text-primary" />
+                            <h3 className="font-heading text-lg font-semibold">{van.name}</h3>
+                          </div>
+                          <p className="text-sm text-muted-foreground">{van.description}</p>
+                          <div className="flex items-center gap-4 text-sm">
+                            <span className="flex items-center gap-1">
+                              <Briefcase className="w-4 h-4 text-primary" />
+                              Large cargo capacity
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Option 3: SUV + Support Van */}
+                {suv && van && (
+                  <Card
+                    className={`cursor-pointer transition-all duration-200 ${
+                      vehicleSelection === "both" ? "ring-2 ring-primary shadow-lg" : "border-border/50 hover:shadow-md"
+                    }`}
+                    onClick={() => setVehicleSelection("both")}
+                  >
+                    <CardContent className="p-6">
+                      <div className="flex items-start gap-4">
+                        <div className={`w-5 h-5 rounded-full border-2 mt-0.5 shrink-0 flex items-center justify-center ${
+                          vehicleSelection === "both" ? "border-primary" : "border-muted-foreground/40"
+                        }`}>
+                          {vehicleSelection === "both" && <div className="w-2.5 h-2.5 rounded-full gold-gradient" />}
+                        </div>
+                        <div className="flex-1 space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Briefcase className="w-5 h-5 text-primary" />
+                            <span className="text-muted-foreground">+</span>
+                            <Truck className="w-5 h-5 text-primary" />
+                            <h3 className="font-heading text-lg font-semibold">{suv.name} + {van.name}</h3>
+                          </div>
+                          <p className="text-sm text-muted-foreground">Both vehicles for passengers and extra luggage/freight</p>
+                          <div className="flex items-center gap-2 text-sm">
+                            <span className="gold-text font-medium">+${pricing.supportVanPrice.toFixed(2)} for support van</span>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Child Seat Options */}
+                <Card className="border-border/50">
+                  <CardContent className="p-6 space-y-5">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                        <Baby className="w-5 h-5 text-muted-foreground" />
+                      </div>
+                      <div>
+                        <h3 className="font-heading text-lg font-semibold">Child Seats</h3>
+                        <p className="text-sm text-muted-foreground">Select the child seats you require (max 2 of each type)</p>
+                      </div>
+                    </div>
+
+                    {/* Rear-Facing */}
+                    <div className="flex items-center justify-between py-2 border-t border-border/30">
+                      <div>
+                        <p className="text-sm font-medium">Rear-Facing Seat</p>
+                        <p className="text-xs text-muted-foreground">For infants (birth to ~12 months)</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Button
+                          type="button" variant="outline" size="icon"
+                          className="h-8 w-8 bg-background"
+                          onClick={() => setRearFacingSeats(Math.max(0, rearFacingSeats - 1))}
+                          disabled={rearFacingSeats === 0}
+                        >
+                          <Minus className="w-3.5 h-3.5" />
+                        </Button>
+                        <span className="text-lg font-heading font-bold w-6 text-center">{rearFacingSeats}</span>
+                        <Button
+                          type="button" variant="outline" size="icon"
+                          className="h-8 w-8 bg-background"
+                          onClick={() => setRearFacingSeats(Math.min(2, rearFacingSeats + 1))}
+                          disabled={rearFacingSeats === 2}
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Forward-Facing */}
+                    <div className="flex items-center justify-between py-2 border-t border-border/30">
+                      <div>
+                        <p className="text-sm font-medium">Forward-Facing Seat</p>
+                        <p className="text-xs text-muted-foreground">For toddlers (~1 to 4 years)</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Button
+                          type="button" variant="outline" size="icon"
+                          className="h-8 w-8 bg-background"
+                          onClick={() => setForwardFacingSeats(Math.max(0, forwardFacingSeats - 1))}
+                          disabled={forwardFacingSeats === 0}
+                        >
+                          <Minus className="w-3.5 h-3.5" />
+                        </Button>
+                        <span className="text-lg font-heading font-bold w-6 text-center">{forwardFacingSeats}</span>
+                        <Button
+                          type="button" variant="outline" size="icon"
+                          className="h-8 w-8 bg-background"
+                          onClick={() => setForwardFacingSeats(Math.min(2, forwardFacingSeats + 1))}
+                          disabled={forwardFacingSeats === 2}
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Booster */}
+                    <div className="flex items-center justify-between py-2 border-t border-border/30">
+                      <div>
+                        <p className="text-sm font-medium">Booster Seat</p>
+                        <p className="text-xs text-muted-foreground">For children (~4 to 7 years)</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Button
+                          type="button" variant="outline" size="icon"
+                          className="h-8 w-8 bg-background"
+                          onClick={() => setBoosterSeats(Math.max(0, boosterSeats - 1))}
+                          disabled={boosterSeats === 0}
+                        >
+                          <Minus className="w-3.5 h-3.5" />
+                        </Button>
+                        <span className="text-lg font-heading font-bold w-6 text-center">{boosterSeats}</span>
+                        <Button
+                          type="button" variant="outline" size="icon"
+                          className="h-8 w-8 bg-background"
+                          onClick={() => setBoosterSeats(Math.min(2, boosterSeats + 1))}
+                          disabled={boosterSeats === 2}
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Pet-Friendly Option */}
+                <Card className={`transition-all duration-200 ${
+                  isPetFriendly ? "ring-2 ring-primary shadow-lg" : "border-border/50 hover:shadow-md"
+                }`}>
+                  <CardContent className="p-6 space-y-4">
+                    <div
+                      className="flex items-start gap-4 cursor-pointer"
+                      onClick={() => {
+                        setIsPetFriendly(!isPetFriendly);
+                        if (isPetFriendly) setPetDescription("");
+                      }}
+                    >
+                      <Checkbox
+                        checked={isPetFriendly}
+                        onCheckedChange={(checked) => {
+                          setIsPetFriendly(!!checked);
+                          if (!checked) setPetDescription("");
+                        }}
+                        className="mt-1"
+                      />
+                      <div className="flex items-center gap-3">
+                        <Dog className="w-5 h-5 text-muted-foreground" />
+                        <div>
+                          <h3 className="font-heading text-lg font-semibold">Pet Friendly</h3>
+                          <p className="text-sm text-muted-foreground">I will be travelling with a pet</p>
+                        </div>
+                      </div>
+                    </div>
+                    {isPetFriendly && (
+                      <div className="space-y-2 pl-8">
+                        <Label htmlFor="petDesc" className="text-sm font-medium">
+                          Pet Description <span className="text-red-400">*</span>
+                        </Label>
+                        <Textarea
+                          id="petDesc"
+                          placeholder="Please describe your pet (e.g. breed, size, temperament, any special needs)..."
+                          value={petDescription}
+                          onChange={(e) => setPetDescription(e.target.value)}
+                          rows={3}
+                          className={!petDescription.trim() ? "border-red-500/50" : ""}
+                        />
+                        {!petDescription.trim() && (
+                          <p className="text-xs text-red-400">Pet description is required when travelling with a pet.</p>
+                        )}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </>
+            )}
           </div>
         )}
 
@@ -1337,9 +1422,13 @@ export default function BookingForm() {
                 {/* Vehicle */}
                 <div className="space-y-3 border-t border-border/50 pt-4">
                   <p className="text-xs font-medium tracking-widest uppercase text-primary">Vehicle</p>
-                  <p className="font-medium">{suv?.name}</p>
-                  {needsSupportVan && (
-                    <p className="text-sm text-muted-foreground">+ Support Van for luggage/freight</p>
+                  {vehicleSelection === "suv" && <p className="font-medium">{suv?.name}</p>}
+                  {vehicleSelection === "van" && <p className="font-medium">{van?.name}</p>}
+                  {vehicleSelection === "both" && (
+                    <>
+                      <p className="font-medium">{suv?.name}</p>
+                      <p className="text-sm text-muted-foreground">+ {van?.name} for luggage/freight</p>
+                    </>
                   )}
                 </div>
 

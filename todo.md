@@ -467,3 +467,31 @@
 - [x] Add routes for /forgot-password and /reset-password in App.tsx
 - [x] Add "Forgot password?" link on Login page
 - [x] Write tests for forgot/reset password flow (9 tests)
+
+## GitHub Export for Hostinger Deployment
+- [ ] Clean up project for GitHub export (.gitignore, remove sensitive files)
+- [ ] Create private GitHub repository
+- [ ] Push code to GitHub
+
+## Hostinger Deployment
+- [x] Connect to Hostinger via SSH
+- [x] Explore server environment (Node.js v22.18.0, pnpm 10.33.0, PM2 6.0.14, MariaDB 11.8.6)
+- [ ] Upload project files to Hostinger
+- [ ] Install dependencies on Hostinger
+- [ ] Configure environment variables (.env)
+- [ ] Run database migrations on Hostinger MySQL
+- [ ] Configure Node.js app entry point
+- [ ] Verify the deployment is working
+- [ ] Fix: Continue button on Step 3 (Vehicle & Options) should be enabled by default since child seats and pet are optional
+- [ ] Fix: Confirmation page shows SUV when standalone van is booked
+- [ ] Fix: Previous booking step shows SUV instead of Van for standalone van booking
+- [ ] Implement proper vehicle selector: SUV only, Van only, SUV + Van
+
+## Standalone Admin Login (Hostinger)
+- [ ] Build standalone admin login (email/password) for Hostinger deployment
+- [ ] Admin login page UI at /admin/login
+- [ ] Seed admin credentials in Hostinger database
+- [x] When Support Van selected standalone: max 1 passenger on Trip Details page
+- [x] When Support Van selected standalone: show only "Support Van" confirmation on Vehicle & Options (no 3-option selector)
+- [x] When Support Van selected standalone: hide child seats selection (not relevant for Van)
+- [x] When Support Van selected standalone: hide Pet Friendly option (not relevant for Van)

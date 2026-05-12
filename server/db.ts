@@ -1,17 +1,47 @@
 import { eq, desc, and, or, like, sql, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
+import mysql from "mysql2/promise";
 import { InsertUser, users, vehicles, bookings, pricingSettings, enquiries, publicHolidays, passwordResetTokens, type InsertBooking, type Booking, type PricingSetting, type InsertEnquiry, type Enquiry, type InsertPublicHoliday, type PublicHoliday } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
-let _db: ReturnType<typeof drizzle> | null = null;
+let _db: any = null;
+let _pool: any = null;
 
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
-      _db = drizzle(process.env.DATABASE_URL);
+      const url = new URL(process.env.DATABASE_URL);
+      const host = url.hostname;
+      const user = decodeURIComponent(url.username);
+      const password = decodeURIComponent(url.password);
+      const database = url.pathname.slice(1);
+
+      // On Hostinger shared hosting, localhost connections must use Unix socket
+      const isLocalhost = host === 'localhost' || host === '127.0.0.1';
+      const poolConfig: any = {
+        user,
+        password,
+        database,
+        waitForConnections: true,
+        connectionLimit: 10,
+        connectTimeout: 10000,
+      };
+
+      if (isLocalhost) {
+        // Use socket path for local MySQL on shared hosting
+        poolConfig.socketPath = '/var/lib/mysql/mysql.sock';
+      } else {
+        poolConfig.host = host;
+        poolConfig.port = parseInt(url.port || '3306');
+      }
+
+      _pool = mysql.createPool(poolConfig);
+      _db = drizzle(_pool);
+      console.log("[Database] Pool created successfully", isLocalhost ? "via socket" : `for host: ${host}`);
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;
+      _pool = null;
     }
   }
   return _db;

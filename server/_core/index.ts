@@ -64,6 +64,22 @@ async function startServer() {
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
+  // Health check endpoint for diagnostics
+  app.get("/api/health", async (req, res) => {
+    const { getDb } = await import("../db");
+    try {
+      const db = await getDb();
+      if (!db) {
+        return res.json({ status: "error", message: "Database not initialized", dbUrl: process.env.DATABASE_URL ? 'SET' : 'NOT SET' });
+      }
+      const { sql } = await import("drizzle-orm");
+      const result = await db.execute(sql`SELECT 1 as ok`);
+      return res.json({ status: "ok", db: "connected" });
+    } catch (err: any) {
+      return res.json({ status: "error", message: err.message, code: err.code });
+    }
+  });
+
   // Standalone auth routes (login, register)
   registerAuthRoutes(app);
   // tRPC API

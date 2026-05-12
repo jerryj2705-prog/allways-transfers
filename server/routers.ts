@@ -809,7 +809,7 @@ export const appRouter = router({
           destinationSuburb: z.string().optional(),
           distanceKm: z.number().min(0).optional(),
           pickupHour: z.number().min(0).max(23),
-          pickupDateStr: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().default(""),
+          pickupDateStr: z.string().regex(/^(\d{4}-\d{2}-\d{2})?$/).optional().default(""),
           needsSupportVan: z.boolean().default(false),
           paymentMethod: z.string().default("cash_postpay"),
           hireHours: z.number().min(0).optional(),

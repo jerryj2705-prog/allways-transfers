@@ -14,6 +14,7 @@ import { toast } from "sonner";
 const HERO_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/hero-suv_ee8b3ffa.jpg";
 const LOGO_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/logo-white_476df209.png";
 const FLEET_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/fleet-kia-carnival_d4324bff.webp";
+const VAN_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/merc-vito-van_7c33cf4f.png";
 const AIRPORT_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/plane-tarmac_12935ebb.png";
 const CHAUFFEUR_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/chauffeur_433d77f4.jpg";
 const WEDDING_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/wedding_92293137.png";
@@ -769,7 +770,17 @@ export default function Home() {
       {/* Fleet Section */}
       <section id="fleet" className="py-24">
         <div className="container">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
+          <div className="text-center mb-16 space-y-4">
+            <p className="text-sm font-medium tracking-[0.25em] uppercase text-primary">
+              Our Fleet
+            </p>
+            <h2 className="font-heading text-3xl md:text-4xl tracking-tight text-offwhite">
+              Premium Vehicles for Every Occasion
+            </h2>
+          </div>
+
+          {/* Luxury SUV */}
+          <div className="grid lg:grid-cols-2 gap-16 items-center mb-20">
             <div className="relative rounded-2xl overflow-hidden shadow-xl border border-border/30">
               <img
                 src={FLEET_IMG}
@@ -784,12 +795,9 @@ export default function Home() {
             </div>
             <div className="space-y-8">
               <div className="space-y-4">
-                <p className="text-sm font-medium tracking-[0.25em] uppercase text-primary">
-                  Our Fleet
-                </p>
-                <h2 className="font-heading text-3xl md:text-4xl tracking-tight">
+                <h3 className="font-heading text-3xl md:text-4xl tracking-tight">
                   Luxury SUV
-                </h2>
+                </h3>
                 <p className="text-muted-foreground leading-relaxed">
                   Our premium luxury SUV offers the perfect blend of comfort, style, and space.
                   Ideal for both business and leisure travel across the Sunshine Coast and Brisbane.
@@ -804,13 +812,6 @@ export default function Home() {
                   <p className="text-2xl font-heading gold-text">7</p>
                   <p className="text-sm text-muted-foreground">Passengers, limited luggage</p>
                 </div>
-                <div className="charcoal-panel rounded-lg p-4 col-span-2 border border-border/30">
-                  <p className="text-sm font-medium text-offwhite">Support Van Available</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    For large or oversized luggage and freight, an additional support van
-                    can be arranged at a separate charge.
-                  </p>
-                </div>
               </div>
               <Button
                 size="lg"
@@ -819,6 +820,58 @@ export default function Home() {
               >
                 Book This Vehicle
               </Button>
+            </div>
+          </div>
+
+          {/* Support / Freight Van */}
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
+            <div className="order-2 lg:order-1 space-y-8">
+              <div className="space-y-4">
+                <h3 className="font-heading text-3xl md:text-4xl tracking-tight">
+                  Support / Freight Van
+                </h3>
+                <p className="text-muted-foreground leading-relaxed">
+                  Our Mercedes-Benz Vito is the ideal companion for transfers requiring extra luggage capacity,
+                  oversized items, or freight. Available as a standalone booking or as a support vehicle
+                  alongside our Luxury SUV for seamless door-to-door service.
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="charcoal-panel rounded-lg p-4 border border-border/30">
+                  <p className="text-2xl font-heading gold-text">Large</p>
+                  <p className="text-sm text-muted-foreground">Cargo capacity</p>
+                </div>
+                <div className="charcoal-panel rounded-lg p-4 border border-border/30">
+                  <p className="text-2xl font-heading gold-text">Versatile</p>
+                  <p className="text-sm text-muted-foreground">Luggage &amp; freight</p>
+                </div>
+                <div className="charcoal-panel rounded-lg p-4 col-span-2 border border-border/30">
+                  <p className="text-sm font-medium text-offwhite">Perfect for Golf Clubs, Surfboards &amp; Oversized Items</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Whether you need extra space for sporting equipment, business freight, or simply have
+                    more luggage than fits in the SUV, the Support Van has you covered.
+                  </p>
+                </div>
+              </div>
+              <Button
+                size="lg"
+                onClick={() => setLocation("/book?vehicle=van")}
+                className="gold-gradient text-gold-foreground border-0 hover:opacity-90 transition-opacity font-semibold"
+              >
+                Book Now
+              </Button>
+            </div>
+            <div className="order-1 lg:order-2 relative rounded-2xl overflow-hidden shadow-xl border border-border/30">
+              <img
+                src={VAN_IMG}
+                alt="Mercedes-Benz Vito - Support and Freight Van"
+                className="w-full h-[400px] object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+              <div className="absolute bottom-6 left-6 right-6">
+                <p className="text-white font-heading text-xl">Mercedes-Benz Vito</p>
+                <p className="text-white/80 text-sm mt-1">Support &amp; freight for every need</p>
+              </div>
             </div>
           </div>
         </div>
