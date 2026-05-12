@@ -595,4 +595,12 @@
 - [x] Integrate DB landmarks into autocomplete and pricing engine
 - [x] Add admin navigation entry for landmarks management
 - [x] Push updated code to GitHub
-- [ ] Fix Hostinger build failure — remove pnpm packageManager field and pnpm-lock.yaml, use npm for Hostinger compatibility
+- [x] Fix Hostinger build failure — remove pnpm packageManager field and pnpm-lock.yaml, use npm for Hostinger compatibility
+
+## Landmark Addresses & Auto-fill
+- [x] Add address column to landmarks table
+- [x] Research and populate official addresses for all 172 landmarks
+- [x] Update frontend to auto-fill address field when landmark is selected
+- [x] Reorder booking form: Suburb/Landmark field above Address field (pickup and dropoff)
+- [x] Add address field to AdminLandmarks create/edit dialog
+- [ ] Rebuild dist and push to GitHub for Hostinger deployment

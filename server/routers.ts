@@ -998,11 +998,17 @@ export const appRouter = router({
       // Fetch active DB landmarks and merge
       const dbLandmarks = await getActiveLandmarks();
       const existingNames = new Set(staticLocations.map(l => l.name.toLowerCase()));
-      const merged = [...staticLocations];
+      const merged: Array<{ name: string; isLandmark?: boolean; address?: string | null }> = [...staticLocations];
       for (const lm of dbLandmarks) {
         if (!existingNames.has(lm.name.toLowerCase())) {
-          merged.push({ name: lm.name, isLandmark: true });
+          merged.push({ name: lm.name, isLandmark: true, address: lm.address || null });
           existingNames.add(lm.name.toLowerCase());
+        } else {
+          // Update existing entry with address from DB if available
+          const existing = merged.find(m => m.name.toLowerCase() === lm.name.toLowerCase());
+          if (existing && lm.address) {
+            existing.address = lm.address;
+          }
         }
       }
       return merged.sort((a, b) => a.name.localeCompare(b.name));
@@ -1443,6 +1449,7 @@ export const appRouter = router({
         lng: z.string().regex(/^-?\d+\.\d+$/, "Longitude must be a decimal number"),
         lga: z.string().min(1, "LGA is required"),
         category: z.enum(["resort", "golf_course", "venue", "hospital", "university", "airport", "shopping", "stadium", "theme_park", "attraction", "other"]),
+        address: z.string().max(500).optional(),
         isActive: z.number().min(0).max(1).default(1),
       }))
       .mutation(async ({ input }) => {
@@ -1458,6 +1465,7 @@ export const appRouter = router({
         lng: z.string().optional(),
         lga: z.string().optional(),
         category: z.enum(["resort", "golf_course", "venue", "hospital", "university", "airport", "shopping", "stadium", "theme_park", "attraction", "other"]).optional(),
+        address: z.string().max(500).optional(),
         isActive: z.number().min(0).max(1).optional(),
       }))
       .mutation(async ({ input }) => {

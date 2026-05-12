@@ -211,6 +211,7 @@ export const landmarks = mysqlTable("landmarks", {
   lng: decimal("lng", { precision: 10, scale: 6 }).notNull(),
   lga: varchar("lga", { length: 200 }).notNull(),
   category: mysqlEnum("category", ["resort", "golf_course", "venue", "hospital", "university", "airport", "shopping", "stadium", "theme_park", "attraction", "other"]).notNull().default("other"),
+  address: varchar("address", { length: 500 }),
   isActive: int("isActive").notNull().default(1),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),

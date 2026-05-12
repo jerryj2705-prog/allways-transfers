@@ -76,6 +76,7 @@ interface LandmarkFormData {
   lng: string;
   lga: string;
   category: CategoryValue;
+  address: string;
   isActive: number;
 }
 
@@ -85,6 +86,7 @@ const emptyForm: LandmarkFormData = {
   lng: "",
   lga: "Sunshine Coast",
   category: "other",
+  address: "",
   isActive: 1,
 };
 
@@ -201,6 +203,7 @@ export default function AdminLandmarks() {
       lng: formData.lng,
       lga: formData.lga,
       category: formData.category,
+      address: formData.address.trim() || undefined,
       isActive: formData.isActive,
     });
   };
@@ -215,6 +218,7 @@ export default function AdminLandmarks() {
       lng: formData.lng,
       lga: formData.lga,
       category: formData.category,
+      address: formData.address.trim() || undefined,
       isActive: formData.isActive,
     });
   };
@@ -227,6 +231,7 @@ export default function AdminLandmarks() {
       lng: String(landmark.lng),
       lga: landmark.lga,
       category: landmark.category,
+      address: landmark.address || "",
       isActive: landmark.isActive,
     });
   };
@@ -322,6 +327,15 @@ export default function AdminLandmarks() {
             </SelectContent>
           </Select>
         </div>
+      </div>
+      <div>
+        <Label htmlFor="lm-address">Address</Label>
+        <Input
+          id="lm-address"
+          value={formData.address}
+          onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
+          placeholder="e.g. 1 Links Drive, Noosa Heads QLD 4567"
+        />
       </div>
       <div className="flex items-center gap-2">
         <Label htmlFor="lm-active">Status</Label>

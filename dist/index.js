@@ -217,6 +217,7 @@ var init_schema = __esm({
       lng: decimal("lng", { precision: 10, scale: 6 }).notNull(),
       lga: varchar("lga", { length: 200 }).notNull(),
       category: mysqlEnum("category", ["resort", "golf_course", "venue", "hospital", "university", "airport", "shopping", "stadium", "theme_park", "attraction", "other"]).notNull().default("other"),
+      address: varchar("address", { length: 500 }),
       isActive: int("isActive").notNull().default(1),
       createdAt: timestamp("createdAt").defaultNow().notNull(),
       updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull()
@@ -3888,8 +3889,13 @@ Pickup was: ${new Date(booking.pickupDate).toLocaleString("en-AU", { timeZone: "
       const merged = [...staticLocations];
       for (const lm of dbLandmarks) {
         if (!existingNames.has(lm.name.toLowerCase())) {
-          merged.push({ name: lm.name, isLandmark: true });
+          merged.push({ name: lm.name, isLandmark: true, address: lm.address || null });
           existingNames.add(lm.name.toLowerCase());
+        } else {
+          const existing = merged.find((m) => m.name.toLowerCase() === lm.name.toLowerCase());
+          if (existing && lm.address) {
+            existing.address = lm.address;
+          }
         }
       }
       return merged.sort((a, b) => a.name.localeCompare(b.name));
@@ -4246,6 +4252,7 @@ ${input.message}`
       lng: z2.string().regex(/^-?\d+\.\d+$/, "Longitude must be a decimal number"),
       lga: z2.string().min(1, "LGA is required"),
       category: z2.enum(["resort", "golf_course", "venue", "hospital", "university", "airport", "shopping", "stadium", "theme_park", "attraction", "other"]),
+      address: z2.string().max(500).optional(),
       isActive: z2.number().min(0).max(1).default(1)
     })).mutation(async ({ input }) => {
       return createLandmark(input);
@@ -4258,6 +4265,7 @@ ${input.message}`
       lng: z2.string().optional(),
       lga: z2.string().optional(),
       category: z2.enum(["resort", "golf_course", "venue", "hospital", "university", "airport", "shopping", "stadium", "theme_park", "attraction", "other"]).optional(),
+      address: z2.string().max(500).optional(),
       isActive: z2.number().min(0).max(1).optional()
     })).mutation(async ({ input }) => {
       const { id, ...data } = input;

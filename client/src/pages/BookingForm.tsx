@@ -66,6 +66,8 @@ function SuburbAutocomplete({
   id,
   areaInfo,
   landmarkSet,
+  onSelectAddress,
+  addressMap,
 }: {
   label: string;
   placeholder: string;
@@ -75,6 +77,8 @@ function SuburbAutocomplete({
   id: string;
   areaInfo?: { area: string; lga: string } | null;
   landmarkSet?: Set<string>;
+  onSelectAddress?: (address: string) => void;
+  addressMap?: Map<string, string>;
 }) {
   const [query, setQuery] = useState(value);
   const [open, setOpen] = useState(false);
@@ -156,6 +160,11 @@ function SuburbAutocomplete({
                   setQuery(suburb);
                   onChange(suburb);
                   setOpen(false);
+                  // Auto-fill address if this is a landmark with a known address
+                  if (onSelectAddress && addressMap) {
+                    const addr = addressMap.get(suburb.toLowerCase());
+                    if (addr) onSelectAddress(addr);
+                  }
                 }}
               >
                 {landmarkSet?.has(suburb) ? (
@@ -261,6 +270,19 @@ export default function BookingForm() {
       }
     }
     return set;
+  }, [locationsWithType]);
+
+  // Build a map of landmark name (lowercase) -> address for auto-fill
+  const landmarkAddressMap = useMemo(() => {
+    const map = new Map<string, string>();
+    if (locationsWithType) {
+      for (const loc of locationsWithType) {
+        if (loc.address) {
+          map.set(loc.name.toLowerCase(), loc.address);
+        }
+      }
+    }
+    return map;
   }, [locationsWithType]);
 
   // Fetch pricing settings for base prices on service cards
@@ -590,6 +612,20 @@ export default function BookingForm() {
               <p className="text-muted-foreground">Tell us about your journey.</p>
             </div>
             <div className="space-y-5">
+              {/* Pickup Suburb / Landmark - Autocomplete (above address so landmark auto-fills address below) */}
+              <SuburbAutocomplete
+                label="Pickup Suburb / Landmark"
+                placeholder="Start typing suburb or landmark..."
+                value={pickupSuburb}
+                onChange={setPickupSuburb}
+                suburbs={suburbs}
+                id="pickupSuburb"
+                areaInfo={pickupInfo}
+                landmarkSet={landmarkSet}
+                onSelectAddress={setPickupAddress}
+                addressMap={landmarkAddressMap}
+              />
+
               {/* Pickup Address */}
               <div className="space-y-2">
                 <Label htmlFor="pickup" className="text-sm font-medium">Pickup Address</Label>
@@ -602,21 +638,23 @@ export default function BookingForm() {
                 />
               </div>
 
-              {/* Pickup Suburb - Autocomplete */}
-              <SuburbAutocomplete
-                label="Pickup Suburb / Landmark"
-                placeholder="Start typing suburb or landmark..."
-                value={pickupSuburb}
-                onChange={setPickupSuburb}
-                suburbs={suburbs}
-                id="pickupSuburb"
-                areaInfo={pickupInfo}
-                landmarkSet={landmarkSet}
-              />
-
               {/* Drop-off (not for hourly hire) */}
               {serviceType !== "hourly_hire" && (
                 <>
+                  {/* Drop-off Suburb / Landmark - Autocomplete (above address so landmark auto-fills address below) */}
+                  <SuburbAutocomplete
+                    label="Drop-off Suburb / Landmark"
+                    placeholder="Start typing suburb or landmark..."
+                    value={dropoffSuburb}
+                    onChange={setDropoffSuburb}
+                    suburbs={suburbs}
+                    id="dropoffSuburb"
+                    areaInfo={dropoffInfo}
+                    landmarkSet={landmarkSet}
+                    onSelectAddress={setDropoffAddress}
+                    addressMap={landmarkAddressMap}
+                  />
+
                   <div className="space-y-2">
                     <Label htmlFor="dropoff" className="text-sm font-medium">Drop-off Address</Label>
                     <Input
@@ -627,17 +665,6 @@ export default function BookingForm() {
                       className="h-12"
                     />
                   </div>
-
-                  <SuburbAutocomplete
-                    label="Drop-off Suburb / Landmark"
-                    placeholder="Start typing suburb or landmark..."
-                    value={dropoffSuburb}
-                    onChange={setDropoffSuburb}
-                    suburbs={suburbs}
-                    id="dropoffSuburb"
-                    areaInfo={dropoffInfo}
-                    landmarkSet={landmarkSet}
-                  />
                 </>
               )}
 
