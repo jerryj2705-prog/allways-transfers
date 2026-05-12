@@ -746,7 +746,7 @@ export async function getEnquiryStats() {
 
 export async function getBookingStats() {
   const db = await getDb();
-  if (!db) return { total: 0, pending: 0, confirmed: 0, completed: 0, cancelled: 0 };
+  if (!db) return { total: 0, pending: 0, confirmed: 0, completed: 0, cancelled: 0, totalRevenue: "0", unpaidAmount: "0", refundedAmount: "0" };
 
   const result = await db.select({
     total: sql<number>`count(*)`,
@@ -754,6 +754,9 @@ export async function getBookingStats() {
     confirmed: sql<number>`sum(case when status = 'confirmed' then 1 else 0 end)`,
     completed: sql<number>`sum(case when status = 'completed' then 1 else 0 end)`,
     cancelled: sql<number>`sum(case when status = 'cancelled' then 1 else 0 end)`,
+    totalRevenue: sql<string>`coalesce(sum(case when paymentStatus = 'paid' then totalPrice else 0 end), 0)`,
+    unpaidAmount: sql<string>`coalesce(sum(case when paymentStatus = 'unpaid' and status != 'cancelled' then totalPrice else 0 end), 0)`,
+    refundedAmount: sql<string>`coalesce(sum(case when paymentStatus = 'refunded' then totalPrice else 0 end), 0)`,
   }).from(bookings);
 
   const row = result[0];
@@ -763,6 +766,9 @@ export async function getBookingStats() {
     confirmed: row?.confirmed ?? 0,
     completed: row?.completed ?? 0,
     cancelled: row?.cancelled ?? 0,
+    totalRevenue: String(row?.totalRevenue ?? "0"),
+    unpaidAmount: String(row?.unpaidAmount ?? "0"),
+    refundedAmount: String(row?.refundedAmount ?? "0"),
   };
 }
 

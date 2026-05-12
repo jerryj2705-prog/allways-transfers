@@ -16,7 +16,7 @@ import { useLocation } from "wouter";
 import {
   Search, LayoutDashboard, Clock, CheckCircle, XCircle, AlertCircle,
   ChevronLeft, ChevronRight, LogOut, Home, DollarSign, MessageSquare, CalendarDays, Star,
-  Download, X,
+  Download, X, Banknote, CreditCard, RotateCcw,
 } from "lucide-react";
 import { SERVICE_TYPES, BOOKING_STATUSES, PAYMENT_METHODS } from "@shared/types";
 import type { ServiceType, BookingStatus, PaymentMethod } from "@shared/types";
@@ -169,6 +169,12 @@ export default function AdminDashboard() {
     { label: "Completed", value: stats?.completed ?? 0, icon: CheckCircle, color: "text-green-600" },
   ];
 
+  const paymentCards = [
+    { label: "Total Revenue", value: `$${parseFloat(stats?.totalRevenue ?? "0").toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, icon: Banknote, color: "text-emerald-500", bg: "from-emerald-950/40 to-emerald-900/20" },
+    { label: "Outstanding", value: `$${parseFloat(stats?.unpaidAmount ?? "0").toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, icon: CreditCard, color: "text-amber-500", bg: "from-amber-950/40 to-amber-900/20" },
+    { label: "Refunded", value: `$${parseFloat(stats?.refundedAmount ?? "0").toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, icon: RotateCcw, color: "text-blue-500", bg: "from-blue-950/40 to-blue-900/20" },
+  ];
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* Sticky Header */}
@@ -276,6 +282,23 @@ export default function AdminDashboard() {
                     <p className={`text-2xl font-heading font-bold mt-1 ${stat.color}`}>{stat.value}</p>
                   </div>
                   <stat.icon className={`w-8 h-8 ${stat.color} opacity-30`} />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Payment Summary */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+          {paymentCards.map((card) => (
+            <Card key={card.label} className={`border-border/50 bg-gradient-to-br ${card.bg}`}>
+              <CardContent className="p-5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-muted-foreground font-medium">{card.label}</p>
+                    <p className={`text-2xl font-heading font-bold mt-1 ${card.color}`}>{card.value}</p>
+                  </div>
+                  <card.icon className={`w-8 h-8 ${card.color} opacity-30`} />
                 </div>
               </CardContent>
             </Card>
