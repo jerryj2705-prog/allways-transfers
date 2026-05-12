@@ -6,6 +6,8 @@
  * Other: everything else
  */
 
+import { LANDMARK_ADDRESSES } from "./landmarkAddresses";
+
 export type AreaType = "primary" | "secondary" | "other";
 
 export interface SuburbInfo {
@@ -674,15 +676,16 @@ export function isLandmark(name: string): boolean {
 /**
  * Get all locations with their type for the autocomplete.
  */
-export function getAllLocationsWithType(): { name: string; isLandmark: boolean }[] {
+export function getAllLocationsWithType(): { name: string; isLandmark: boolean; address?: string | null }[] {
   const seen = new Set<string>();
-  const results: { name: string; isLandmark: boolean }[] = [];
+  const results: { name: string; isLandmark: boolean; address?: string | null }[] = [];
   for (let i = 0; i < SUBURB_DATA.length; i++) {
     const name = SUBURB_DATA[i][0];
     if (!seen.has(name)) {
       seen.add(name);
       const landmark = LANDMARK_START_INDEX >= 0 && i >= LANDMARK_START_INDEX;
-      results.push({ name, isLandmark: landmark });
+      const address = landmark ? (LANDMARK_ADDRESSES[name] || null) : null;
+      results.push({ name, isLandmark: landmark, address });
     }
   }
   return results.sort((a, b) => a.name.localeCompare(b.name));

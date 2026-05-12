@@ -996,21 +996,34 @@ export const appRouter = router({
     locationsWithType: publicProcedure.query(async () => {
       const staticLocations = getAllLocationsWithType();
       // Fetch active DB landmarks and merge
-      const dbLandmarks = await getActiveLandmarks();
+      let dbLandmarks: Awaited<ReturnType<typeof getActiveLandmarks>> = [];
+      try {
+        dbLandmarks = await getActiveLandmarks();
+        console.log(`[locationsWithType] DB returned ${dbLandmarks.length} landmarks`);
+        if (dbLandmarks.length > 0) {
+          console.log(`[locationsWithType] First landmark: ${dbLandmarks[0].name}, address: ${dbLandmarks[0].address || 'NONE'}`);
+        }
+      } catch (err: any) {
+        console.error(`[locationsWithType] Failed to fetch landmarks:`, err?.message || err);
+      }
       const existingNames = new Set(staticLocations.map(l => l.name.toLowerCase()));
       const merged: Array<{ name: string; isLandmark?: boolean; address?: string | null }> = [...staticLocations];
+      let addressCount = 0;
       for (const lm of dbLandmarks) {
         if (!existingNames.has(lm.name.toLowerCase())) {
           merged.push({ name: lm.name, isLandmark: true, address: lm.address || null });
           existingNames.add(lm.name.toLowerCase());
+          if (lm.address) addressCount++;
         } else {
           // Update existing entry with address from DB if available
           const existing = merged.find(m => m.name.toLowerCase() === lm.name.toLowerCase());
           if (existing && lm.address) {
             existing.address = lm.address;
+            addressCount++;
           }
         }
       }
+      console.log(`[locationsWithType] Merged ${merged.length} locations, ${addressCount} with addresses`);
       return merged.sort((a, b) => a.name.localeCompare(b.name));
     }),
 

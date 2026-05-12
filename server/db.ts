@@ -1159,8 +1159,18 @@ export async function setAppSetting(key: string, value: string) {
 
 export async function getActiveLandmarks(): Promise<Landmark[]> {
   const db = await getDb();
-  if (!db) return [];
-  return db.select().from(landmarks).where(eq(landmarks.isActive, 1)).orderBy(landmarks.name);
+  if (!db) {
+    console.warn('[getActiveLandmarks] No DB connection available');
+    return [];
+  }
+  try {
+    const result = await db.select().from(landmarks).where(eq(landmarks.isActive, 1)).orderBy(landmarks.name);
+    console.log(`[getActiveLandmarks] Returned ${result.length} landmarks, first address: ${result[0]?.address || 'none'}`);
+    return result;
+  } catch (error: any) {
+    console.error('[getActiveLandmarks] Query failed:', error?.message || error);
+    return [];
+  }
 }
 
 export async function getAllLandmarks(): Promise<Landmark[]> {
