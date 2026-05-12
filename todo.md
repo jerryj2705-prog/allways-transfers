@@ -514,3 +514,8 @@
 - [x] Update booking form price calculation to use new formula
 - [x] Update admin pricing UI for new fields
 - [x] Add tooltip next to pet surcharge in booking form pricing breakdown explaining it covers cleaning and deodorizing
+- [x] Finalise Stripe payment acceptance integration
+- [x] Audit Stripe checkout session creation and webhook handling
+- [x] Ensure payment status updates booking record on successful payment
+- [x] Verify Stripe keys and webhook secret are correctly configured
+- [x] Test end-to-end Stripe checkout flow

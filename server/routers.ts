@@ -391,7 +391,7 @@ export const appRouter = router({
         if (input.paymentMethod === "stripe_prepay" && input.origin) {
           try {
             const serviceLabel = input.serviceType.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
-            checkoutUrl = await createCheckoutSession({
+            const { url, sessionId } = await createCheckoutSession({
               bookingReference: booking.referenceNumber,
               bookingId: booking.id,
               amount: input.totalPrice,
@@ -400,7 +400,8 @@ export const appRouter = router({
               serviceDescription: serviceLabel,
               origin: input.origin,
             });
-            await updateBookingStripeSession(booking.id, checkoutUrl.split('/').pop()?.split('?')[0] ?? "");
+            checkoutUrl = url;
+            await updateBookingStripeSession(booking.id, sessionId);
           } catch (e) {
             console.warn("Failed to create Stripe checkout session:", e);
           }
@@ -795,6 +796,33 @@ export const appRouter = router({
         }
 
         return updated;
+      }),
+
+    // Public: retry payment for an unpaid Stripe booking
+    retryPayment: publicProcedure
+      .input(z.object({
+        referenceNumber: z.string(),
+        origin: z.string(),
+      }))
+      .mutation(async ({ input }) => {
+        const booking = await getBookingByReference(input.referenceNumber);
+        if (!booking) throw new Error("Booking not found");
+        if (booking.paymentMethod !== "stripe_prepay") throw new Error("This booking does not use Stripe payment");
+        if (booking.paymentStatus === "paid") throw new Error("This booking has already been paid");
+        if (booking.status === "cancelled") throw new Error("Cannot pay for a cancelled booking");
+
+        const serviceLabel = booking.serviceType.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase());
+        const { url, sessionId } = await createCheckoutSession({
+          bookingReference: booking.referenceNumber,
+          bookingId: booking.id,
+          amount: parseFloat(booking.totalPrice ?? "0"),
+          customerEmail: booking.clientEmail,
+          customerName: booking.clientName,
+          serviceDescription: serviceLabel,
+          origin: input.origin,
+        });
+        await updateBookingStripeSession(booking.id, sessionId);
+        return { checkoutUrl: url };
       }),
   }),
 

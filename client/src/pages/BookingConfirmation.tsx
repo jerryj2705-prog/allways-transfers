@@ -2,10 +2,11 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useLocation, useParams } from "wouter";
-import { CheckCircle, Copy, Home, Calendar, MapPin, Users, Car, CreditCard, Wallet, Banknote, Baby, Dog } from "lucide-react";
+import { CheckCircle, XCircle, Copy, Home, Calendar, MapPin, Users, Car, CreditCard, Wallet, Banknote, Baby, Dog, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { SERVICE_TYPES, PAYMENT_METHODS } from "@shared/types";
 import type { ServiceType, PaymentMethod } from "@shared/types";
+import { useEffect, useMemo, useState } from "react";
 
 const LOGO_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/logo-white_476df209.png";
 
@@ -13,10 +14,43 @@ export default function BookingConfirmation() {
   const params = useParams<{ ref: string }>();
   const [, setLocation] = useLocation();
 
-  const { data: booking, isLoading } = trpc.bookings.getByReference.useQuery(
+  // Parse payment query param once on mount
+  const paymentResult = useMemo(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get("payment");
+  }, []);
+
+  const [showPaymentBanner, setShowPaymentBanner] = useState(!!paymentResult);
+
+  const { data: booking, isLoading, refetch } = trpc.bookings.getByReference.useQuery(
     { referenceNumber: params.ref ?? "" },
-    { enabled: !!params.ref }
+    { enabled: !!params.ref, refetchInterval: paymentResult === "success" ? 3000 : false }
   );
+
+  // Stop polling once payment status is confirmed as paid
+  useEffect(() => {
+    if (booking?.paymentStatus === "paid" && paymentResult === "success") {
+      // Payment confirmed, no need to keep polling
+    }
+  }, [booking?.paymentStatus, paymentResult]);
+
+  const retryPayment = trpc.bookings.retryPayment.useMutation({
+    onSuccess: (data) => {
+      toast.info("Redirecting to secure payment...");
+      window.location.href = data.checkoutUrl;
+    },
+    onError: (err) => {
+      toast.error(err.message);
+    },
+  });
+
+  const handleRetryPayment = () => {
+    if (!params.ref) return;
+    retryPayment.mutate({
+      referenceNumber: params.ref,
+      origin: window.location.origin,
+    });
+  };
 
   const copyRef = () => {
     if (booking?.referenceNumber) {
@@ -45,6 +79,9 @@ export default function BookingConfirmation() {
   }
 
   const serviceLabel = SERVICE_TYPES[booking.serviceType as ServiceType]?.label ?? booking.serviceType;
+  const isStripeBooking = booking.paymentMethod === "stripe_prepay";
+  const isUnpaid = booking.paymentStatus !== "paid";
+  const canRetryPayment = isStripeBooking && isUnpaid && booking.status !== "cancelled";
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -58,6 +95,34 @@ export default function BookingConfirmation() {
       </div>
 
       <div className="container py-12 max-w-2xl mx-auto">
+        {/* Payment Success Banner */}
+        {showPaymentBanner && paymentResult === "success" && (
+          <div className="mb-6 p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-start gap-3">
+            <CheckCircle className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-medium text-emerald-400">Payment Successful!</p>
+              <p className="text-sm text-muted-foreground">
+                Your payment has been processed successfully. You will receive a confirmation email shortly.
+              </p>
+            </div>
+            <button onClick={() => setShowPaymentBanner(false)} className="text-muted-foreground hover:text-foreground ml-auto shrink-0">&times;</button>
+          </div>
+        )}
+
+        {/* Payment Cancelled Banner */}
+        {showPaymentBanner && paymentResult === "cancelled" && (
+          <div className="mb-6 p-4 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-medium text-amber-400">Payment Not Completed</p>
+              <p className="text-sm text-muted-foreground">
+                You left the payment page before completing your payment. Your booking has been saved — you can pay now using the button below.
+              </p>
+            </div>
+            <button onClick={() => setShowPaymentBanner(false)} className="text-muted-foreground hover:text-foreground ml-auto shrink-0">&times;</button>
+          </div>
+        )}
+
         {/* Success Icon */}
         <div className="text-center mb-8 space-y-4">
           <div className="w-20 h-20 rounded-full gold-gradient flex items-center justify-center mx-auto">
@@ -243,6 +308,31 @@ export default function BookingConfirmation() {
                 Final price may vary based on actual distance and duration.
               </p>
             </div>
+
+            {/* Retry Payment Button */}
+            {canRetryPayment && (
+              <div className="border-t border-border/50 pt-4">
+                <div className="p-4 rounded-lg bg-primary/5 border border-primary/20 space-y-3">
+                  <div className="flex items-start gap-2">
+                    <CreditCard className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-sm font-medium">Payment Required</p>
+                      <p className="text-xs text-muted-foreground">
+                        Your booking is saved but payment has not been completed. Click below to complete your payment securely via Stripe.
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    onClick={handleRetryPayment}
+                    disabled={retryPayment.isPending}
+                    className="w-full gap-2 gold-gradient text-gold-foreground border-0 hover:opacity-90"
+                  >
+                    <CreditCard className="w-4 h-4" />
+                    {retryPayment.isPending ? "Preparing payment..." : `Pay Now — $${parseFloat(booking.totalPrice ?? "0").toFixed(2)}`}
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 

@@ -306,9 +306,8 @@ export default function BookingForm() {
   const createBooking = trpc.bookings.create.useMutation({
     onSuccess: (data) => {
       if (data.checkoutUrl) {
-        toast.info("Redirecting to payment...");
-        window.open(data.checkoutUrl, "_blank");
-        setLocation(`/confirmation/${data.referenceNumber}`);
+        toast.info("Redirecting to secure payment...");
+        window.location.href = data.checkoutUrl;
       } else {
         setLocation(`/confirmation/${data.referenceNumber}`);
       }

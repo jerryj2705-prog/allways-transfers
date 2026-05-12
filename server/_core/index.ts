@@ -45,13 +45,35 @@ async function startServer() {
         return res.json({ verified: true });
       }
 
-      if (event.type === "checkout.session.completed") {
-        const session = event.data.object as any;
-        const bookingId = session.metadata?.booking_id;
-        if (bookingId) {
-          await updateBookingPaymentStatus(parseInt(bookingId), "paid");
-          console.log(`[Webhook] Payment completed for booking ${bookingId}`);
+      console.log(`[Webhook] Received event: ${event.type} (${event.id})`);
+
+      switch (event.type) {
+        case "checkout.session.completed": {
+          const session = event.data.object as any;
+          const bookingId = session.metadata?.booking_id;
+          const paymentStatus = session.payment_status;
+          if (bookingId && paymentStatus === "paid") {
+            await updateBookingPaymentStatus(parseInt(bookingId), "paid");
+            console.log(`[Webhook] Payment completed for booking ${bookingId}`);
+          }
+          break;
         }
+        case "checkout.session.expired": {
+          const session = event.data.object as any;
+          const bookingId = session.metadata?.booking_id;
+          if (bookingId) {
+            console.log(`[Webhook] Checkout session expired for booking ${bookingId}`);
+          }
+          break;
+        }
+        case "payment_intent.payment_failed": {
+          const paymentIntent = event.data.object as any;
+          const failureMessage = paymentIntent.last_payment_error?.message ?? "Unknown error";
+          console.log(`[Webhook] Payment failed: ${failureMessage}`);
+          break;
+        }
+        default:
+          console.log(`[Webhook] Unhandled event type: ${event.type}`);
       }
 
       res.json({ received: true });

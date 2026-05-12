@@ -21,7 +21,7 @@ export async function createCheckoutSession(params: {
   customerName: string;
   serviceDescription: string;
   origin: string;
-}): Promise<string> {
+}): Promise<{ url: string; sessionId: string }> {
   const stripe = getStripe();
 
   const session = await stripe.checkout.sessions.create({
@@ -49,11 +49,13 @@ export async function createCheckoutSession(params: {
       },
     ],
     allow_promotion_codes: true,
+    // Session expires 30 minutes from now
+    expires_at: Math.floor(Date.now() / 1000) + 1800,
     success_url: `${params.origin}/confirmation/${params.bookingReference}?payment=success`,
     cancel_url: `${params.origin}/confirmation/${params.bookingReference}?payment=cancelled`,
   });
 
-  return session.url!;
+  return { url: session.url!, sessionId: session.id };
 }
 
 export function constructWebhookEvent(
