@@ -8,6 +8,15 @@ import { lookupSuburb } from "@shared/suburbs";
 let _db: any = null;
 let _pool: any = null;
 
+// Force pool recreation to clear stale prepared statements after schema changes
+export async function resetDbPool() {
+  if (_pool) {
+    try { await _pool.end(); } catch (e) { /* ignore */ }
+  }
+  _db = null;
+  _pool = null;
+}
+
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
@@ -34,8 +43,14 @@ export async function getDb() {
       } else {
         poolConfig.host = host;
         poolConfig.port = parseInt(url.port || '3306');
+        // TiDB Cloud requires SSL connections
+        if (host.includes('tidbcloud.com') || host.includes('tidb')) {
+          poolConfig.ssl = { rejectUnauthorized: true };
+        }
       }
 
+      poolConfig.enableKeepAlive = true;
+      poolConfig.keepAliveInitialDelay = 10000;
       _pool = mysql.createPool(poolConfig);
       _db = drizzle(_pool);
       console.log("[Database] Pool created successfully", isLocalhost ? "via socket" : `for host: ${host}`);

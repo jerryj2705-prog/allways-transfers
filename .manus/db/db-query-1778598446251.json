@@ -1,0 +1,30 @@
+{
+  "query": "SELECT name, address FROM landmarks WHERE address IS NOT NULL LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway05.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3HWZfK7Ep6HZCJY.9379f7ca03be --database 2tTLZKCNzV8jFwxBsLMjpn --execute SELECT name, address FROM landmarks WHERE address IS NOT NULL LIMIT 5;",
+  "rows": [
+    {
+      "name": "Sunshine Coast Airport",
+      "address": "Friendship Avenue, Marcoola QLD 4564"
+    },
+    {
+      "name": "Sunshine Coast University Hospital",
+      "address": "6 Doherty Street, Birtinya QLD 4575"
+    },
+    {
+      "name": "Sunshine Coast University",
+      "address": "90 Sippy Downs Drive, Sippy Downs QLD 4556"
+    },
+    {
+      "name": "USC Sunshine Coast",
+      "address": "90 Sippy Downs Drive, Sippy Downs QLD 4556"
+    },
+    {
+      "name": "Sunshine Plaza",
+      "address": "154-164 Horton Parade, Maroochydore QLD 4558"
+    }
+  ],
+  "messages": [],
+  "stdout": "name\taddress\nSunshine Coast Airport\tFriendship Avenue, Marcoola QLD 4564\nSunshine Coast University Hospital\t6 Doherty Street, Birtinya QLD 4575\nSunshine Coast University\t90 Sippy Downs Drive, Sippy Downs QLD 4556\nUSC Sunshine Coast\t90 Sippy Downs Drive, Sippy Downs QLD 4556\nSunshine Plaza\t154-164 Horton Parade, Maroochydore QLD 4558\n",
+  "stderr": "",
+  "execution_time_ms": 1890
+}

@@ -861,6 +861,7 @@ __export(db_exports, {
   listEnquiries: () => listEnquiries,
   listReviews: () => listReviews,
   markPasswordResetTokenUsed: () => markPasswordResetTokenUsed,
+  resetDbPool: () => resetDbPool,
   setAppSetting: () => setAppSetting,
   toggleLandmarkActive: () => toggleLandmarkActive,
   updateBookingDetails: () => updateBookingDetails,
@@ -879,6 +880,16 @@ __export(db_exports, {
 import { eq, desc, and, or, like, sql, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
+async function resetDbPool() {
+  if (_pool) {
+    try {
+      await _pool.end();
+    } catch (e) {
+    }
+  }
+  _db = null;
+  _pool = null;
+}
 async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
@@ -901,7 +912,12 @@ async function getDb() {
       } else {
         poolConfig.host = host;
         poolConfig.port = parseInt(url.port || "3306");
+        if (host.includes("tidbcloud.com") || host.includes("tidb")) {
+          poolConfig.ssl = { rejectUnauthorized: true };
+        }
       }
+      poolConfig.enableKeepAlive = true;
+      poolConfig.keepAliveInitialDelay = 1e4;
       _pool = mysql.createPool(poolConfig);
       _db = drizzle(_pool);
       console.log("[Database] Pool created successfully", isLocalhost ? "via socket" : `for host: ${host}`);
