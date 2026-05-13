@@ -176,6 +176,13 @@
       "when": 1778621242652,
       "tag": "0024_last_silver_sable",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "5",
+      "when": 1778630576236,
+      "tag": "0025_classy_rick_jones",
+      "breakpoints": true
     }
   ]
 }

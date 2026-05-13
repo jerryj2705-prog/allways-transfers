@@ -16,7 +16,7 @@ import { useLocation } from "wouter";
 import {
   Search, LayoutDashboard, Clock, CheckCircle, XCircle, AlertCircle,
   ChevronLeft, ChevronRight, LogOut, Home, DollarSign, MessageSquare, CalendarDays, Star,
-  Download, X, Banknote, CreditCard, RotateCcw, MapPin, Trash2, Navigation,
+  Download, X, Banknote, CreditCard, RotateCcw, MapPin, Trash2, Navigation, FileText,
 } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -29,6 +29,7 @@ import type { ServiceType, BookingStatus, PaymentMethod } from "@shared/types";
 const LOGO_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/logo-white_476df209.png";
 
 const STATUS_STYLES: Record<string, string> = {
+  quote: "bg-purple-100 text-purple-800 border-purple-200",
   pending: "bg-amber-100 text-amber-800 border-amber-200",
   confirmed: "bg-blue-100 text-blue-800 border-blue-200",
   completed: "bg-green-100 text-green-800 border-green-200",
@@ -36,6 +37,7 @@ const STATUS_STYLES: Record<string, string> = {
 };
 
 const STATUS_ICONS: Record<string, React.ElementType> = {
+  quote: FileText,
   pending: Clock,
   confirmed: AlertCircle,
   completed: CheckCircle,
@@ -402,6 +404,7 @@ export default function AdminDashboard() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Statuses</SelectItem>
+              <SelectItem value="quote">Quote</SelectItem>
               <SelectItem value="pending">Pending</SelectItem>
               <SelectItem value="confirmed">Confirmed</SelectItem>
               <SelectItem value="completed">Completed</SelectItem>

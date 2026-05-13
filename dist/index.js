@@ -132,7 +132,7 @@ var init_schema = __esm({
       stripeSessionId: varchar("stripeSessionId", { length: 255 }),
       paymentNote: text("paymentNote"),
       // Status
-      status: mysqlEnum("status", ["pending", "confirmed", "completed", "cancelled"]).default("pending").notNull(),
+      status: mysqlEnum("status", ["quote", "pending", "confirmed", "completed", "cancelled"]).default("pending").notNull(),
       // Notes
       specialRequests: text("specialRequests"),
       adminNotes: text("adminNotes"),
@@ -1001,11 +1001,13 @@ var db_exports = {};
 __export(db_exports, {
   calculatePrice: () => calculatePrice,
   clearGoogleReviewsCache: () => clearGoogleReviewsCache,
+  convertQuoteToBooking: () => convertQuoteToBooking,
   createBooking: () => createBooking,
   createEnquiry: () => createEnquiry,
   createLandmark: () => createLandmark,
   createPasswordResetToken: () => createPasswordResetToken,
   createPublicHoliday: () => createPublicHoliday,
+  createQuote: () => createQuote,
   createReview: () => createReview,
   createUserWithGoogle: () => createUserWithGoogle,
   createUserWithPassword: () => createUserWithPassword,
@@ -1296,6 +1298,25 @@ async function createBooking(data) {
     referenceNumber,
     status: "pending"
   });
+  const result = await db.select().from(bookings).where(eq(bookings.referenceNumber, referenceNumber)).limit(1);
+  return result[0];
+}
+async function createQuote(data) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const referenceNumber = generateReferenceNumber();
+  await db.insert(bookings).values({
+    ...data,
+    referenceNumber,
+    status: "quote"
+  });
+  const result = await db.select().from(bookings).where(eq(bookings.referenceNumber, referenceNumber)).limit(1);
+  return result[0];
+}
+async function convertQuoteToBooking(referenceNumber, paymentMethod) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(bookings).set({ status: "pending", paymentMethod, termsAccepted: true, updatedAt: /* @__PURE__ */ new Date() }).where(and(eq(bookings.referenceNumber, referenceNumber), eq(bookings.status, "quote")));
   const result = await db.select().from(bookings).where(eq(bookings.referenceNumber, referenceNumber)).limit(1);
   return result[0];
 }
@@ -2750,6 +2771,115 @@ async function sendBookingConfirmationEmail(data) {
     return false;
   }
 }
+async function sendQuoteEmail(data) {
+  if (process.env.VITEST || process.env.NODE_ENV === "test") {
+    console.log(`[Email] Skipping email send in test environment for ${data.referenceNumber}`);
+    return true;
+  }
+  const resend = getResend();
+  const bookNowUrl = `${data.origin}/book?quote=${data.referenceNumber}`;
+  const bodyContent = `
+    <h1 style="margin:0 0 8px;font-size:24px;color:#d4a843;font-weight:700;">Your Quote</h1>
+    <p style="margin:0 0 24px;font-size:15px;color:#a3a3a3;">Hi ${data.clientName}, here is your quote from All Ways Transfers.</p>
+
+    <!-- Reference Number -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+      <tr>
+        <td style="background-color:#262626;border-radius:8px;padding:16px;text-align:center;">
+          <p style="margin:0 0 4px;font-size:12px;color:#a3a3a3;text-transform:uppercase;letter-spacing:1px;">Quote Reference</p>
+          <p style="margin:0;font-size:22px;font-weight:700;color:#d4a843;letter-spacing:2px;">${data.referenceNumber}</p>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Quote Details -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+      <tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Service</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${formatServiceType(data.serviceType)}</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Date &amp; Time</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${formatDate(data.pickupDate)} at ${formatTime(data.pickupDate)} (AEST)</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Pickup</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${data.pickupAddress}</span>
+        </td>
+      </tr>
+      ${data.dropoffAddress ? `<tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Drop-off</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${data.dropoffAddress}</span>
+        </td>
+      </tr>` : ""}
+      <tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Passengers</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${data.passengerCount}</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Vehicle</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${data.vehicleName}</span>
+        </td>
+      </tr>
+      ${buildTollsHtml(data)}
+      ${buildPublicHolidayHtml(data)}
+      ${data.specialRequests ? `<tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Special Requests</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${data.specialRequests}</span>
+        </td>
+      </tr>` : ""}
+      <tr>
+        <td style="padding:12px 0 0;">
+          <span style="color:#a3a3a3;font-size:13px;">Estimated Total</span><br/>
+          <span style="color:#d4a843;font-size:22px;font-weight:700;">$${data.totalPrice}</span>
+        </td>
+      </tr>
+    </table>
+
+    <p style="margin:0 0 16px;font-size:14px;color:#a3a3a3;text-align:center;">This quote is valid for 7 days. Ready to book?</p>
+
+    <!-- Book Now CTA -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:16px;">
+      <tr>
+        <td align="center" style="padding:16px 0;">
+          <a href="${bookNowUrl}" style="display:inline-block;background-color:#d4a843;color:#0a0a0a;text-decoration:none;padding:14px 40px;border-radius:8px;font-weight:700;font-size:16px;">Book Now</a>
+        </td>
+      </tr>
+    </table>
+
+    <p style="margin:0;font-size:13px;color:#737373;text-align:center;">
+      Click the button above to confirm your booking using quote reference <strong style="color:#d4a843;">${data.referenceNumber}</strong>.
+      Final price may vary based on actual distance and conditions.
+    </p>
+  `;
+  try {
+    const result = await resend.emails.send({
+      from: `All Ways Transfers <${ENV.resendFromEmail}>`,
+      to: [data.clientEmail],
+      subject: `Your Quote \u2014 ${data.referenceNumber}`,
+      html: wrapInTemplate(bodyContent)
+    });
+    if (result.error) {
+      console.warn("[Email] Failed to send quote email:", result.error);
+      return false;
+    }
+    console.log(`[Email] Quote email sent to ${data.clientEmail} for ${data.referenceNumber}`);
+    return true;
+  } catch (error) {
+    console.warn("[Email] Error sending quote email:", error);
+    return false;
+  }
+}
 async function sendCancellationConfirmationEmail(data) {
   if (process.env.VITEST || process.env.NODE_ENV === "test") {
     console.log(`[Email] Skipping email send in test environment for ${data.referenceNumber}`);
@@ -3782,6 +3912,224 @@ Total: $${input.totalPrice.toFixed(2)}${input.needsSupportVan ? "\n+ Support Van
             airportTollDetails: input.airportTollDetails ?? [],
             roadTollSurcharge: input.roadTollSurcharge ?? 0,
             roadTollDetails: input.roadTollDetails ?? [],
+            origin: input.origin
+          });
+        } catch (e) {
+          console.warn("Failed to send admin new booking notification:", e);
+        }
+      }
+      return { ...booking, checkoutUrl };
+    }),
+    createQuote: publicProcedure.input(
+      z2.object({
+        clientName: z2.string().min(1),
+        clientEmail: z2.string().email(),
+        clientPhone: z2.string().min(1),
+        serviceType: z2.enum(["airport_transfer", "hourly_hire", "point_to_point", "special_events", "freight"]),
+        pickupAddress: z2.string().min(1),
+        dropoffAddress: z2.string().optional(),
+        pickupDate: z2.number().min(1),
+        passengerCount: z2.number().min(0).max(7),
+        vehicleId: z2.number(),
+        vehicleName: z2.string(),
+        needsSupportVan: z2.boolean().default(false),
+        supportVanPrice: z2.number().default(0),
+        rearFacingSeats: z2.number().min(0).max(2).default(0),
+        forwardFacingSeats: z2.number().min(0).max(2).default(0),
+        boosterSeats: z2.number().min(0).max(2).default(0),
+        isPetFriendly: z2.boolean().default(false),
+        numberOfPets: z2.number().min(1).max(10).optional(),
+        petDescription: z2.string().optional(),
+        freightDescription: z2.string().optional(),
+        freightWeight: z2.string().optional(),
+        freightItemCount: z2.number().min(1).max(100).optional(),
+        freightSpecialHandling: z2.string().optional(),
+        routePreference: z2.enum(["fastest", "toll_free"]).default("fastest"),
+        estimatedDistance: z2.number().optional(),
+        estimatedDuration: z2.number().optional(),
+        basePrice: z2.number(),
+        totalPrice: z2.number(),
+        additionalPickupCount: z2.number().min(0).max(5).default(0),
+        additionalDropoffCount: z2.number().min(0).max(5).default(0),
+        additionalPickupAddresses: z2.array(z2.string()).default([]),
+        additionalDropoffAddresses: z2.array(z2.string()).default([]),
+        additionalStopsSurcharge: z2.number().default(0),
+        publicHolidaySurcharge: z2.number().default(0),
+        publicHolidayName: z2.string().optional(),
+        airportTollSurcharge: z2.number().default(0),
+        airportTollDetails: z2.array(z2.object({ airport: z2.string(), direction: z2.string(), amount: z2.number() })).default([]),
+        roadTollSurcharge: z2.number().default(0),
+        roadTollDetails: z2.array(z2.object({ road: z2.string(), amount: z2.number() })).default([]),
+        specialRequests: z2.string().optional(),
+        origin: z2.string().optional()
+      })
+    ).mutation(async ({ input }) => {
+      const quote = await createQuote({
+        clientName: input.clientName,
+        clientEmail: input.clientEmail,
+        clientPhone: input.clientPhone,
+        serviceType: input.serviceType,
+        pickupAddress: input.pickupAddress,
+        dropoffAddress: input.dropoffAddress ?? null,
+        pickupDate: input.pickupDate,
+        passengerCount: input.passengerCount,
+        vehicleId: input.vehicleId,
+        vehicleName: input.vehicleName,
+        needsSupportVan: input.needsSupportVan ? 1 : 0,
+        supportVanPrice: input.supportVanPrice.toFixed(2),
+        rearFacingSeats: input.rearFacingSeats,
+        forwardFacingSeats: input.forwardFacingSeats,
+        boosterSeats: input.boosterSeats,
+        isPetFriendly: input.isPetFriendly ? 1 : 0,
+        numberOfPets: input.isPetFriendly ? input.numberOfPets ?? 1 : null,
+        petDescription: input.isPetFriendly ? input.petDescription ?? null : null,
+        freightDescription: input.serviceType === "freight" ? input.freightDescription ?? null : null,
+        freightWeight: input.serviceType === "freight" ? input.freightWeight ?? null : null,
+        freightItemCount: input.serviceType === "freight" ? input.freightItemCount ?? null : null,
+        freightSpecialHandling: input.serviceType === "freight" ? input.freightSpecialHandling ?? null : null,
+        routePreference: input.routePreference ?? "fastest",
+        estimatedDistance: input.estimatedDistance?.toFixed(2) ?? null,
+        estimatedDuration: input.estimatedDuration ?? null,
+        basePrice: input.basePrice.toFixed(2),
+        totalPrice: input.totalPrice.toFixed(2),
+        additionalPickupCount: input.additionalPickupCount,
+        additionalDropoffCount: input.additionalDropoffCount,
+        additionalPickupAddresses: input.additionalPickupAddresses.length > 0 ? JSON.stringify(input.additionalPickupAddresses) : null,
+        additionalDropoffAddresses: input.additionalDropoffAddresses.length > 0 ? JSON.stringify(input.additionalDropoffAddresses) : null,
+        additionalStopsSurcharge: input.additionalStopsSurcharge.toFixed(2),
+        publicHolidaySurcharge: input.publicHolidaySurcharge.toFixed(2),
+        publicHolidayName: input.publicHolidayName ?? null,
+        airportTollSurcharge: input.airportTollSurcharge.toFixed(2),
+        airportTollDetails: input.airportTollDetails.length > 0 ? JSON.stringify(input.airportTollDetails) : null,
+        roadTollSurcharge: input.roadTollSurcharge.toFixed(2),
+        roadTollDetails: input.roadTollDetails.length > 0 ? JSON.stringify(input.roadTollDetails) : null,
+        paymentMethod: "cash_postpay",
+        paymentStatus: "unpaid",
+        specialRequests: input.specialRequests ?? null,
+        adminNotes: null,
+        termsAccepted: 0
+      });
+      if (input.origin) {
+        try {
+          await sendQuoteEmail({
+            referenceNumber: quote.referenceNumber,
+            clientName: input.clientName,
+            clientEmail: input.clientEmail,
+            serviceType: input.serviceType,
+            pickupAddress: input.pickupAddress,
+            dropoffAddress: input.dropoffAddress ?? null,
+            pickupDate: input.pickupDate,
+            passengerCount: input.passengerCount,
+            vehicleName: input.vehicleName,
+            totalPrice: input.totalPrice.toFixed(2),
+            specialRequests: input.specialRequests ?? null,
+            additionalPickupCount: input.additionalPickupCount ?? 0,
+            additionalDropoffCount: input.additionalDropoffCount ?? 0,
+            additionalPickupAddresses: input.additionalPickupAddresses ?? [],
+            additionalDropoffAddresses: input.additionalDropoffAddresses ?? [],
+            publicHolidaySurcharge: input.publicHolidaySurcharge ?? 0,
+            publicHolidayName: input.publicHolidayName ?? null,
+            airportTollSurcharge: input.airportTollSurcharge ?? 0,
+            airportTollDetails: input.airportTollDetails ?? [],
+            roadTollSurcharge: input.roadTollSurcharge ?? 0,
+            roadTollDetails: input.roadTollDetails ?? [],
+            origin: input.origin
+          });
+        } catch (emailError) {
+          console.warn("[Quote] Failed to send quote email:", emailError);
+        }
+        try {
+          await notifyOwner({
+            title: `New Quote: ${quote.referenceNumber}`,
+            content: `Quote request from ${input.clientName}
+Service: ${input.serviceType.replace(/_/g, " ")}
+Pickup: ${input.pickupAddress}
+Date: ${new Date(input.pickupDate).toLocaleString("en-AU", { timeZone: "Australia/Brisbane" })}
+Total: $${input.totalPrice.toFixed(2)}`
+          });
+        } catch (e) {
+          console.warn("Failed to send owner notification:", e);
+        }
+      }
+      return { referenceNumber: quote.referenceNumber };
+    }),
+    convertQuote: publicProcedure.input(
+      z2.object({
+        referenceNumber: z2.string(),
+        paymentMethod: z2.enum(["stripe_prepay", "square_postpay", "cash_postpay"]),
+        origin: z2.string().optional()
+      })
+    ).mutation(async ({ input }) => {
+      const booking = await convertQuoteToBooking(input.referenceNumber, input.paymentMethod);
+      if (!booking) {
+        throw new Error("Quote not found or already converted");
+      }
+      let checkoutUrl = null;
+      if (input.paymentMethod === "stripe_prepay" && input.origin) {
+        try {
+          const serviceLabel = booking.serviceType.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+          const { url, sessionId } = await createCheckoutSession({
+            bookingReference: booking.referenceNumber,
+            bookingId: booking.id,
+            amount: parseFloat(booking.totalPrice),
+            customerEmail: booking.clientEmail,
+            customerName: booking.clientName,
+            serviceDescription: serviceLabel,
+            origin: input.origin
+          });
+          checkoutUrl = url;
+          await updateBookingStripeSession(booking.id, sessionId);
+        } catch (e) {
+          console.warn("Failed to create Stripe checkout session:", e);
+        }
+      }
+      if (input.origin) {
+        try {
+          await sendBookingConfirmationEmail({
+            referenceNumber: booking.referenceNumber,
+            clientName: booking.clientName,
+            clientEmail: booking.clientEmail,
+            serviceType: booking.serviceType,
+            pickupAddress: booking.pickupAddress,
+            dropoffAddress: booking.dropoffAddress ?? null,
+            pickupDate: typeof booking.pickupDate === "number" ? booking.pickupDate : new Date(booking.pickupDate).getTime(),
+            passengerCount: booking.passengerCount,
+            vehicleName: booking.vehicleName,
+            rearFacingSeats: booking.rearFacingSeats ?? 0,
+            forwardFacingSeats: booking.forwardFacingSeats ?? 0,
+            boosterSeats: booking.boosterSeats ?? 0,
+            isPetFriendly: !!booking.isPetFriendly,
+            numberOfPets: booking.numberOfPets ?? null,
+            petDescription: booking.petDescription ?? null,
+            freightDescription: booking.freightDescription ?? null,
+            freightWeight: booking.freightWeight ?? null,
+            freightItemCount: booking.freightItemCount ?? null,
+            freightSpecialHandling: booking.freightSpecialHandling ?? null,
+            routePreference: booking.routePreference ?? "fastest",
+            totalPrice: booking.totalPrice,
+            paymentMethod: input.paymentMethod,
+            paymentStatus: "unpaid",
+            specialRequests: booking.specialRequests ?? null,
+            origin: input.origin
+          });
+        } catch (emailError) {
+          console.warn("[Booking] Failed to send confirmation email:", emailError);
+        }
+        try {
+          await sendAdminNewBookingNotification({
+            referenceNumber: booking.referenceNumber,
+            clientName: booking.clientName,
+            clientEmail: booking.clientEmail,
+            serviceType: booking.serviceType,
+            pickupAddress: booking.pickupAddress,
+            dropoffAddress: booking.dropoffAddress ?? null,
+            pickupDate: typeof booking.pickupDate === "number" ? booking.pickupDate : new Date(booking.pickupDate).getTime(),
+            passengerCount: booking.passengerCount,
+            vehicleName: booking.vehicleName,
+            totalPrice: booking.totalPrice,
+            paymentMethod: input.paymentMethod,
+            paymentStatus: "unpaid",
+            specialRequests: booking.specialRequests ?? null,
             origin: input.origin
           });
         } catch (e) {

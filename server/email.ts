@@ -400,6 +400,148 @@ export async function sendBookingConfirmationEmail(data: BookingEmailData): Prom
   }
 }
 
+// ─── Quote Email ───
+
+export interface QuoteEmailData {
+  referenceNumber: string;
+  clientName: string;
+  clientEmail: string;
+  serviceType: string;
+  pickupAddress: string;
+  dropoffAddress: string | null;
+  pickupDate: number;
+  passengerCount: number;
+  vehicleName: string;
+  totalPrice: string;
+  specialRequests?: string | null;
+  additionalPickupCount?: number;
+  additionalDropoffCount?: number;
+  additionalPickupAddresses?: string[];
+  additionalDropoffAddresses?: string[];
+  publicHolidaySurcharge?: number;
+  publicHolidayName?: string | null;
+  airportTollSurcharge?: number;
+  airportTollDetails?: { airport: string; direction: string; amount: number }[];
+  roadTollSurcharge?: number;
+  roadTollDetails?: { road: string; amount: number }[];
+  origin: string;
+}
+
+export async function sendQuoteEmail(data: QuoteEmailData): Promise<boolean> {
+  if (process.env.VITEST || process.env.NODE_ENV === "test") {
+    console.log(`[Email] Skipping email send in test environment for ${data.referenceNumber}`);
+    return true;
+  }
+  const resend = getResend();
+
+  const bookNowUrl = `${data.origin}/book?quote=${data.referenceNumber}`;
+
+  const bodyContent = `
+    <h1 style="margin:0 0 8px;font-size:24px;color:#d4a843;font-weight:700;">Your Quote</h1>
+    <p style="margin:0 0 24px;font-size:15px;color:#a3a3a3;">Hi ${data.clientName}, here is your quote from All Ways Transfers.</p>
+
+    <!-- Reference Number -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+      <tr>
+        <td style="background-color:#262626;border-radius:8px;padding:16px;text-align:center;">
+          <p style="margin:0 0 4px;font-size:12px;color:#a3a3a3;text-transform:uppercase;letter-spacing:1px;">Quote Reference</p>
+          <p style="margin:0;font-size:22px;font-weight:700;color:#d4a843;letter-spacing:2px;">${data.referenceNumber}</p>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Quote Details -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+      <tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Service</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${formatServiceType(data.serviceType)}</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Date &amp; Time</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${formatDate(data.pickupDate)} at ${formatTime(data.pickupDate)} (AEST)</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Pickup</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${data.pickupAddress}</span>
+        </td>
+      </tr>
+      ${data.dropoffAddress ? `<tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Drop-off</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${data.dropoffAddress}</span>
+        </td>
+      </tr>` : ""}
+      <tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Passengers</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${data.passengerCount}</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Vehicle</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${data.vehicleName}</span>
+        </td>
+      </tr>
+      ${buildTollsHtml(data as any)}
+      ${buildPublicHolidayHtml(data as any)}
+      ${data.specialRequests ? `<tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Special Requests</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${data.specialRequests}</span>
+        </td>
+      </tr>` : ""}
+      <tr>
+        <td style="padding:12px 0 0;">
+          <span style="color:#a3a3a3;font-size:13px;">Estimated Total</span><br/>
+          <span style="color:#d4a843;font-size:22px;font-weight:700;">$${data.totalPrice}</span>
+        </td>
+      </tr>
+    </table>
+
+    <p style="margin:0 0 16px;font-size:14px;color:#a3a3a3;text-align:center;">This quote is valid for 7 days. Ready to book?</p>
+
+    <!-- Book Now CTA -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:16px;">
+      <tr>
+        <td align="center" style="padding:16px 0;">
+          <a href="${bookNowUrl}" style="display:inline-block;background-color:#d4a843;color:#0a0a0a;text-decoration:none;padding:14px 40px;border-radius:8px;font-weight:700;font-size:16px;">Book Now</a>
+        </td>
+      </tr>
+    </table>
+
+    <p style="margin:0;font-size:13px;color:#737373;text-align:center;">
+      Click the button above to confirm your booking using quote reference <strong style="color:#d4a843;">${data.referenceNumber}</strong>.
+      Final price may vary based on actual distance and conditions.
+    </p>
+  `;
+
+  try {
+    const result = await resend.emails.send({
+      from: `All Ways Transfers <${ENV.resendFromEmail}>`,
+      to: [data.clientEmail],
+      subject: `Your Quote — ${data.referenceNumber}`,
+      html: wrapInTemplate(bodyContent),
+    });
+
+    if (result.error) {
+      console.warn("[Email] Failed to send quote email:", result.error);
+      return false;
+    }
+
+    console.log(`[Email] Quote email sent to ${data.clientEmail} for ${data.referenceNumber}`);
+    return true;
+  } catch (error) {
+    console.warn("[Email] Error sending quote email:", error);
+    return false;
+  }
+}
+
 // ─── Cancellation Confirmation Email ───
 
 export interface CancellationEmailData {

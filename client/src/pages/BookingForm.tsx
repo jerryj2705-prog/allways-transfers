@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import {
   Plane, Clock, MapPin, Star, ArrowLeft, ArrowRight, Check,
   Users, Briefcase, Truck, ChevronLeft, CreditCard, Banknote, Wallet,
-  AlertTriangle, Search, MapPinned, Baby, Dog, Plus, Minus, CalendarIcon, Info, Package, Navigation, Landmark,
+  AlertTriangle, Search, MapPinned, Baby, Dog, Plus, Minus, CalendarIcon, Info, Package, Navigation, Landmark, Mail, FileText,
 } from "lucide-react";
 import { SERVICE_TYPES, SUV_CAPACITY, PAYMENT_METHODS } from "@shared/types";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
@@ -199,6 +199,10 @@ export default function BookingForm() {
   const preSelectedService = urlParams.get("service") as ServiceType | null;
   const isPreSelected = preSelectedService && preSelectedService in SERVICE_TYPES;
   const isVanStandaloneUrl = urlParams.get("vehicle") === "van";
+  const isQuoteMode = urlParams.get("mode") === "quote";
+  const quoteRef = urlParams.get("quote");
+  const [isResumeFromQuote, setIsResumeFromQuote] = useState(!!quoteRef);
+  const [quoteLoaded, setQuoteLoaded] = useState(false);
 
   const [step, setStep] = useState(isPreSelected ? 1 : 0);
 
@@ -390,6 +394,103 @@ export default function BookingForm() {
     },
   });
 
+  const createQuoteMutation = trpc.bookings.createQuote.useMutation({
+    onSuccess: (data) => {
+      toast.success(`Quote ${data.referenceNumber} sent to your email!`);
+      setLocation(`/confirmation/${data.referenceNumber}`);
+    },
+    onError: (err) => {
+      toast.error(err.message || "Failed to create quote");
+    },
+  });
+
+  const convertQuoteMutation = trpc.bookings.convertQuote.useMutation({
+    onSuccess: (data) => {
+      if (data.checkoutUrl) {
+        toast.info("Redirecting to secure payment...");
+        window.location.href = data.checkoutUrl;
+      } else {
+        setLocation(`/confirmation/${data.referenceNumber}`);
+      }
+    },
+    onError: (err) => {
+      toast.error(err.message || "Failed to convert quote to booking");
+    },
+  });
+
+  // Load quote data when resuming from a quote reference
+  const { data: quoteData } = trpc.bookings.getByReference.useQuery(
+    { referenceNumber: quoteRef ?? "" },
+    { enabled: !!quoteRef && !quoteLoaded }
+  );
+
+  // Populate form fields from loaded quote
+  useEffect(() => {
+    if (quoteData && !quoteLoaded && quoteData.status === "quote") {
+      setServiceTypeRaw(quoteData.serviceType as ServiceType);
+      // Parse pickup address and suburb
+      const pickupMatch = quoteData.pickupAddress.match(/^(.+?)\s*\(([^)]+)\)$/);
+      if (pickupMatch) {
+        setPickupAddress(pickupMatch[1].trim());
+        setPickupSuburb(pickupMatch[2]);
+      } else {
+        setPickupAddress(quoteData.pickupAddress);
+      }
+      // Parse dropoff address and suburb
+      if (quoteData.dropoffAddress) {
+        const dropoffMatch = quoteData.dropoffAddress.match(/^(.+?)\s*\(([^)]+)\)$/);
+        if (dropoffMatch) {
+          setDropoffAddress(dropoffMatch[1].trim());
+          setDropoffSuburb(dropoffMatch[2]);
+        } else {
+          setDropoffAddress(quoteData.dropoffAddress);
+        }
+      }
+      const pDate = new Date(typeof quoteData.pickupDate === "number" ? quoteData.pickupDate : new Date(quoteData.pickupDate).getTime());
+      setPickupDate(pDate.toISOString().split("T")[0]);
+      const hrs = pDate.getHours().toString().padStart(2, "0");
+      const mins = pDate.getMinutes().toString().padStart(2, "0");
+      setPickupTime(`${hrs}:${mins}`);
+      setPassengerCount(quoteData.passengerCount);
+      if (quoteData.vehicleName?.toLowerCase().includes("van")) {
+        setVehicleSelection("van");
+      } else if (quoteData.needsSupportVan) {
+        setVehicleSelection("both");
+      } else {
+        setVehicleSelection("suv");
+      }
+      setRearFacingSeats(quoteData.rearFacingSeats ?? 0);
+      setForwardFacingSeats(quoteData.forwardFacingSeats ?? 0);
+      setBoosterSeats(quoteData.boosterSeats ?? 0);
+      setIsPetFriendly(!!quoteData.isPetFriendly);
+      if (quoteData.numberOfPets) setNumberOfPets(quoteData.numberOfPets);
+      if (quoteData.petDescription) setPetDescription(quoteData.petDescription);
+      if (quoteData.freightDescription) setFreightDescription(quoteData.freightDescription);
+      if (quoteData.freightWeight) setFreightWeight(quoteData.freightWeight);
+      if (quoteData.freightItemCount) setFreightItemCount(quoteData.freightItemCount);
+      if (quoteData.freightSpecialHandling) setFreightSpecialHandling(quoteData.freightSpecialHandling);
+      setClientName(quoteData.clientName);
+      setClientEmail(quoteData.clientEmail);
+      setClientPhone(quoteData.clientPhone ?? "");
+      if (quoteData.specialRequests) setSpecialRequests(quoteData.specialRequests);
+      setRoutePreference((quoteData.routePreference as "fastest" | "toll_free") ?? "fastest");
+      setAdditionalPickupCount(quoteData.additionalPickupCount ?? 0);
+      setAdditionalDropoffCount(quoteData.additionalDropoffCount ?? 0);
+      if (quoteData.additionalPickupAddresses) {
+        try { setAdditionalPickupAddresses(JSON.parse(quoteData.additionalPickupAddresses)); } catch {}
+      }
+      if (quoteData.additionalDropoffAddresses) {
+        try { setAdditionalDropoffAddresses(JSON.parse(quoteData.additionalDropoffAddresses)); } catch {}
+      }
+      if (quoteData.serviceType === "hourly_hire" && quoteData.estimatedDuration) {
+        setHireHours(Math.round(quoteData.estimatedDuration / 60));
+      }
+      // Skip to payment step (step 4) so they can choose payment and confirm
+      setStep(4);
+      setQuoteLoaded(true);
+    }
+  }, [quoteData, quoteLoaded]);
+
   const canProceed = () => {
     switch (step) {
       case 0: return serviceType !== "";
@@ -414,9 +515,68 @@ export default function BookingForm() {
       case 2: return (vehicleSelection === "van" ? !!van : !!suv) && (!isPetFriendly || petDescription.trim().length > 0) && (!isFreight || (freightDescription.trim().length > 0 && freightWeight !== ""));
       case 3: return clientName && clientEmail && clientPhone;
       case 4: return paymentMethod !== "";
-      case 5: return termsAccepted;
+      case 5: return isQuoteMode ? true : termsAccepted;
       default: return false;
     }
+  };
+
+  const handleSendQuote = () => {
+    const primaryVehicle = vehicleSelection === "van" ? van : suv;
+    if (!primaryVehicle || !serviceType) return;
+
+    const dateTime = new Date(`${pickupDate}T${pickupTime}`).getTime();
+
+    createQuoteMutation.mutate({
+      clientName,
+      clientEmail,
+      clientPhone,
+      serviceType,
+      pickupAddress: `${pickupAddress} (${pickupSuburb})`,
+      dropoffAddress: dropoffAddress ? `${dropoffAddress} (${dropoffSuburb})` : undefined,
+      pickupDate: dateTime,
+      passengerCount,
+      vehicleId: primaryVehicle.id,
+      vehicleName: primaryVehicle.name,
+      needsSupportVan,
+      supportVanPrice: needsSupportVan ? pricing.supportVanPrice : 0,
+      rearFacingSeats: isVanStandalone ? 0 : rearFacingSeats,
+      forwardFacingSeats: isVanStandalone ? 0 : forwardFacingSeats,
+      boosterSeats: isVanStandalone ? 0 : boosterSeats,
+      isPetFriendly,
+      numberOfPets: isPetFriendly ? numberOfPets : undefined,
+      petDescription: isPetFriendly ? petDescription : undefined,
+      freightDescription: isFreight ? freightDescription : undefined,
+      freightWeight: isFreight ? freightWeight : undefined,
+      freightItemCount: isFreight ? freightItemCount : undefined,
+      freightSpecialHandling: isFreight && freightSpecialHandling.trim() ? freightSpecialHandling : undefined,
+      estimatedDistance,
+      estimatedDuration: serviceType === "hourly_hire" ? hireHours * 60 : undefined,
+      basePrice: pricing.basePrice,
+      totalPrice: pricing.totalPrice,
+      additionalPickupCount,
+      additionalDropoffCount,
+      additionalPickupAddresses: additionalPickupAddresses.filter(a => a.trim()),
+      additionalDropoffAddresses: additionalDropoffAddresses.filter(a => a.trim()),
+      additionalStopsSurcharge: pricing.additionalStopsSurcharge,
+      publicHolidaySurcharge: pricing.publicHolidaySurcharge,
+      publicHolidayName: pricing.publicHolidayName || undefined,
+      airportTollSurcharge: pricing.airportTollSurcharge,
+      airportTollDetails: pricing.airportTollDetails,
+      roadTollSurcharge: pricing.roadTollSurcharge,
+      roadTollDetails: pricing.roadTollDetails,
+      specialRequests: specialRequests || undefined,
+      routePreference,
+      origin: window.location.origin,
+    });
+  };
+
+  const handleConvertQuote = () => {
+    if (!quoteRef || !paymentMethod) return;
+    convertQuoteMutation.mutate({
+      referenceNumber: quoteRef,
+      paymentMethod,
+      origin: window.location.origin,
+    });
   };
 
   const handleSubmit = () => {
@@ -1616,8 +1776,8 @@ export default function BookingForm() {
           </div>
         )}
 
-        {/* Step 4: Payment Method */}
-        {step === 4 && (
+        {/* Step 4: Payment Method (skip in quote mode) */}
+        {step === 4 && !isQuoteMode && (
           <div className="space-y-6">
             <div className="space-y-2">
               <h2 className="font-heading text-2xl font-bold">Payment Method</h2>
@@ -1679,7 +1839,7 @@ export default function BookingForm() {
         {step === 5 && (
           <div className="space-y-6">
             <div className="space-y-2">
-              <h2 className="font-heading text-2xl font-bold">Review Your Booking</h2>
+              <h2 className="font-heading text-2xl font-bold">{isQuoteMode ? "Review Your Quote" : isResumeFromQuote ? "Confirm Your Booking" : "Review Your Booking"}</h2>
               <p className="text-muted-foreground">Please confirm all details are correct before submitting.</p>
             </div>
 
@@ -2054,22 +2214,31 @@ export default function BookingForm() {
               </CardContent>
             </Card>
 
-            {/* Terms */}
-            <div className="flex items-start gap-3 p-4 rounded-lg bg-secondary/50">
-              <Checkbox
-                id="terms"
-                checked={termsAccepted}
-                onCheckedChange={(checked) => setTermsAccepted(!!checked)}
-                className="mt-0.5"
-              />
-              <label htmlFor="terms" className="text-sm text-muted-foreground leading-relaxed cursor-pointer">
-                I agree to the{" "}
-                <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-amber-400 hover:text-amber-300 underline underline-offset-2">
-                  Terms and Conditions
-                </a>. I understand that the quoted price is an estimate
-                and the final amount may vary. Cancellation policies apply.
-              </label>
-            </div>
+            {/* Terms - hidden in quote mode */}
+            {isQuoteMode ? (
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-amber-500/10 border border-amber-500/30">
+                <FileText className="w-5 h-5 text-amber-400 mt-0.5 shrink-0" />
+                <p className="text-sm text-amber-200/80 leading-relaxed">
+                  This is a quote only — no booking will be created. We'll email you the quote details with a link to book when you're ready.
+                </p>
+              </div>
+            ) : (
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-secondary/50">
+                <Checkbox
+                  id="terms"
+                  checked={termsAccepted}
+                  onCheckedChange={(checked) => setTermsAccepted(!!checked)}
+                  className="mt-0.5"
+                />
+                <label htmlFor="terms" className="text-sm text-muted-foreground leading-relaxed cursor-pointer">
+                  I agree to the{" "}
+                  <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-amber-400 hover:text-amber-300 underline underline-offset-2">
+                    Terms and Conditions
+                  </a>. I understand that the quoted price is an estimate
+                  and the final amount may vary. Cancellation policies apply.
+                </label>
+              </div>
+            )}
           </div>
         )}
 
@@ -2082,11 +2251,14 @@ export default function BookingForm() {
                 setLocation("/");
               } else if (step === 1 && isPreSelected) {
                 setLocation(`/services/${preSelectedService}`);
+              } else if (isQuoteMode && step === 5) {
+                // In quote mode, go back from review to contact details (skip payment)
+                setStep(3);
               } else {
                 setStep(step - 1);
               }
             }}
-            className="gap-2 bg-background"
+            className="gap-2"
           >
             <ArrowLeft className="w-4 h-4" />
             {step === 0 ? "Cancel" : (step === 1 && isPreSelected) ? "Back to Service" : "Previous"}
@@ -2094,13 +2266,52 @@ export default function BookingForm() {
 
           {step < STEPS.length - 1 ? (
             <Button
-              onClick={() => setStep(step + 1)}
+              onClick={() => {
+                // In quote mode, skip payment step (4) and go straight to review (5)
+                if (isQuoteMode && step === 3) {
+                  setStep(5);
+                } else {
+                  setStep(step + 1);
+                }
+              }}
               disabled={!canProceed()}
               className="gap-2 gold-gradient text-gold-foreground border-0 hover:opacity-90"
             >
               Continue
               <ArrowRight className="w-4 h-4" />
             </Button>
+          ) : isResumeFromQuote ? (
+            <Button
+              onClick={handleConvertQuote}
+              disabled={!canProceed() || convertQuoteMutation.isPending}
+              className="gap-2 gold-gradient text-gold-foreground border-0 hover:opacity-90"
+            >
+              {convertQuoteMutation.isPending ? "Confirming..." : paymentMethod === "stripe_prepay" ? "Confirm & Pay" : "Confirm Booking"}
+              <Check className="w-4 h-4" />
+            </Button>
+          ) : isQuoteMode ? (
+            <div className="flex gap-3">
+              <Button
+                onClick={handleSendQuote}
+                disabled={createQuoteMutation.isPending}
+                variant="outline"
+                className="gap-2 border-amber-500/50 text-amber-400 hover:bg-amber-500/10"
+              >
+                {createQuoteMutation.isPending ? "Sending..." : "Send me the Quote"}
+                <Mail className="w-4 h-4" />
+              </Button>
+              <Button
+                onClick={() => {
+                  // Switch from quote mode to booking mode — go to payment step
+                  setStep(4);
+                  window.history.replaceState({}, "", window.location.pathname + "?service=" + serviceType);
+                }}
+                className="gap-2 gold-gradient text-gold-foreground border-0 hover:opacity-90"
+              >
+                Proceed to Book
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+            </div>
           ) : (
             <Button
               onClick={handleSubmit}

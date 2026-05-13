@@ -350,7 +350,7 @@ export default function ServiceDetail() {
                   </span>
                 )}
                 <a
-                  href="/book"
+                  href={`/book?service=${serviceKey}&mode=quote`}
                   className="inline-flex items-center gap-2 gold-gradient text-gold-foreground font-medium px-6 py-2.5 rounded-lg hover:opacity-90 transition-opacity text-sm"
                 >
                   Get a Quote

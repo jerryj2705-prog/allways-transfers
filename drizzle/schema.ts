@@ -96,7 +96,7 @@ export const bookings = mysqlTable("bookings", {
   stripeSessionId: varchar("stripeSessionId", { length: 255 }),
   paymentNote: text("paymentNote"),
   // Status
-  status: mysqlEnum("status", ["pending", "confirmed", "completed", "cancelled"]).default("pending").notNull(),
+  status: mysqlEnum("status", ["quote", "pending", "confirmed", "completed", "cancelled"]).default("pending").notNull(),
   // Notes
   specialRequests: text("specialRequests"),
   adminNotes: text("adminNotes"),

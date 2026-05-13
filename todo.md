@@ -624,3 +624,12 @@
 - [x] Remove all "From $..." base price text from service cards (misleading)
 - [x] Rename airport toll labels from "entry/exit" to "access" in price breakdowns
 - [x] Add "Get a Quote" button to service cards on Home and Service Detail pages
+- [x] Get a Quote button auto-selects corresponding service type in booking form
+- [x] Add 'quote' status to bookings table schema
+- [x] Backend: createQuote procedure (saves booking with quote status)
+- [x] Backend: convertQuoteToBooking procedure (changes status from quote to pending)
+- [x] Backend: getQuoteByReference procedure (uses existing getByReference)
+- [x] Quote email template with Book Now CTA link
+- [x] Frontend: quote mode in booking form with Send me the Quote / Proceed to Book buttons
+- [x] Frontend: resume from quote via /book?quote=CB-XXXXX URL
+- [x] Admin dashboard: handle quote status in booking list (filter, badge, icon)

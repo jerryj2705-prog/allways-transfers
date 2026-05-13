@@ -305,6 +305,34 @@ export async function createBooking(data: Omit<InsertBooking, "referenceNumber" 
   return result[0];
 }
 
+export async function createQuote(data: Omit<InsertBooking, "referenceNumber" | "id" | "createdAt" | "updatedAt" | "status">) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const referenceNumber = generateReferenceNumber();
+
+  await db.insert(bookings).values({
+    ...data,
+    referenceNumber,
+    status: "quote",
+  });
+
+  const result = await db.select().from(bookings).where(eq(bookings.referenceNumber, referenceNumber)).limit(1);
+  return result[0];
+}
+
+export async function convertQuoteToBooking(referenceNumber: string, paymentMethod: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db.update(bookings)
+    .set({ status: "pending", paymentMethod, termsAccepted: true, updatedAt: new Date() })
+    .where(and(eq(bookings.referenceNumber, referenceNumber), eq(bookings.status, "quote")));
+
+  const result = await db.select().from(bookings).where(eq(bookings.referenceNumber, referenceNumber)).limit(1);
+  return result[0];
+}
+
 export async function getBookingByReference(referenceNumber: string) {
   const db = await getDb();
   if (!db) return undefined;

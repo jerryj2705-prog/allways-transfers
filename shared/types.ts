@@ -39,6 +39,7 @@ export const SERVICE_TYPES = {
 export type ServiceType = keyof typeof SERVICE_TYPES;
 
 export const BOOKING_STATUSES = {
+  quote: { label: "Quote", color: "purple" },
   pending: { label: "Pending", color: "amber" },
   confirmed: { label: "Confirmed", color: "blue" },
   completed: { label: "Completed", color: "green" },

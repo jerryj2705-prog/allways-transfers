@@ -66,11 +66,13 @@ import {
   getLandmarkStats,
   deleteBooking,
   markTollsAsReviewed,
+  createQuote,
+  convertQuoteToBooking,
 } from "./db";
 import { makeRequest, type PlaceDetailsResult } from "./_core/map";
 import { createCheckoutSession } from "./stripe";
 import { notifyOwner } from "./_core/notification";
-import { sendBookingConfirmationEmail, sendCancellationConfirmationEmail, sendAdminNewBookingNotification, sendAdminCancellationNotification, sendPasswordResetEmail } from "./email";
+import { sendBookingConfirmationEmail, sendCancellationConfirmationEmail, sendAdminNewBookingNotification, sendAdminCancellationNotification, sendPasswordResetEmail, sendQuoteEmail } from "./email";
 import crypto from "crypto";
 import { lookupSuburb, estimateDistance, isOutOfArea, getAllSuburbNames, getAllLocationsWithType, calculateDistance, classifyLGA } from "@shared/suburbs";
 
@@ -518,6 +520,238 @@ export const appRouter = router({
               airportTollDetails: input.airportTollDetails ?? [],
               roadTollSurcharge: input.roadTollSurcharge ?? 0,
               roadTollDetails: input.roadTollDetails ?? [],
+              origin: input.origin,
+            });
+          } catch (e) {
+            console.warn("Failed to send admin new booking notification:", e);
+          }
+        }
+
+        return { ...booking, checkoutUrl };
+      }),
+
+    createQuote: publicProcedure
+      .input(
+        z.object({
+          clientName: z.string().min(1),
+          clientEmail: z.string().email(),
+          clientPhone: z.string().min(1),
+          serviceType: z.enum(["airport_transfer", "hourly_hire", "point_to_point", "special_events", "freight"]),
+          pickupAddress: z.string().min(1),
+          dropoffAddress: z.string().optional(),
+          pickupDate: z.number().min(1),
+          passengerCount: z.number().min(0).max(7),
+          vehicleId: z.number(),
+          vehicleName: z.string(),
+          needsSupportVan: z.boolean().default(false),
+          supportVanPrice: z.number().default(0),
+          rearFacingSeats: z.number().min(0).max(2).default(0),
+          forwardFacingSeats: z.number().min(0).max(2).default(0),
+          boosterSeats: z.number().min(0).max(2).default(0),
+          isPetFriendly: z.boolean().default(false),
+          numberOfPets: z.number().min(1).max(10).optional(),
+          petDescription: z.string().optional(),
+          freightDescription: z.string().optional(),
+          freightWeight: z.string().optional(),
+          freightItemCount: z.number().min(1).max(100).optional(),
+          freightSpecialHandling: z.string().optional(),
+          routePreference: z.enum(["fastest", "toll_free"]).default("fastest"),
+          estimatedDistance: z.number().optional(),
+          estimatedDuration: z.number().optional(),
+          basePrice: z.number(),
+          totalPrice: z.number(),
+          additionalPickupCount: z.number().min(0).max(5).default(0),
+          additionalDropoffCount: z.number().min(0).max(5).default(0),
+          additionalPickupAddresses: z.array(z.string()).default([]),
+          additionalDropoffAddresses: z.array(z.string()).default([]),
+          additionalStopsSurcharge: z.number().default(0),
+          publicHolidaySurcharge: z.number().default(0),
+          publicHolidayName: z.string().optional(),
+          airportTollSurcharge: z.number().default(0),
+          airportTollDetails: z.array(z.object({ airport: z.string(), direction: z.string(), amount: z.number() })).default([]),
+          roadTollSurcharge: z.number().default(0),
+          roadTollDetails: z.array(z.object({ road: z.string(), amount: z.number() })).default([]),
+          specialRequests: z.string().optional(),
+          origin: z.string().optional(),
+        })
+      )
+      .mutation(async ({ input }) => {
+        const quote = await createQuote({
+          clientName: input.clientName,
+          clientEmail: input.clientEmail,
+          clientPhone: input.clientPhone,
+          serviceType: input.serviceType,
+          pickupAddress: input.pickupAddress,
+          dropoffAddress: input.dropoffAddress ?? null,
+          pickupDate: input.pickupDate,
+          passengerCount: input.passengerCount,
+          vehicleId: input.vehicleId,
+          vehicleName: input.vehicleName,
+          needsSupportVan: input.needsSupportVan ? 1 : 0,
+          supportVanPrice: input.supportVanPrice.toFixed(2),
+          rearFacingSeats: input.rearFacingSeats,
+          forwardFacingSeats: input.forwardFacingSeats,
+          boosterSeats: input.boosterSeats,
+          isPetFriendly: input.isPetFriendly ? 1 : 0,
+          numberOfPets: input.isPetFriendly ? (input.numberOfPets ?? 1) : null,
+          petDescription: input.isPetFriendly ? (input.petDescription ?? null) : null,
+          freightDescription: input.serviceType === "freight" ? (input.freightDescription ?? null) : null,
+          freightWeight: input.serviceType === "freight" ? (input.freightWeight ?? null) : null,
+          freightItemCount: input.serviceType === "freight" ? (input.freightItemCount ?? null) : null,
+          freightSpecialHandling: input.serviceType === "freight" ? (input.freightSpecialHandling ?? null) : null,
+          routePreference: input.routePreference ?? "fastest",
+          estimatedDistance: input.estimatedDistance?.toFixed(2) ?? null,
+          estimatedDuration: input.estimatedDuration ?? null,
+          basePrice: input.basePrice.toFixed(2),
+          totalPrice: input.totalPrice.toFixed(2),
+          additionalPickupCount: input.additionalPickupCount,
+          additionalDropoffCount: input.additionalDropoffCount,
+          additionalPickupAddresses: input.additionalPickupAddresses.length > 0 ? JSON.stringify(input.additionalPickupAddresses) : null,
+          additionalDropoffAddresses: input.additionalDropoffAddresses.length > 0 ? JSON.stringify(input.additionalDropoffAddresses) : null,
+          additionalStopsSurcharge: input.additionalStopsSurcharge.toFixed(2),
+          publicHolidaySurcharge: input.publicHolidaySurcharge.toFixed(2),
+          publicHolidayName: input.publicHolidayName ?? null,
+          airportTollSurcharge: input.airportTollSurcharge.toFixed(2),
+          airportTollDetails: input.airportTollDetails.length > 0 ? JSON.stringify(input.airportTollDetails) : null,
+          roadTollSurcharge: input.roadTollSurcharge.toFixed(2),
+          roadTollDetails: input.roadTollDetails.length > 0 ? JSON.stringify(input.roadTollDetails) : null,
+          paymentMethod: "cash_postpay",
+          paymentStatus: "unpaid",
+          specialRequests: input.specialRequests ?? null,
+          adminNotes: null,
+          termsAccepted: 0,
+        });
+
+        // Send quote email to client
+        if (input.origin) {
+          try {
+            await sendQuoteEmail({
+              referenceNumber: quote.referenceNumber,
+              clientName: input.clientName,
+              clientEmail: input.clientEmail,
+              serviceType: input.serviceType,
+              pickupAddress: input.pickupAddress,
+              dropoffAddress: input.dropoffAddress ?? null,
+              pickupDate: input.pickupDate,
+              passengerCount: input.passengerCount,
+              vehicleName: input.vehicleName,
+              totalPrice: input.totalPrice.toFixed(2),
+              specialRequests: input.specialRequests ?? null,
+              additionalPickupCount: input.additionalPickupCount ?? 0,
+              additionalDropoffCount: input.additionalDropoffCount ?? 0,
+              additionalPickupAddresses: input.additionalPickupAddresses ?? [],
+              additionalDropoffAddresses: input.additionalDropoffAddresses ?? [],
+              publicHolidaySurcharge: input.publicHolidaySurcharge ?? 0,
+              publicHolidayName: input.publicHolidayName ?? null,
+              airportTollSurcharge: input.airportTollSurcharge ?? 0,
+              airportTollDetails: input.airportTollDetails ?? [],
+              roadTollSurcharge: input.roadTollSurcharge ?? 0,
+              roadTollDetails: input.roadTollDetails ?? [],
+              origin: input.origin,
+            });
+          } catch (emailError) {
+            console.warn("[Quote] Failed to send quote email:", emailError);
+          }
+
+          // Notify admin about new quote
+          try {
+            await notifyOwner({
+              title: `New Quote: ${quote.referenceNumber}`,
+              content: `Quote request from ${input.clientName}\nService: ${input.serviceType.replace(/_/g, " ")}\nPickup: ${input.pickupAddress}\nDate: ${new Date(input.pickupDate).toLocaleString("en-AU", { timeZone: "Australia/Brisbane" })}\nTotal: $${input.totalPrice.toFixed(2)}`,
+            });
+          } catch (e) {
+            console.warn("Failed to send owner notification:", e);
+          }
+        }
+
+        return { referenceNumber: quote.referenceNumber };
+      }),
+
+    convertQuote: publicProcedure
+      .input(
+        z.object({
+          referenceNumber: z.string(),
+          paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay"]),
+          origin: z.string().optional(),
+        })
+      )
+      .mutation(async ({ input }) => {
+        const booking = await convertQuoteToBooking(input.referenceNumber, input.paymentMethod);
+        if (!booking) {
+          throw new Error("Quote not found or already converted");
+        }
+
+        // If Stripe pre-pay, create checkout session
+        let checkoutUrl: string | null = null;
+        if (input.paymentMethod === "stripe_prepay" && input.origin) {
+          try {
+            const serviceLabel = booking.serviceType.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase());
+            const { url, sessionId } = await createCheckoutSession({
+              bookingReference: booking.referenceNumber,
+              bookingId: booking.id,
+              amount: parseFloat(booking.totalPrice),
+              customerEmail: booking.clientEmail,
+              customerName: booking.clientName,
+              serviceDescription: serviceLabel,
+              origin: input.origin,
+            });
+            checkoutUrl = url;
+            await updateBookingStripeSession(booking.id, sessionId);
+          } catch (e) {
+            console.warn("Failed to create Stripe checkout session:", e);
+          }
+        }
+
+        // Send booking confirmation email
+        if (input.origin) {
+          try {
+            await sendBookingConfirmationEmail({
+              referenceNumber: booking.referenceNumber,
+              clientName: booking.clientName,
+              clientEmail: booking.clientEmail,
+              serviceType: booking.serviceType,
+              pickupAddress: booking.pickupAddress,
+              dropoffAddress: booking.dropoffAddress ?? null,
+              pickupDate: typeof booking.pickupDate === 'number' ? booking.pickupDate : new Date(booking.pickupDate).getTime(),
+              passengerCount: booking.passengerCount,
+              vehicleName: booking.vehicleName,
+              rearFacingSeats: booking.rearFacingSeats ?? 0,
+              forwardFacingSeats: booking.forwardFacingSeats ?? 0,
+              boosterSeats: booking.boosterSeats ?? 0,
+              isPetFriendly: !!booking.isPetFriendly,
+              numberOfPets: booking.numberOfPets ?? null,
+              petDescription: booking.petDescription ?? null,
+              freightDescription: booking.freightDescription ?? null,
+              freightWeight: booking.freightWeight ?? null,
+              freightItemCount: booking.freightItemCount ?? null,
+              freightSpecialHandling: booking.freightSpecialHandling ?? null,
+              routePreference: booking.routePreference ?? "fastest",
+              totalPrice: booking.totalPrice,
+              paymentMethod: input.paymentMethod,
+              paymentStatus: "unpaid",
+              specialRequests: booking.specialRequests ?? null,
+              origin: input.origin,
+            });
+          } catch (emailError) {
+            console.warn("[Booking] Failed to send confirmation email:", emailError);
+          }
+
+          // Send admin notification
+          try {
+            await sendAdminNewBookingNotification({
+              referenceNumber: booking.referenceNumber,
+              clientName: booking.clientName,
+              clientEmail: booking.clientEmail,
+              serviceType: booking.serviceType,
+              pickupAddress: booking.pickupAddress,
+              dropoffAddress: booking.dropoffAddress ?? null,
+              pickupDate: typeof booking.pickupDate === 'number' ? booking.pickupDate : new Date(booking.pickupDate).getTime(),
+              passengerCount: booking.passengerCount,
+              vehicleName: booking.vehicleName,
+              totalPrice: booking.totalPrice,
+              paymentMethod: input.paymentMethod,
+              paymentStatus: "unpaid",
+              specialRequests: booking.specialRequests ?? null,
               origin: input.origin,
             });
           } catch (e) {
