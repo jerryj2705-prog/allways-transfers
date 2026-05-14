@@ -741,3 +741,6 @@
 - [x] Download light-background logo from Dropbox (Logo_Web-1200px.png)
 - [x] Upload to CDN and update invoice.ts to use the proper light-bg logo
 - [x] Test invoice PDF generation with logo
+
+## Invoice GST Note
+- [x] Add 'GST Included' note to the total section of the invoice PDF

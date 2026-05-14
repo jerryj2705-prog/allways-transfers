@@ -401,7 +401,12 @@ export async function generateInvoicePDF(booking: Booking): Promise<Buffer> {
       doc.text("TOTAL (AUD)", leftCol + 8, y + 5);
       doc.fontSize(14).fillColor(GOLD).font("Helvetica-Bold");
       doc.text(`$${totalPrice.toFixed(2)}`, doc.page.width - 50 - 120, y + 3, { width: 120, align: "right" });
-      y += 40;
+      y += 34;
+
+      // GST note
+      doc.fontSize(9).fillColor(MUTED_TEXT).font("Helvetica-Oblique");
+      doc.text("All prices are inclusive of GST", leftCol + 8, y);
+      y += 20;
 
       // ─── Payment Info ───
       if (y > doc.page.height - 180) {
