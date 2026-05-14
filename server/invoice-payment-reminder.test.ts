@@ -234,6 +234,152 @@ describe("generateInvoicePDF", () => {
     expect(header).toBe("%PDF-");
   });
 
+  it("generates PDF with custom footer message", async () => {
+    const { generateInvoicePDF } = await import("./invoice");
+
+    const mockBooking = {
+      id: 4,
+      referenceNumber: "AWT-FOOTER01",
+      clientName: "Alice Footer",
+      clientEmail: "alice@example.com",
+      clientPhone: "0433333333",
+      serviceType: "airport_transfer" as const,
+      pickupAddress: "123 Main St, Brisbane QLD",
+      dropoffAddress: "Brisbane Airport",
+      additionalPickupCount: 0,
+      additionalDropoffCount: 0,
+      additionalPickupAddresses: null,
+      additionalDropoffAddresses: null,
+      additionalStopsSurcharge: "0.00",
+      publicHolidaySurcharge: "0.00",
+      publicHolidayName: null,
+      pickupDate: Date.now() + 86400000,
+      passengerCount: 2,
+      vehicleId: 1,
+      vehicleName: "Kia Carnival",
+      needsSupportVan: 0,
+      supportVanPrice: "0.00",
+      rearFacingSeats: 0,
+      forwardFacingSeats: 0,
+      boosterSeats: 0,
+      freightDescription: null,
+      freightWeight: null,
+      freightItemCount: null,
+      freightSpecialHandling: null,
+      routePreference: "fastest",
+      tollOverride: null,
+      airportTollSurcharge: "0.00",
+      airportTollDetails: null,
+      roadTollSurcharge: "0.00",
+      roadTollDetails: null,
+      isPetFriendly: 0,
+      numberOfPets: null,
+      petDescription: null,
+      estimatedDistance: "35.50",
+      estimatedDuration: 40,
+      basePrice: "95.00",
+      totalPrice: "95.00",
+      paymentMethod: "cash_postpay" as const,
+      paymentStatus: "unpaid" as const,
+      stripeSessionId: null,
+      paymentNote: null,
+      paymentProofUrl: null,
+      paymentProofKey: null,
+      paymentProofUploadedAt: null,
+      status: "confirmed" as const,
+      lastReminderSentAt: null,
+      lastPaymentReminderSentAt: null,
+      specialRequests: null,
+      adminNotes: null,
+      termsAccepted: 1,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    const footerMsg = "Thank you for choosing All Ways Transfers. Payment is due within 7 days.";
+    const pdfBuffer = await generateInvoicePDF(mockBooking, footerMsg);
+    expect(pdfBuffer).toBeInstanceOf(Buffer);
+    expect(pdfBuffer.length).toBeGreaterThan(0);
+    const header = pdfBuffer.subarray(0, 5).toString("ascii");
+    expect(header).toBe("%PDF-");
+  });
+
+  it("generates PDF without footer message when null", async () => {
+    const { generateInvoicePDF } = await import("./invoice");
+
+    const mockBooking = {
+      id: 5,
+      referenceNumber: "AWT-NOFTR01",
+      clientName: "Bob NoFooter",
+      clientEmail: "bob@example.com",
+      clientPhone: "0444444444",
+      serviceType: "point_to_point" as const,
+      pickupAddress: "100 Queen St, Brisbane QLD",
+      dropoffAddress: "200 Gold Coast Hwy, Surfers Paradise QLD",
+      additionalPickupCount: 0,
+      additionalDropoffCount: 0,
+      additionalPickupAddresses: null,
+      additionalDropoffAddresses: null,
+      additionalStopsSurcharge: "0.00",
+      publicHolidaySurcharge: "0.00",
+      publicHolidayName: null,
+      pickupDate: Date.now() + 86400000,
+      passengerCount: 1,
+      vehicleId: 1,
+      vehicleName: "Kia Carnival",
+      needsSupportVan: 0,
+      supportVanPrice: "0.00",
+      rearFacingSeats: 0,
+      forwardFacingSeats: 0,
+      boosterSeats: 0,
+      freightDescription: null,
+      freightWeight: null,
+      freightItemCount: null,
+      freightSpecialHandling: null,
+      routePreference: "fastest",
+      tollOverride: null,
+      airportTollSurcharge: "0.00",
+      airportTollDetails: null,
+      roadTollSurcharge: "0.00",
+      roadTollDetails: null,
+      isPetFriendly: 0,
+      numberOfPets: null,
+      petDescription: null,
+      estimatedDistance: "75.00",
+      estimatedDuration: 55,
+      basePrice: "180.00",
+      totalPrice: "180.00",
+      paymentMethod: "cash_postpay" as const,
+      paymentStatus: "unpaid" as const,
+      stripeSessionId: null,
+      paymentNote: null,
+      paymentProofUrl: null,
+      paymentProofKey: null,
+      paymentProofUploadedAt: null,
+      status: "confirmed" as const,
+      lastReminderSentAt: null,
+      lastPaymentReminderSentAt: null,
+      specialRequests: null,
+      adminNotes: null,
+      termsAccepted: 1,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    const pdfWithNull = await generateInvoicePDF(mockBooking, null);
+    const pdfWithEmpty = await generateInvoicePDF(mockBooking, "");
+    const pdfWithUndefined = await generateInvoicePDF(mockBooking);
+
+    // All should generate valid PDFs
+    expect(pdfWithNull).toBeInstanceOf(Buffer);
+    expect(pdfWithEmpty).toBeInstanceOf(Buffer);
+    expect(pdfWithUndefined).toBeInstanceOf(Buffer);
+
+    // PDF without footer should be smaller than with footer
+    const pdfWithFooter = await generateInvoicePDF(mockBooking, "Thank you for your business!");
+    expect(pdfWithFooter.length).toBeGreaterThan(pdfWithNull.length);
+  });
+
   it("generates PDF for paid booking (no bank details section)", async () => {
     const { generateInvoicePDF } = await import("./invoice");
 
@@ -359,5 +505,62 @@ describe("sendDirectDepositPaymentReminderEmail", () => {
     });
 
     expect(result).toBe(true);
+  });
+});
+
+// ─── Invoice Settings tRPC Tests ───
+
+describe("invoiceSettings", () => {
+  it("getFooterMessage requires admin role", async () => {
+    const ctx = createUserContext({ role: "user" });
+    const caller = appRouter.createCaller(ctx);
+
+    await expect(
+      caller.invoiceSettings.getFooterMessage()
+    ).rejects.toThrow(/permission/i);
+  });
+
+  it("setFooterMessage requires admin role", async () => {
+    const ctx = createUserContext({ role: "user" });
+    const caller = appRouter.createCaller(ctx);
+
+    await expect(
+      caller.invoiceSettings.setFooterMessage({ message: "Test" })
+    ).rejects.toThrow(/permission/i);
+  });
+
+  it("setFooterMessage rejects messages over 500 characters", async () => {
+    const ctx = createUserContext({ role: "admin" });
+    const caller = appRouter.createCaller(ctx);
+
+    const longMessage = "A".repeat(501);
+    await expect(
+      caller.invoiceSettings.setFooterMessage({ message: longMessage })
+    ).rejects.toThrow();
+  });
+
+  it("getFooterMessage and setFooterMessage work for admin", async () => {
+    const ctx = createUserContext({ role: "admin" });
+    const caller = appRouter.createCaller(ctx);
+
+    // Set a footer message
+    const testMsg = "Thank you for your business! Payment due within 7 days.";
+    const result = await caller.invoiceSettings.setFooterMessage({ message: testMsg });
+    expect(result.success).toBe(true);
+
+    // Get it back
+    const fetched = await caller.invoiceSettings.getFooterMessage();
+    expect(fetched.message).toBe(testMsg);
+  });
+
+  it("setFooterMessage allows empty string to clear the message", async () => {
+    const ctx = createUserContext({ role: "admin" });
+    const caller = appRouter.createCaller(ctx);
+
+    const result = await caller.invoiceSettings.setFooterMessage({ message: "" });
+    expect(result.success).toBe(true);
+
+    const fetched = await caller.invoiceSettings.getFooterMessage();
+    expect(fetched.message).toBe("");
   });
 });

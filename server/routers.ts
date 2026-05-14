@@ -830,7 +830,9 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
         if (!booking) throw new Error("Booking not found");
         // Only allow invoices for actual bookings (not quotes)
         if (booking.status === "quote") throw new Error("Invoices are not available for quotes");
-        const pdfBuffer = await generateInvoicePDF(booking);
+        // Fetch custom invoice footer message
+        const footerMessage = await getAppSetting("invoice_footer_message");
+        const pdfBuffer = await generateInvoicePDF(booking, footerMessage);
         return {
           data: pdfBuffer.toString("base64"),
           filename: `Invoice-${booking.referenceNumber}.pdf`,
@@ -1446,6 +1448,23 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
       }))
       .mutation(async ({ input }) => {
         await setBankDetails(input);
+        return { success: true };
+      }),
+  }),
+
+  // ─── Invoice Settings ───
+  invoiceSettings: router({
+    // Admin: get invoice footer message
+    getFooterMessage: adminProcedure.query(async () => {
+      const message = await getAppSetting("invoice_footer_message");
+      return { message: message ?? "" };
+    }),
+
+    // Admin: update invoice footer message
+    setFooterMessage: adminProcedure
+      .input(z.object({ message: z.string().max(500, "Footer message must be 500 characters or less") }))
+      .mutation(async ({ input }) => {
+        await setAppSetting("invoice_footer_message", input.message.trim());
         return { success: true };
       }),
   }),

@@ -92,7 +92,7 @@ const RED = "#EF4444";
  * Generate an invoice PDF for a booking.
  * Returns a Buffer containing the PDF data.
  */
-export async function generateInvoicePDF(booking: Booking): Promise<Buffer> {
+export async function generateInvoicePDF(booking: Booking, footerMessage?: string | null): Promise<Buffer> {
   return new Promise(async (resolve, reject) => {
     try {
       const doc = new PDFDocument({
@@ -465,24 +465,56 @@ export async function generateInvoicePDF(booking: Booking): Promise<Buffer> {
         }
       }
 
-      // ─── Footer ───
-      y = doc.page.height - 80;
-      doc.moveTo(leftCol, y).lineTo(doc.page.width - 50, y).strokeColor("#E0E0E0").lineWidth(0.5).stroke();
-      y += 10;
+      // ─── Custom Footer Message ───
+      if (footerMessage && footerMessage.trim()) {
+        // Ensure enough space for the custom message + standard footer
+        const msgHeight = doc.fontSize(9).heightOfString(footerMessage.trim(), { width: pageWidth - 24 });
+        const totalFooterHeight = msgHeight + 100; // custom msg + standard footer
+        if (y > doc.page.height - totalFooterHeight - 20) {
+          doc.addPage();
+          y = doc.page.margins.top;
+        }
+
+        // Divider before custom message
+        doc.moveTo(leftCol, y).lineTo(doc.page.width - 50, y).strokeColor("#E0E0E0").lineWidth(0.5).stroke();
+        y += 14;
+
+        // Custom message box with subtle background
+        const boxPadding = 12;
+        const boxWidth = pageWidth;
+        const textWidth = boxWidth - boxPadding * 2;
+        const textHeight = doc.fontSize(9).heightOfString(footerMessage.trim(), { width: textWidth });
+        const boxHeight = textHeight + boxPadding * 2;
+
+        doc.roundedRect(leftCol, y, boxWidth, boxHeight, 4).fill("#FFFBEB");
+        doc.roundedRect(leftCol, y, boxWidth, boxHeight, 4).strokeColor("#F5E6B8").lineWidth(0.5).stroke();
+
+        doc.fontSize(9).fillColor("#78600D").font("Helvetica-Oblique");
+        doc.text(footerMessage.trim(), leftCol + boxPadding, y + boxPadding, {
+          width: textWidth,
+        });
+        y += boxHeight + 16;
+      }
+
+      // ─── Standard Footer ───
+      // Position at bottom of page
+      const standardFooterY = Math.max(y, doc.page.height - 80);
+      doc.moveTo(leftCol, standardFooterY).lineTo(doc.page.width - 50, standardFooterY).strokeColor("#E0E0E0").lineWidth(0.5).stroke();
+      let fy = standardFooterY + 10;
 
       doc.fontSize(8).fillColor(MUTED_TEXT).font("Helvetica");
-      doc.text("All Ways Transfers  |  ABN 18 715 944 056  |  Queensland, Australia", leftCol, y, {
+      doc.text("All Ways Transfers  |  ABN 18 715 944 056  |  Queensland, Australia", leftCol, fy, {
         width: pageWidth,
         align: "center",
       });
-      y += 12;
-      doc.text("Phone: 0466 544 068  |  Email: bookings@allwaystransfers.com.au", leftCol, y, {
+      fy += 12;
+      doc.text("Phone: 0466 544 068  |  Email: bookings@allwaystransfers.com.au", leftCol, fy, {
         width: pageWidth,
         align: "center",
       });
-      y += 12;
+      fy += 12;
       doc.fontSize(7).fillColor("#CCCCCC").font("Helvetica");
-      doc.text(`Generated on ${new Date().toLocaleString("en-AU", { timeZone: "Australia/Brisbane", dateStyle: "medium", timeStyle: "short" })} (AEST)`, leftCol, y, {
+      doc.text(`Generated on ${new Date().toLocaleString("en-AU", { timeZone: "Australia/Brisbane", dateStyle: "medium", timeStyle: "short" })} (AEST)`, leftCol, fy, {
         width: pageWidth,
         align: "center",
       });

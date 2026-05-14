@@ -744,3 +744,12 @@
 
 ## Invoice GST Note
 - [x] Add 'GST Included' note to the total section of the invoice PDF
+
+## Customizable Invoice Footer
+- [x] Reuse existing appSettings table with key "invoice_footer_message"
+- [x] Reuse existing getAppSetting/setAppSetting db helpers
+- [x] Add tRPC procedures for admin to get/update invoice footer message
+- [x] Update invoice PDF to render custom footer message above the standard footer
+- [x] Add admin UI page (AdminInvoiceSettings) with preview, suggestions, and char counter
+- [x] Add "Invoice" button to admin dashboard navigation
+- [x] Write tests for the new feature (17 tests passing)

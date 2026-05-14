@@ -303,6 +303,15 @@ export default function AdminDashboard() {
               <Building2 className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Bank Details</span>
             </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setLocation("/admin/invoice-settings")}
+              className="gap-1 bg-background"
+            >
+              <FileText className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Invoice</span>
+            </Button>
             <span className="text-sm text-muted-foreground hidden sm:inline">{user.name}</span>
             <Button variant="outline" size="sm" onClick={logout} className="gap-1 bg-background">
               <LogOut className="w-3.5 h-3.5" />
