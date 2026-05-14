@@ -214,7 +214,18 @@ async function startServer() {
       }
       const { sql } = await import("drizzle-orm");
       const result = await db.execute(sql`SELECT 1 as ok`);
-      return res.json({ status: "ok", db: "connected" });
+      // Also check bookings table column count for diagnostics
+      let colCount = 0;
+      let dbHost = 'unknown';
+      try {
+        const cols = await db.execute(sql`SELECT COUNT(*) as cnt FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'bookings'`);
+        colCount = cols[0]?.[0]?.cnt || cols[0]?.cnt || 0;
+      } catch (e) { /* ignore */ }
+      try {
+        const url = new URL(process.env.DATABASE_URL || '');
+        dbHost = url.hostname;
+      } catch (e) { /* ignore */ }
+      return res.json({ status: "ok", db: "connected", bookingsColumns: colCount, dbHost });
     } catch (err: any) {
       return res.json({ status: "error", message: err.message, code: err.code });
     }

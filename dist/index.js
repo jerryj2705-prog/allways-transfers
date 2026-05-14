@@ -5038,51 +5038,60 @@ Total: $${input.totalPrice.toFixed(2)}${input.needsSupportVan ? "\n+ Support Van
         origin: z2.string().optional()
       })
     ).mutation(async ({ input }) => {
-      const quote = await createQuote({
-        clientName: input.clientName,
-        clientEmail: input.clientEmail,
-        clientPhone: input.clientPhone,
-        serviceType: input.serviceType,
-        pickupAddress: input.pickupAddress,
-        dropoffAddress: input.dropoffAddress ?? null,
-        pickupDate: input.pickupDate,
-        passengerCount: input.passengerCount,
-        vehicleId: input.vehicleId,
-        vehicleName: input.vehicleName,
-        needsSupportVan: input.needsSupportVan ? 1 : 0,
-        supportVanPrice: input.supportVanPrice.toFixed(2),
-        rearFacingSeats: input.rearFacingSeats,
-        forwardFacingSeats: input.forwardFacingSeats,
-        boosterSeats: input.boosterSeats,
-        isPetFriendly: input.isPetFriendly ? 1 : 0,
-        numberOfPets: input.isPetFriendly ? input.numberOfPets ?? 1 : null,
-        petDescription: input.isPetFriendly ? input.petDescription ?? null : null,
-        freightDescription: input.serviceType === "freight" ? input.freightDescription ?? null : null,
-        freightWeight: input.serviceType === "freight" ? input.freightWeight ?? null : null,
-        freightItemCount: input.serviceType === "freight" ? input.freightItemCount ?? null : null,
-        freightSpecialHandling: input.serviceType === "freight" ? input.freightSpecialHandling ?? null : null,
-        routePreference: input.routePreference ?? "fastest",
-        estimatedDistance: input.estimatedDistance?.toFixed(2) ?? null,
-        estimatedDuration: input.estimatedDuration ?? null,
-        basePrice: input.basePrice.toFixed(2),
-        totalPrice: input.totalPrice.toFixed(2),
-        additionalPickupCount: input.additionalPickupCount,
-        additionalDropoffCount: input.additionalDropoffCount,
-        additionalPickupAddresses: input.additionalPickupAddresses.length > 0 ? JSON.stringify(input.additionalPickupAddresses) : null,
-        additionalDropoffAddresses: input.additionalDropoffAddresses.length > 0 ? JSON.stringify(input.additionalDropoffAddresses) : null,
-        additionalStopsSurcharge: input.additionalStopsSurcharge.toFixed(2),
-        publicHolidaySurcharge: input.publicHolidaySurcharge.toFixed(2),
-        publicHolidayName: input.publicHolidayName ?? null,
-        airportTollSurcharge: input.airportTollSurcharge.toFixed(2),
-        airportTollDetails: input.airportTollDetails.length > 0 ? JSON.stringify(input.airportTollDetails) : null,
-        roadTollSurcharge: input.roadTollSurcharge.toFixed(2),
-        roadTollDetails: input.roadTollDetails.length > 0 ? JSON.stringify(input.roadTollDetails) : null,
-        paymentMethod: "cash_postpay",
-        paymentStatus: "unpaid",
-        specialRequests: input.specialRequests ?? null,
-        adminNotes: null,
-        termsAccepted: 0
-      });
+      let quote;
+      try {
+        quote = await createQuote({
+          clientName: input.clientName,
+          clientEmail: input.clientEmail,
+          clientPhone: input.clientPhone,
+          serviceType: input.serviceType,
+          pickupAddress: input.pickupAddress,
+          dropoffAddress: input.dropoffAddress ?? null,
+          pickupDate: input.pickupDate,
+          passengerCount: input.passengerCount,
+          vehicleId: input.vehicleId,
+          vehicleName: input.vehicleName,
+          needsSupportVan: input.needsSupportVan ? 1 : 0,
+          supportVanPrice: input.supportVanPrice.toFixed(2),
+          rearFacingSeats: input.rearFacingSeats,
+          forwardFacingSeats: input.forwardFacingSeats,
+          boosterSeats: input.boosterSeats,
+          isPetFriendly: input.isPetFriendly ? 1 : 0,
+          numberOfPets: input.isPetFriendly ? input.numberOfPets ?? 1 : null,
+          petDescription: input.isPetFriendly ? input.petDescription ?? null : null,
+          freightDescription: input.serviceType === "freight" ? input.freightDescription ?? null : null,
+          freightWeight: input.serviceType === "freight" ? input.freightWeight ?? null : null,
+          freightItemCount: input.serviceType === "freight" ? input.freightItemCount ?? null : null,
+          freightSpecialHandling: input.serviceType === "freight" ? input.freightSpecialHandling ?? null : null,
+          routePreference: input.routePreference ?? "fastest",
+          estimatedDistance: input.estimatedDistance?.toFixed(2) ?? null,
+          estimatedDuration: input.estimatedDuration ?? null,
+          basePrice: input.basePrice.toFixed(2),
+          totalPrice: input.totalPrice.toFixed(2),
+          additionalPickupCount: input.additionalPickupCount,
+          additionalDropoffCount: input.additionalDropoffCount,
+          additionalPickupAddresses: input.additionalPickupAddresses.length > 0 ? JSON.stringify(input.additionalPickupAddresses) : null,
+          additionalDropoffAddresses: input.additionalDropoffAddresses.length > 0 ? JSON.stringify(input.additionalDropoffAddresses) : null,
+          additionalStopsSurcharge: input.additionalStopsSurcharge.toFixed(2),
+          publicHolidaySurcharge: input.publicHolidaySurcharge.toFixed(2),
+          publicHolidayName: input.publicHolidayName ?? null,
+          airportTollSurcharge: input.airportTollSurcharge.toFixed(2),
+          airportTollDetails: input.airportTollDetails.length > 0 ? JSON.stringify(input.airportTollDetails) : null,
+          roadTollSurcharge: input.roadTollSurcharge.toFixed(2),
+          roadTollDetails: input.roadTollDetails.length > 0 ? JSON.stringify(input.roadTollDetails) : null,
+          paymentMethod: "cash_postpay",
+          paymentStatus: "unpaid",
+          specialRequests: input.specialRequests ?? null,
+          adminNotes: null,
+          termsAccepted: 0
+        });
+      } catch (dbErr) {
+        const cause = dbErr?.cause;
+        const mysqlCode = cause?.code || cause?.errno || "unknown";
+        const mysqlMsg = cause?.sqlMessage || cause?.message || "no details";
+        console.error("[createQuote] DB INSERT failed:", { mysqlCode, mysqlMsg, fullError: String(dbErr) });
+        throw new Error(`Quote creation failed: ${mysqlCode} - ${mysqlMsg}`);
+      }
       if (input.origin) {
         try {
           let stripePaymentUrl;
@@ -6876,7 +6885,19 @@ async function startServer() {
       }
       const { sql: sql2 } = await import("drizzle-orm");
       const result = await db.execute(sql2`SELECT 1 as ok`);
-      return res.json({ status: "ok", db: "connected" });
+      let colCount = 0;
+      let dbHost = "unknown";
+      try {
+        const cols = await db.execute(sql2`SELECT COUNT(*) as cnt FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'bookings'`);
+        colCount = cols[0]?.[0]?.cnt || cols[0]?.cnt || 0;
+      } catch (e) {
+      }
+      try {
+        const url = new URL(process.env.DATABASE_URL || "");
+        dbHost = url.hostname;
+      } catch (e) {
+      }
+      return res.json({ status: "ok", db: "connected", bookingsColumns: colCount, dbHost });
     } catch (err) {
       return res.json({ status: "error", message: err.message, code: err.code });
     }

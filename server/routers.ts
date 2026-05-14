@@ -623,7 +623,9 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
         })
       )
       .mutation(async ({ input }) => {
-        const quote = await createQuote({
+        let quote;
+        try {
+        quote = await createQuote({
           clientName: input.clientName,
           clientEmail: input.clientEmail,
           clientPhone: input.clientPhone,
@@ -668,6 +670,13 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
           adminNotes: null,
           termsAccepted: 0,
         });
+        } catch (dbErr: any) {
+          const cause = dbErr?.cause;
+          const mysqlCode = cause?.code || cause?.errno || 'unknown';
+          const mysqlMsg = cause?.sqlMessage || cause?.message || 'no details';
+          console.error('[createQuote] DB INSERT failed:', { mysqlCode, mysqlMsg, fullError: String(dbErr) });
+          throw new Error(`Quote creation failed: ${mysqlCode} - ${mysqlMsg}`);
+        }
 
         // Send quote email to client with payment options
         if (input.origin) {

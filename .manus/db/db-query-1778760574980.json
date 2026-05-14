@@ -1,0 +1,232 @@
+{
+  "query": "SELECT COLUMN_NAME, ORDINAL_POSITION, COLUMN_TYPE, IS_NULLABLE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'bookings' AND ORDINAL_POSITION > 20 ORDER BY ORDINAL_POSITION;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway05.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3HWZfK7Ep6HZCJY.9379f7ca03be --database 2tTLZKCNzV8jFwxBsLMjpn --execute SELECT COLUMN_NAME, ORDINAL_POSITION, COLUMN_TYPE, IS_NULLABLE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'bookings' AND ORDINAL_POSITION > 20 ORDER BY ORDINAL_POSITION;",
+  "rows": [
+    {
+      "COLUMN_NAME": "updatedAt",
+      "ORDINAL_POSITION": "21",
+      "COLUMN_TYPE": "timestamp",
+      "IS_NULLABLE": "NO"
+    },
+    {
+      "COLUMN_NAME": "needsSupportVan",
+      "ORDINAL_POSITION": "22",
+      "COLUMN_TYPE": "int",
+      "IS_NULLABLE": "NO"
+    },
+    {
+      "COLUMN_NAME": "supportVanPrice",
+      "ORDINAL_POSITION": "23",
+      "COLUMN_TYPE": "decimal(10,2)",
+      "IS_NULLABLE": "YES"
+    },
+    {
+      "COLUMN_NAME": "basePrice",
+      "ORDINAL_POSITION": "24",
+      "COLUMN_TYPE": "decimal(10,2)",
+      "IS_NULLABLE": "NO"
+    },
+    {
+      "COLUMN_NAME": "paymentMethod",
+      "ORDINAL_POSITION": "25",
+      "COLUMN_TYPE": "enum('stripe_prepay','square_postpay','cash_postpay','direct_deposit')",
+      "IS_NULLABLE": "NO"
+    },
+    {
+      "COLUMN_NAME": "paymentStatus",
+      "ORDINAL_POSITION": "26",
+      "COLUMN_TYPE": "enum('unpaid','paid','refunded')",
+      "IS_NULLABLE": "NO"
+    },
+    {
+      "COLUMN_NAME": "stripeSessionId",
+      "ORDINAL_POSITION": "27",
+      "COLUMN_TYPE": "varchar(255)",
+      "IS_NULLABLE": "YES"
+    },
+    {
+      "COLUMN_NAME": "rearFacingSeats",
+      "ORDINAL_POSITION": "28",
+      "COLUMN_TYPE": "int",
+      "IS_NULLABLE": "NO"
+    },
+    {
+      "COLUMN_NAME": "forwardFacingSeats",
+      "ORDINAL_POSITION": "29",
+      "COLUMN_TYPE": "int",
+      "IS_NULLABLE": "NO"
+    },
+    {
+      "COLUMN_NAME": "boosterSeats",
+      "ORDINAL_POSITION": "30",
+      "COLUMN_TYPE": "int",
+      "IS_NULLABLE": "NO"
+    },
+    {
+      "COLUMN_NAME": "isPetFriendly",
+      "ORDINAL_POSITION": "31",
+      "COLUMN_TYPE": "int",
+      "IS_NULLABLE": "NO"
+    },
+    {
+      "COLUMN_NAME": "numberOfPets",
+      "ORDINAL_POSITION": "32",
+      "COLUMN_TYPE": "int",
+      "IS_NULLABLE": "YES"
+    },
+    {
+      "COLUMN_NAME": "petDescription",
+      "ORDINAL_POSITION": "33",
+      "COLUMN_TYPE": "text",
+      "IS_NULLABLE": "YES"
+    },
+    {
+      "COLUMN_NAME": "additionalPickupCount",
+      "ORDINAL_POSITION": "34",
+      "COLUMN_TYPE": "int",
+      "IS_NULLABLE": "NO"
+    },
+    {
+      "COLUMN_NAME": "additionalDropoffCount",
+      "ORDINAL_POSITION": "35",
+      "COLUMN_TYPE": "int",
+      "IS_NULLABLE": "NO"
+    },
+    {
+      "COLUMN_NAME": "additionalPickupAddresses",
+      "ORDINAL_POSITION": "36",
+      "COLUMN_TYPE": "text",
+      "IS_NULLABLE": "YES"
+    },
+    {
+      "COLUMN_NAME": "additionalDropoffAddresses",
+      "ORDINAL_POSITION": "37",
+      "COLUMN_TYPE": "text",
+      "IS_NULLABLE": "YES"
+    },
+    {
+      "COLUMN_NAME": "additionalStopsSurcharge",
+      "ORDINAL_POSITION": "38",
+      "COLUMN_TYPE": "decimal(10,2)",
+      "IS_NULLABLE": "YES"
+    },
+    {
+      "COLUMN_NAME": "publicHolidaySurcharge",
+      "ORDINAL_POSITION": "39",
+      "COLUMN_TYPE": "decimal(10,2)",
+      "IS_NULLABLE": "YES"
+    },
+    {
+      "COLUMN_NAME": "publicHolidayName",
+      "ORDINAL_POSITION": "40",
+      "COLUMN_TYPE": "varchar(200)",
+      "IS_NULLABLE": "YES"
+    },
+    {
+      "COLUMN_NAME": "paymentNote",
+      "ORDINAL_POSITION": "41",
+      "COLUMN_TYPE": "text",
+      "IS_NULLABLE": "YES"
+    },
+    {
+      "COLUMN_NAME": "freightDescription",
+      "ORDINAL_POSITION": "42",
+      "COLUMN_TYPE": "text",
+      "IS_NULLABLE": "YES"
+    },
+    {
+      "COLUMN_NAME": "freightWeight",
+      "ORDINAL_POSITION": "43",
+      "COLUMN_TYPE": "varchar(50)",
+      "IS_NULLABLE": "YES"
+    },
+    {
+      "COLUMN_NAME": "freightItemCount",
+      "ORDINAL_POSITION": "44",
+      "COLUMN_TYPE": "int",
+      "IS_NULLABLE": "YES"
+    },
+    {
+      "COLUMN_NAME": "freightSpecialHandling",
+      "ORDINAL_POSITION": "45",
+      "COLUMN_TYPE": "text",
+      "IS_NULLABLE": "YES"
+    },
+    {
+      "COLUMN_NAME": "routePreference",
+      "ORDINAL_POSITION": "46",
+      "COLUMN_TYPE": "varchar(20)",
+      "IS_NULLABLE": "YES"
+    },
+    {
+      "COLUMN_NAME": "tollOverride",
+      "ORDINAL_POSITION": "47",
+      "COLUMN_TYPE": "decimal(10,2)",
+      "IS_NULLABLE": "YES"
+    },
+    {
+      "COLUMN_NAME": "airportTollSurcharge",
+      "ORDINAL_POSITION": "48",
+      "COLUMN_TYPE": "decimal(10,2)",
+      "IS_NULLABLE": "YES"
+    },
+    {
+      "COLUMN_NAME": "airportTollDetails",
+      "ORDINAL_POSITION": "49",
+      "COLUMN_TYPE": "text",
+      "IS_NULLABLE": "YES"
+    },
+    {
+      "COLUMN_NAME": "roadTollSurcharge",
+      "ORDINAL_POSITION": "50",
+      "COLUMN_TYPE": "decimal(10,2)",
+      "IS_NULLABLE": "YES"
+    },
+    {
+      "COLUMN_NAME": "roadTollDetails",
+      "ORDINAL_POSITION": "51",
+      "COLUMN_TYPE": "text",
+      "IS_NULLABLE": "YES"
+    },
+    {
+      "COLUMN_NAME": "lastReminderSentAt",
+      "ORDINAL_POSITION": "52",
+      "COLUMN_TYPE": "bigint",
+      "IS_NULLABLE": "YES"
+    },
+    {
+      "COLUMN_NAME": "paymentProofUrl",
+      "ORDINAL_POSITION": "53",
+      "COLUMN_TYPE": "text",
+      "IS_NULLABLE": "YES"
+    },
+    {
+      "COLUMN_NAME": "paymentProofKey",
+      "ORDINAL_POSITION": "54",
+      "COLUMN_TYPE": "varchar(512)",
+      "IS_NULLABLE": "YES"
+    },
+    {
+      "COLUMN_NAME": "paymentProofUploadedAt",
+      "ORDINAL_POSITION": "55",
+      "COLUMN_TYPE": "bigint",
+      "IS_NULLABLE": "YES"
+    },
+    {
+      "COLUMN_NAME": "lastPaymentReminderSentAt",
+      "ORDINAL_POSITION": "56",
+      "COLUMN_TYPE": "bigint",
+      "IS_NULLABLE": "YES"
+    },
+    {
+      "COLUMN_NAME": "invoiceNumber",
+      "ORDINAL_POSITION": "57",
+      "COLUMN_TYPE": "varchar(20)",
+      "IS_NULLABLE": "YES"
+    }
+  ],
+  "messages": [],
+  "stdout": "COLUMN_NAME\tORDINAL_POSITION\tCOLUMN_TYPE\tIS_NULLABLE\nupdatedAt\t21\ttimestamp\tNO\nneedsSupportVan\t22\tint\tNO\nsupportVanPrice\t23\tdecimal(10,2)\tYES\nbasePrice\t24\tdecimal(10,2)\tNO\npaymentMethod\t25\tenum('stripe_prepay','square_postpay','cash_postpay','direct_deposit')\tNO\npaymentStatus\t26\tenum('unpaid','paid','refunded')\tNO\nstripeSessionId\t27\tvarchar(255)\tYES\nrearFacingSeats\t28\tint\tNO\nforwardFacingSeats\t29\tint\tNO\nboosterSeats\t30\tint\tNO\nisPetFriendly\t31\tint\tNO\nnumberOfPets\t32\tint\tYES\npetDescription\t33\ttext\tYES\nadditionalPickupCount\t34\tint\tNO\nadditionalDropoffCount\t35\tint\tNO\nadditionalPickupAddresses\t36\ttext\tYES\nadditionalDropoffAddresses\t37\ttext\tYES\nadditionalStopsSurcharge\t38\tdecimal(10,2)\tYES\npublicHolidaySurcharge\t39\tdecimal(10,2)\tYES\npublicHolidayName\t40\tvarchar(200)\tYES\npaymentNote\t41\ttext\tYES\nfreightDescription\t42\ttext\tYES\nfreightWeight\t43\tvarchar(50)\tYES\nfreightItemCount\t44\tint\tYES\nfreightSpecialHandling\t45\ttext\tYES\nroutePreference\t46\tvarchar(20)\tYES\ntollOverride\t47\tdecimal(10,2)\tYES\nairportTollSurcharge\t48\tdecimal(10,2)\tYES\nairportTollDetails\t49\ttext\tYES\nroadTollSurcharge\t50\tdecimal(10,2)\tYES\nroadTollDetails\t51\ttext\tYES\nlastReminderSentAt\t52\tbigint\tYES\npaymentProofUrl\t53\ttext\tYES\npaymentProofKey\t54\tvarchar(512)\tYES\npaymentProofUploadedAt\t55\tbigint\tYES\nlastPaymentReminderSentAt\t56\tbigint\tYES\ninvoiceNumber\t57\tvarchar(20)\tYES\n",
+  "stderr": "",
+  "execution_time_ms": 1798
+}
