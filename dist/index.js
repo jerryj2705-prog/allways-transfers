@@ -4523,7 +4523,7 @@ async function generateInvoicePDF(booking, options) {
         doc.roundedRect(L, y, pageWidth, boxHeight, 3).fill("#FFFBEB");
         doc.roundedRect(L, y, pageWidth, boxHeight, 3).strokeColor("#F5E6B8").lineWidth(0.5).stroke();
         doc.fontSize(7).fillColor("#78600D").font("Helvetica-Oblique");
-        doc.text(footerMessage.trim(), L + 8, y + 6, { width: textWidth });
+        doc.text(footerMessage.trim(), L + 8, y + 6, { width: textWidth, align: "center" });
         y += boxHeight + 6;
       }
       const footerY = doc.page.height - 60;

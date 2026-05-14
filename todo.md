@@ -825,3 +825,6 @@
 - [x] All adminProcedure mutations affected on Hostinger deployment
 - [x] Root cause: dist/index.js committed to Git was stale (from old checkpoint), Hostinger uses pre-built dist instead of running pnpm build
 - [x] Fix: Rebuilt dist/ with latest routers and committed updated build output
+
+## Invoice Footer Message Alignment
+- [x] Centre-justify the footer message on the invoice PDF
