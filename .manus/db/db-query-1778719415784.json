@@ -1,0 +1,9 @@
+{
+  "query": "CREATE TABLE `email_logs` (\n\t`id` int AUTO_INCREMENT NOT NULL,\n\t`emailType` varchar(100) NOT NULL,\n\t`toEmail` varchar(320) NOT NULL,\n\t`fromEmail` varchar(320) NOT NULL,\n\t`subject` varchar(500) NOT NULL,\n\t`status` enum('sent','failed') NOT NULL,\n\t`resendId` varchar(255),\n\t`error` text,\n\t`bookingReference` varchar(20),\n\t`createdAt` timestamp NOT NULL DEFAULT (now()),\n\tCONSTRAINT `email_logs_id` PRIMARY KEY(`id`)\n);\n\nALTER TABLE `bookings` MODIFY COLUMN `status` enum('quote','pending','confirmed','completed','cancelled','expired') NOT NULL DEFAULT 'pending';\n\nALTER TABLE `bookings` ADD `lastReminderSentAt` bigint;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway05.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3HWZfK7Ep6HZCJY.9379f7ca03be --database 2tTLZKCNzV8jFwxBsLMjpn --execute CREATE TABLE `email_logs` (\n\t`id` int AUTO_INCREMENT NOT NULL,\n\t`emailType` varchar(100) NOT NULL,\n\t`toEmail` varchar(320) NOT NULL,\n\t`fromEmail` varchar(320) NOT NULL,\n\t`subject` varchar(500) NOT NULL,\n\t`status` enum('sent','failed') NOT NULL,\n\t`resendId` varchar(255),\n\t`error` text,\n\t`bookingReference` varchar(20),\n\t`createdAt` timestamp NOT NULL DEFAULT (now()),\n\tCONSTRAINT `email_logs_id` PRIMARY KEY(`id`)\n);\n\nALTER TABLE `bookings` MODIFY COLUMN `status` enum('quote','pending','confirmed','completed','cancelled','expired') NOT NULL DEFAULT 'pending';\n\nALTER TABLE `bookings` ADD `lastReminderSentAt` bigint;",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 2618
+}

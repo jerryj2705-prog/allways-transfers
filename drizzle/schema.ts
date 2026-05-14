@@ -96,7 +96,9 @@ export const bookings = mysqlTable("bookings", {
   stripeSessionId: varchar("stripeSessionId", { length: 255 }),
   paymentNote: text("paymentNote"),
   // Status
-  status: mysqlEnum("status", ["quote", "pending", "confirmed", "completed", "cancelled"]).default("pending").notNull(),
+  status: mysqlEnum("status", ["quote", "pending", "confirmed", "completed", "cancelled", "expired"]).default("pending").notNull(),
+  // Quote reminder tracking
+  lastReminderSentAt: bigint("lastReminderSentAt", { mode: "number" }),
   // Notes
   specialRequests: text("specialRequests"),
   adminNotes: text("adminNotes"),
@@ -223,3 +225,19 @@ export const landmarks = mysqlTable("landmarks", {
 
 export type Landmark = typeof landmarks.$inferSelect;
 export type InsertLandmark = typeof landmarks.$inferInsert;
+
+export const emailLogs = mysqlTable("email_logs", {
+  id: int("id").autoincrement().primaryKey(),
+  emailType: varchar("emailType", { length: 100 }).notNull(), // e.g. booking_confirmation, quote, reminder, cancellation
+  toEmail: varchar("toEmail", { length: 320 }).notNull(),
+  fromEmail: varchar("fromEmail", { length: 320 }).notNull(),
+  subject: varchar("subject", { length: 500 }).notNull(),
+  status: mysqlEnum("status", ["sent", "failed"]).notNull(),
+  resendId: varchar("resendId", { length: 255 }),
+  error: text("error"),
+  bookingReference: varchar("bookingReference", { length: 20 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type EmailLog = typeof emailLogs.$inferSelect;
+export type InsertEmailLog = typeof emailLogs.$inferInsert;

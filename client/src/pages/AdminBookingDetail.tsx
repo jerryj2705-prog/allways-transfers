@@ -25,10 +25,12 @@ import type { ServiceType, BookingStatus, PaymentMethod } from "@shared/types";
 const LOGO_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/logo-white_476df209.png";
 
 const STATUS_STYLES: Record<string, string> = {
+  quote: "bg-purple-100 text-purple-800 border-purple-200",
   pending: "bg-amber-100 text-amber-800 border-amber-200",
   confirmed: "bg-blue-100 text-blue-800 border-blue-200",
   completed: "bg-green-100 text-green-800 border-green-200",
   cancelled: "bg-red-100 text-red-800 border-red-200",
+  expired: "bg-zinc-100 text-zinc-800 border-zinc-200",
 };
 
 function toLocalDateTimeValue(timestamp: number): string {
@@ -56,6 +58,8 @@ export default function AdminBookingDetail() {
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [pendingPaymentStatus, setPendingPaymentStatus] = useState<"unpaid" | "paid" | "refunded">("paid");
   const [paymentNote, setPaymentNote] = useState("");
+  const [convertDialogOpen, setConvertDialogOpen] = useState(false);
+  const [convertPaymentMethod, setConvertPaymentMethod] = useState<"stripe_prepay" | "square_postpay" | "cash_postpay">("cash_postpay");
 
   // Edit form state
   const [editPickupAddress, setEditPickupAddress] = useState("");
@@ -91,6 +95,19 @@ export default function AdminBookingDetail() {
     },
     onError: (err) => {
       toast.error(err.message || "Failed to update payment status");
+    },
+  });
+
+  const adminConvertQuote = trpc.bookings.adminConvertQuote.useMutation({
+    onSuccess: () => {
+      toast.success("Quote converted to booking successfully");
+      setConvertDialogOpen(false);
+      utils.bookings.getById.invalidate({ id: bookingId });
+      utils.bookings.list.invalidate();
+      utils.bookings.stats.invalidate();
+    },
+    onError: (err) => {
+      toast.error(err.message || "Failed to convert quote");
     },
   });
 
@@ -155,6 +172,7 @@ export default function AdminBookingDetail() {
   const statusLabel = BOOKING_STATUSES[booking.status as BookingStatus]?.label ?? booking.status;
   const statusStyle = STATUS_STYLES[booking.status] || "";
   const canEdit = booking.status !== "cancelled";
+  const isQuoteOrExpired = booking.status === "quote" || booking.status === "expired";
 
   const handleStatusUpdate = () => {
     if (!newStatus) return;
@@ -213,6 +231,15 @@ export default function AdminBookingDetail() {
             <Badge variant="outline" className={`text-sm px-3 py-1 ${statusStyle}`}>
               {statusLabel}
             </Badge>
+            {isQuoteOrExpired && (
+              <Button
+                size="sm"
+                className="gold-gradient text-gold-foreground hover:opacity-90 gap-1.5"
+                onClick={() => setConvertDialogOpen(true)}
+              >
+                Convert to Booking
+              </Button>
+            )}
             {canEdit && (
               <Button
                 variant="outline"
@@ -834,6 +861,58 @@ export default function AdminBookingDetail() {
               className="gold-gradient text-gold-foreground border-0 hover:opacity-90"
             >
               {updatePaymentStatus.isPending ? "Updating..." : "Confirm"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Convert Quote to Booking Dialog */}
+      <Dialog open={convertDialogOpen} onOpenChange={setConvertDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Convert Quote to Booking</DialogTitle>
+            <DialogDescription>
+              Convert quote <strong>{booking.referenceNumber}</strong> to an active booking. The client will receive a booking confirmation email.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label className="text-sm">Payment Method</Label>
+              <Select value={convertPaymentMethod} onValueChange={(v) => setConvertPaymentMethod(v as any)}>
+                <SelectTrigger className="h-10">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="cash_postpay">Pay Driver by Cash</SelectItem>
+                  <SelectItem value="square_postpay">Pay Driver by Card</SelectItem>
+                  <SelectItem value="stripe_prepay">Pre-pay by Credit Card</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="rounded-lg border border-blue-500/30 bg-blue-500/5 p-3">
+              <p className="text-sm text-muted-foreground">
+                <strong>Client:</strong> {booking.clientName} ({booking.clientEmail})<br/>
+                <strong>Service:</strong> {serviceLabel}<br/>
+                <strong>Total:</strong> ${parseFloat(booking.totalPrice ?? "0").toFixed(2)}
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConvertDialogOpen(false)} className="bg-transparent">
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                adminConvertQuote.mutate({
+                  bookingId: booking.id,
+                  paymentMethod: convertPaymentMethod,
+                  origin: window.location.origin,
+                });
+              }}
+              disabled={adminConvertQuote.isPending}
+              className="gold-gradient text-gold-foreground border-0 hover:opacity-90"
+            >
+              {adminConvertQuote.isPending ? "Converting..." : "Convert to Booking"}
             </Button>
           </DialogFooter>
         </DialogContent>

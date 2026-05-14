@@ -633,3 +633,31 @@
 - [x] Frontend: quote mode in booking form with Send me the Quote / Proceed to Book buttons
 - [x] Frontend: resume from quote via /book?quote=CB-XXXXX URL
 - [x] Admin dashboard: handle quote status in booking list (filter, badge, icon)
+
+## Quote Expiry with Daily Reminders
+- [x] Add quote expiry logic: quotes expire 2 days before pickup time
+- [x] Add lastReminderSentAt column to bookings table for tracking reminder emails
+- [x] Create daily cron job to check for quotes approaching expiry
+- [x] Send daily reminder emails to clients with quotes nearing expiry
+- [x] Auto-expire quotes (change status to 'expired') when 2 days before pickup
+- [x] Send final expiry notification email to client when quote expires
+- [x] Add 'expired' status to booking status enum
+- [x] Show expired status in admin dashboard with appropriate badge/icon
+
+## Admin Quote-to-Booking Conversion
+- [x] Add admin procedure to convert quote to booking from dashboard
+- [x] Add Convert to Booking button on admin dashboard for quote-status bookings
+- [x] Payment method selection dialog for admin conversion
+- [x] Send booking confirmation email to client after admin conversion
+
+## Email Delivery Logging
+- [x] Create email_logs table (id, type, to, from, subject, status, resendId, error, createdAt)
+- [x] Wrap all email sends with logging helper that records to email_logs table
+- [x] Add admin email logs page with list view, filters, and search
+- [x] Add route and navigation for email logs page in admin dashboard
+
+## Client Cancel Quote
+- [x] Add cancelQuote backend procedure (client can cancel their own quote before expiry)
+- [x] Add Cancel Quote button on My Bookings page for quote-status bookings
+- [x] Add Cancel Quote link in quote reminder emails
+- [x] Send confirmation email when client cancels a quote (owner notified via notifyOwner)

@@ -16,7 +16,7 @@ import { useLocation } from "wouter";
 import {
   Search, LayoutDashboard, Clock, CheckCircle, XCircle, AlertCircle,
   ChevronLeft, ChevronRight, LogOut, Home, DollarSign, MessageSquare, CalendarDays, Star,
-  Download, X, Banknote, CreditCard, RotateCcw, MapPin, Trash2, Navigation, FileText,
+  Download, X, Banknote, CreditCard, RotateCcw, MapPin, Trash2, Navigation, FileText, Mail,
 } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -34,6 +34,7 @@ const STATUS_STYLES: Record<string, string> = {
   confirmed: "bg-blue-100 text-blue-800 border-blue-200",
   completed: "bg-green-100 text-green-800 border-green-200",
   cancelled: "bg-red-100 text-red-800 border-red-200",
+  expired: "bg-zinc-100 text-zinc-800 border-zinc-200",
 };
 
 const STATUS_ICONS: Record<string, React.ElementType> = {
@@ -186,9 +187,11 @@ export default function AdminDashboard() {
 
   const statCards = [
     { label: "Total Bookings", value: stats?.total ?? 0, icon: LayoutDashboard, color: "text-foreground" },
+    { label: "Quotes", value: stats?.quote ?? 0, icon: FileText, color: "text-purple-600" },
     { label: "Pending", value: stats?.pending ?? 0, icon: Clock, color: "text-amber-600" },
     { label: "Confirmed", value: stats?.confirmed ?? 0, icon: AlertCircle, color: "text-blue-600" },
     { label: "Completed", value: stats?.completed ?? 0, icon: CheckCircle, color: "text-green-600" },
+    { label: "Expired", value: stats?.expired ?? 0, icon: XCircle, color: "text-zinc-500" },
   ];
 
   const fmtAud = (v: string) => `$${parseFloat(v).toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -282,6 +285,15 @@ export default function AdminDashboard() {
               <MapPin className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Landmarks</span>
             </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setLocation("/admin/email-logs")}
+              className="gap-1 bg-background"
+            >
+              <Mail className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Email Logs</span>
+            </Button>
             <span className="text-sm text-muted-foreground hidden sm:inline">{user.name}</span>
             <Button variant="outline" size="sm" onClick={logout} className="gap-1 bg-background">
               <LogOut className="w-3.5 h-3.5" />
@@ -326,7 +338,7 @@ export default function AdminDashboard() {
         )}
 
         {/* Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
           {statCards.map((stat) => (
             <Card key={stat.label} className="border-border/50">
               <CardContent className="p-5">

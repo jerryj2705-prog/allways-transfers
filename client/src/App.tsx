@@ -23,6 +23,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import Receipt from "./pages/Receipt";
 import AdminLandmarks from "./pages/AdminLandmarks";
+import AdminEmailLogs from "./pages/AdminEmailLogs";
 
 function Router() {
   return (
@@ -47,6 +48,7 @@ function Router() {
       <Route path="/admin/calendar" component={AdminCalendar} />
       <Route path="/admin/reviews" component={AdminReviews} />
       <Route path="/admin/landmarks" component={AdminLandmarks} />
+      <Route path="/admin/email-logs" component={AdminEmailLogs} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>

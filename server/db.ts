@@ -1,7 +1,7 @@
-import { eq, desc, and, or, like, sql, isNull } from "drizzle-orm";
+import { eq, desc, and, or, like, sql, isNull, gte, lte, ne } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
-import { InsertUser, users, vehicles, bookings, pricingSettings, enquiries, publicHolidays, passwordResetTokens, landmarks, type InsertBooking, type Booking, type PricingSetting, type InsertEnquiry, type Enquiry, type InsertPublicHoliday, type PublicHoliday, type Landmark, type InsertLandmark } from "../drizzle/schema";
+import { InsertUser, users, vehicles, bookings, pricingSettings, enquiries, publicHolidays, passwordResetTokens, landmarks, emailLogs, type InsertBooking, type Booking, type PricingSetting, type InsertEnquiry, type Enquiry, type InsertPublicHoliday, type PublicHoliday, type Landmark, type InsertLandmark, type InsertEmailLog, type EmailLog } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import { lookupSuburb } from "@shared/suburbs";
 
@@ -1015,7 +1015,7 @@ export async function getEnquiryStats() {
 export async function getBookingStats() {
   const db = await getDb();
   if (!db) return {
-    total: 0, pending: 0, confirmed: 0, completed: 0, cancelled: 0,
+    total: 0, pending: 0, confirmed: 0, completed: 0, cancelled: 0, quote: 0, expired: 0,
     totalRevenue: "0", unpaidAmount: "0", refundedAmount: "0",
     revenueByMethod: { stripe: "0", square: "0", cash: "0" },
     unpaidByMethod: { stripe: "0", square: "0", cash: "0" },
@@ -1029,6 +1029,8 @@ export async function getBookingStats() {
     confirmed: sql<number>`sum(case when status = 'confirmed' then 1 else 0 end)`,
     completed: sql<number>`sum(case when status = 'completed' then 1 else 0 end)`,
     cancelled: sql<number>`sum(case when status = 'cancelled' then 1 else 0 end)`,
+    quote: sql<number>`sum(case when status = 'quote' then 1 else 0 end)`,
+    expired: sql<number>`sum(case when status = 'expired' then 1 else 0 end)`,
     totalRevenue: sql<string>`coalesce(sum(case when paymentStatus = 'paid' then totalPrice else 0 end), 0)`,
     unpaidAmount: sql<string>`coalesce(sum(case when paymentStatus = 'unpaid' and status != 'cancelled' then totalPrice else 0 end), 0)`,
     refundedAmount: sql<string>`coalesce(sum(case when paymentStatus = 'refunded' then totalPrice else 0 end), 0)`,
@@ -1057,6 +1059,8 @@ export async function getBookingStats() {
     confirmed: row?.confirmed ?? 0,
     completed: row?.completed ?? 0,
     cancelled: row?.cancelled ?? 0,
+    quote: row?.quote ?? 0,
+    expired: row?.expired ?? 0,
     totalRevenue: String(row?.totalRevenue ?? "0"),
     unpaidAmount: String(row?.unpaidAmount ?? "0"),
     refundedAmount: String(row?.refundedAmount ?? "0"),
@@ -1296,4 +1300,186 @@ export async function getLandmarkStats(): Promise<{ total: number; active: numbe
     active: activeResult?.count ?? 0,
     byCategory: byCategory.map((r: any) => ({ category: r.category, count: r.count })),
   };
+}
+
+// ─── Email Log Queries ───
+
+export async function logEmail(data: Omit<InsertEmailLog, "id" | "createdAt">): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  try {
+    await db.insert(emailLogs).values(data);
+  } catch (e) {
+    console.warn("[EmailLog] Failed to log email:", e);
+  }
+}
+
+export async function listEmailLogs(params: {
+  emailType?: string;
+  status?: string;
+  search?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<{ logs: EmailLog[]; total: number }> {
+  const db = await getDb();
+  if (!db) return { logs: [], total: 0 };
+
+  const conditions = [];
+  if (params.emailType && params.emailType !== "all") {
+    conditions.push(eq(emailLogs.emailType, params.emailType));
+  }
+  if (params.status && params.status !== "all") {
+    conditions.push(eq(emailLogs.status, params.status as "sent" | "failed"));
+  }
+  if (params.search) {
+    const searchTerm = `%${params.search}%`;
+    conditions.push(
+      or(
+        like(emailLogs.toEmail, searchTerm),
+        like(emailLogs.subject, searchTerm),
+        like(emailLogs.bookingReference, searchTerm),
+      )!
+    );
+  }
+
+  const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+  const [items, countResult] = await Promise.all([
+    db.select().from(emailLogs).where(whereClause).orderBy(desc(emailLogs.createdAt)).limit(params.limit ?? 20).offset(params.offset ?? 0),
+    db.select({ count: sql<number>`count(*)` }).from(emailLogs).where(whereClause),
+  ]);
+
+  return { logs: items, total: countResult[0]?.count ?? 0 };
+}
+
+export async function getEmailLogStats(): Promise<{ total: number; sent: number; failed: number; byType: { emailType: string; count: number }[] }> {
+  const db = await getDb();
+  if (!db) return { total: 0, sent: 0, failed: 0, byType: [] };
+
+  const [result] = await db.select({
+    total: sql<number>`count(*)`,
+    sent: sql<number>`sum(case when status = 'sent' then 1 else 0 end)`,
+    failed: sql<number>`sum(case when status = 'failed' then 1 else 0 end)`,
+  }).from(emailLogs);
+
+  const byType = await db.select({
+    emailType: emailLogs.emailType,
+    count: sql<number>`count(*)`,
+  }).from(emailLogs).groupBy(emailLogs.emailType).orderBy(desc(sql<number>`count(*)`));
+
+  return {
+    total: result?.total ?? 0,
+    sent: result?.sent ?? 0,
+    failed: result?.failed ?? 0,
+    byType: byType.map((r: any) => ({ emailType: r.emailType, count: r.count })),
+  };
+}
+
+// ─── Quote Expiry & Reminder Queries ───
+
+/**
+ * Get all active quotes that need daily reminders.
+ * Returns quotes where:
+ * - status is 'quote'
+ * - pickupDate is more than 2 days from now (not yet expired)
+ * - lastReminderSentAt is null OR was sent more than 23 hours ago
+ */
+export async function getQuotesNeedingReminders(): Promise<Booking[]> {
+  const db = await getDb();
+  if (!db) return [];
+
+  const now = Date.now();
+  const twoDaysFromNow = now + 2 * 24 * 60 * 60 * 1000;
+  const twentyThreeHoursAgo = now - 23 * 60 * 60 * 1000;
+
+  const result = await db.select().from(bookings).where(
+    and(
+      eq(bookings.status, "quote"),
+      // Pickup is more than 2 days away (not yet expired)
+      sql`${bookings.pickupDate} > ${twoDaysFromNow}`,
+      // Either never sent a reminder, or last reminder was >23h ago
+      or(
+        isNull(bookings.lastReminderSentAt),
+        sql`${bookings.lastReminderSentAt} < ${twentyThreeHoursAgo}`,
+      ),
+    )
+  );
+
+  return result;
+}
+
+/**
+ * Get all quotes that should be expired (pickup is within 2 days or past).
+ */
+export async function getQuotesToExpire(): Promise<Booking[]> {
+  const db = await getDb();
+  if (!db) return [];
+
+  const now = Date.now();
+  const twoDaysFromNow = now + 2 * 24 * 60 * 60 * 1000;
+
+  const result = await db.select().from(bookings).where(
+    and(
+      eq(bookings.status, "quote"),
+      sql`${bookings.pickupDate} <= ${twoDaysFromNow}`,
+    )
+  );
+
+  return result;
+}
+
+/**
+ * Mark a quote as expired.
+ */
+export async function expireQuote(id: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(bookings).set({ status: "expired" }).where(eq(bookings.id, id));
+}
+
+/**
+ * Update the lastReminderSentAt timestamp for a booking.
+ */
+export async function updateLastReminderSentAt(id: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(bookings).set({ lastReminderSentAt: Date.now() }).where(eq(bookings.id, id));
+}
+
+/**
+ * Cancel a quote (client-initiated). Sets status to 'cancelled'.
+ */
+export async function cancelQuote(referenceNumber: string, clientEmail: string): Promise<Booking | undefined> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  // Only cancel if it's still a quote and belongs to this client
+  await db.update(bookings)
+    .set({ status: "cancelled" })
+    .where(and(
+      eq(bookings.referenceNumber, referenceNumber),
+      eq(bookings.clientEmail, clientEmail),
+      eq(bookings.status, "quote"),
+    ));
+
+  const result = await db.select().from(bookings).where(eq(bookings.referenceNumber, referenceNumber)).limit(1);
+  return result[0];
+}
+
+/**
+ * Admin convert quote to booking - works for both 'quote' and 'expired' quotes.
+ */
+export async function adminConvertQuoteToBooking(id: number, paymentMethod: string): Promise<Booking | undefined> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db.update(bookings)
+    .set({ status: "pending", paymentMethod: paymentMethod as any, termsAccepted: 1 })
+    .where(and(
+      eq(bookings.id, id),
+      or(eq(bookings.status, "quote"), eq(bookings.status, "expired")),
+    ));
+
+  const result = await db.select().from(bookings).where(eq(bookings.id, id)).limit(1);
+  return result[0];
 }

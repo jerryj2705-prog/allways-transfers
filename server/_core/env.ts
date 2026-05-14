@@ -8,4 +8,5 @@ export const ENV = {
   adminEmail: process.env.ADMIN_EMAIL ?? "admin@allwaystransfers.com.au",
   googleClientId: process.env.GOOGLE_CLIENT_ID ?? "",
   googleClientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
+  siteUrl: process.env.SITE_URL ?? "https://allwaystransfers.com.au",
 };

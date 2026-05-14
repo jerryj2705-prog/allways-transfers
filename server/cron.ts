@@ -1,5 +1,8 @@
 import cron from "node-cron";
 import { notifyOwner } from "./_core/notification";
+import { ENV } from "./_core/env";
+import { getQuotesNeedingReminders, getQuotesToExpire, expireQuote, updateLastReminderSentAt, getVehicleById } from "./db";
+import { sendQuoteReminderEmail, sendQuoteExpiredEmail } from "./email";
 
 /**
  * Quarterly Toll Price Review Reminder
@@ -7,8 +10,6 @@ import { notifyOwner } from "./_core/notification";
  * Sends an email to the admin reminding them to review SEQ toll road prices.
  */
 function startTollReviewReminder() {
-  // Cron: minute hour day-of-month month day-of-week
-  // "0 9 1 1,4,7,10 *" = 9:00 AM on 1st of Jan, Apr, Jul, Oct
   cron.schedule("0 9 1 1,4,7,10 *", async () => {
     console.log("[Cron] Running quarterly toll price review reminder");
     try {
@@ -49,9 +50,96 @@ If prices have changed, update the amounts on the admin pricing page. The "Last 
 }
 
 /**
+ * Quote Expiry Check
+ * Runs every day at 8:00 AM AEST.
+ * - Expires quotes where pickup is within 2 days (or past)
+ * - Sends daily reminders for active quotes that haven't been reminded in 23+ hours
+ */
+function startQuoteExpiryCheck() {
+  cron.schedule("0 8 * * *", async () => {
+    console.log("[Cron] Running daily quote expiry check");
+    const origin = ENV.siteUrl;
+
+    try {
+      // Step 1: Expire quotes where pickup is within 2 days
+      const quotesToExpire = await getQuotesToExpire();
+      for (const quote of quotesToExpire) {
+        try {
+          await expireQuote(quote.id);
+          console.log(`[Cron] Expired quote ${quote.referenceNumber} (pickup: ${new Date(quote.pickupDate).toISOString()})`);
+
+          // Send expiry notification to client
+          await sendQuoteExpiredEmail({
+            referenceNumber: quote.referenceNumber,
+            clientName: quote.clientName,
+            clientEmail: quote.clientEmail,
+            serviceType: quote.serviceType,
+            pickupDate: quote.pickupDate,
+            origin,
+          });
+        } catch (err) {
+          console.error(`[Cron] Failed to expire quote ${quote.referenceNumber}:`, err);
+        }
+      }
+      if (quotesToExpire.length > 0) {
+        console.log(`[Cron] Expired ${quotesToExpire.length} quote(s)`);
+      }
+
+      // Step 2: Send reminders for active quotes
+      const quotesNeedingReminders = await getQuotesNeedingReminders();
+      for (const quote of quotesNeedingReminders) {
+        try {
+          const now = Date.now();
+          const twoDaysMs = 2 * 24 * 60 * 60 * 1000;
+          const expiryTime = quote.pickupDate - twoDaysMs;
+          const daysUntilExpiry = Math.max(1, Math.ceil((expiryTime - now) / (24 * 60 * 60 * 1000)));
+
+          // Get vehicle name
+          const vehicle = quote.vehicleId ? await getVehicleById(quote.vehicleId) : null;
+          const vehicleName = vehicle?.name ?? "Standard Vehicle";
+
+          await sendQuoteReminderEmail({
+            referenceNumber: quote.referenceNumber,
+            clientName: quote.clientName,
+            clientEmail: quote.clientEmail,
+            serviceType: quote.serviceType,
+            pickupAddress: quote.pickupAddress,
+            dropoffAddress: quote.dropoffAddress,
+            pickupDate: quote.pickupDate,
+            totalPrice: String(quote.totalPrice),
+            vehicleName,
+            daysUntilExpiry,
+            origin,
+          });
+
+          await updateLastReminderSentAt(quote.id);
+          console.log(`[Cron] Sent reminder for quote ${quote.referenceNumber} (${daysUntilExpiry} days until expiry)`);
+        } catch (err) {
+          console.error(`[Cron] Failed to send reminder for quote ${quote.referenceNumber}:`, err);
+        }
+      }
+      if (quotesNeedingReminders.length > 0) {
+        console.log(`[Cron] Sent ${quotesNeedingReminders.length} quote reminder(s)`);
+      }
+
+      if (quotesToExpire.length === 0 && quotesNeedingReminders.length === 0) {
+        console.log("[Cron] No quotes to expire or remind");
+      }
+    } catch (error) {
+      console.error("[Cron] Quote expiry check failed:", error);
+    }
+  }, {
+    timezone: "Australia/Brisbane",
+  });
+
+  console.log("[Cron] Daily quote expiry check scheduled (8:00 AM AEST)");
+}
+
+/**
  * Initialize all cron jobs
  */
 export function initCronJobs() {
   startTollReviewReminder();
+  startQuoteExpiryCheck();
   console.log("[Cron] All cron jobs initialized");
 }

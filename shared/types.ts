@@ -44,6 +44,7 @@ export const BOOKING_STATUSES = {
   confirmed: { label: "Confirmed", color: "blue" },
   completed: { label: "Completed", color: "green" },
   cancelled: { label: "Cancelled", color: "red" },
+  expired: { label: "Expired", color: "gray" },
 } as const;
 
 export type BookingStatus = keyof typeof BOOKING_STATUSES;

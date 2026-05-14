@@ -68,11 +68,15 @@ import {
   markTollsAsReviewed,
   createQuote,
   convertQuoteToBooking,
+  cancelQuote,
+  adminConvertQuoteToBooking,
+  listEmailLogs,
+  getEmailLogStats,
 } from "./db";
 import { makeRequest, type PlaceDetailsResult } from "./_core/map";
 import { createCheckoutSession } from "./stripe";
 import { notifyOwner } from "./_core/notification";
-import { sendBookingConfirmationEmail, sendCancellationConfirmationEmail, sendAdminNewBookingNotification, sendAdminCancellationNotification, sendPasswordResetEmail, sendQuoteEmail } from "./email";
+import { sendBookingConfirmationEmail, sendCancellationConfirmationEmail, sendAdminNewBookingNotification, sendAdminCancellationNotification, sendPasswordResetEmail, sendQuoteEmail, sendQuoteReminderEmail } from "./email";
 import crypto from "crypto";
 import { lookupSuburb, estimateDistance, isOutOfArea, getAllSuburbNames, getAllLocationsWithType, calculateDistance, classifyLGA } from "@shared/suburbs";
 
@@ -1116,6 +1120,128 @@ export const appRouter = router({
         await updateBookingStripeSession(booking.id, sessionId);
         return { checkoutUrl: url };
       }),
+
+    // Authenticated user: cancel their own quote
+    cancelQuote: protectedProcedure
+      .input(z.object({
+        referenceNumber: z.string(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user?.email) throw new Error("Unauthorized");
+        const booking = await getBookingByReference(input.referenceNumber);
+        if (!booking) throw new Error("Quote not found");
+        if (booking.clientEmail !== ctx.user.email) throw new Error("Unauthorized");
+        if (booking.status !== "quote") throw new Error("Only active quotes can be cancelled");
+
+        const result = await cancelQuote(input.referenceNumber, ctx.user.email);
+        if (!result || result.status !== "cancelled") {
+          throw new Error("Failed to cancel quote");
+        }
+
+        // Notify owner
+        try {
+          await notifyOwner({
+            title: `Quote Cancelled: ${booking.referenceNumber}`,
+            content: `Quote ${booking.referenceNumber} cancelled by client ${booking.clientName} (${booking.clientEmail}).\nService: ${booking.serviceType}\nPickup: ${new Date(booking.pickupDate).toLocaleString("en-AU", { timeZone: "Australia/Brisbane" })}`,
+          });
+        } catch (e) {
+          console.warn("Failed to send quote cancellation notification:", e);
+        }
+
+        return result;
+      }),
+
+    // Admin: convert a quote (or expired quote) to a booking
+    adminConvertQuote: adminProcedure
+      .input(z.object({
+        bookingId: z.number(),
+        paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay"]),
+        origin: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const booking = await adminConvertQuoteToBooking(input.bookingId, input.paymentMethod);
+        if (!booking || (booking.status !== "pending")) {
+          throw new Error("Quote not found or already converted");
+        }
+
+        // Send booking confirmation email
+        if (input.origin) {
+          try {
+            await sendBookingConfirmationEmail({
+              referenceNumber: booking.referenceNumber,
+              clientName: booking.clientName,
+              clientEmail: booking.clientEmail,
+              serviceType: booking.serviceType,
+              pickupAddress: booking.pickupAddress,
+              dropoffAddress: booking.dropoffAddress ?? null,
+              pickupDate: typeof booking.pickupDate === 'number' ? booking.pickupDate : new Date(booking.pickupDate).getTime(),
+              passengerCount: booking.passengerCount,
+              vehicleName: booking.vehicleName,
+              rearFacingSeats: booking.rearFacingSeats ?? 0,
+              forwardFacingSeats: booking.forwardFacingSeats ?? 0,
+              boosterSeats: booking.boosterSeats ?? 0,
+              isPetFriendly: !!booking.isPetFriendly,
+              numberOfPets: booking.numberOfPets ?? null,
+              petDescription: booking.petDescription ?? null,
+              freightDescription: booking.freightDescription ?? null,
+              freightWeight: booking.freightWeight ?? null,
+              freightItemCount: booking.freightItemCount ?? null,
+              freightSpecialHandling: booking.freightSpecialHandling ?? null,
+              routePreference: booking.routePreference ?? "fastest",
+              totalPrice: booking.totalPrice,
+              paymentMethod: input.paymentMethod,
+              paymentStatus: "unpaid",
+              specialRequests: booking.specialRequests ?? null,
+              origin: input.origin,
+            });
+          } catch (emailError) {
+            console.warn("[Admin] Failed to send confirmation email for converted quote:", emailError);
+          }
+
+          // Send admin notification
+          try {
+            await sendAdminNewBookingNotification({
+              referenceNumber: booking.referenceNumber,
+              clientName: booking.clientName,
+              clientEmail: booking.clientEmail,
+              serviceType: booking.serviceType,
+              pickupAddress: booking.pickupAddress,
+              dropoffAddress: booking.dropoffAddress ?? null,
+              pickupDate: typeof booking.pickupDate === 'number' ? booking.pickupDate : new Date(booking.pickupDate).getTime(),
+              passengerCount: booking.passengerCount,
+              vehicleName: booking.vehicleName,
+              totalPrice: booking.totalPrice,
+              paymentMethod: input.paymentMethod,
+              paymentStatus: "unpaid",
+              specialRequests: booking.specialRequests ?? null,
+              origin: input.origin,
+            });
+          } catch (e) {
+            console.warn("[Admin] Failed to send admin notification for converted quote:", e);
+          }
+        }
+
+        return booking;
+      }),
+  }),
+
+  // ─── Email Logs (Admin) ───
+  emailLogs: router({
+    list: adminProcedure
+      .input(z.object({
+        emailType: z.string().optional(),
+        status: z.string().optional(),
+        search: z.string().optional(),
+        limit: z.number().optional(),
+        offset: z.number().optional(),
+      }))
+      .query(async ({ input }) => {
+        return listEmailLogs(input);
+      }),
+
+    stats: adminProcedure.query(async () => {
+      return getEmailLogStats();
+    }),
   }),
 
   pricing: router({

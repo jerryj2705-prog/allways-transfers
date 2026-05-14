@@ -39,10 +39,12 @@ const SERVICE_ICONS: Record<string, React.ElementType> = {
 };
 
 const STATUS_STYLES: Record<string, string> = {
+  quote: "bg-purple-500/15 text-purple-400 border-purple-500/30",
   pending: "bg-amber-500/15 text-amber-400 border-amber-500/30",
   confirmed: "bg-blue-500/15 text-blue-400 border-blue-500/30",
   completed: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
   cancelled: "bg-red-500/15 text-red-400 border-red-500/30",
+  expired: "bg-zinc-500/15 text-zinc-400 border-zinc-500/30",
 };
 
 // Generate 15-minute time slots in 24h format
@@ -125,6 +127,33 @@ export default function MyBookings() {
       rating: reviewRating,
       comment: reviewComment || undefined,
     });
+  };
+
+  // Cancel quote dialog state
+  const [cancelQuoteDialogOpen, setCancelQuoteDialogOpen] = useState(false);
+  const [cancelQuoteRef, setCancelQuoteRef] = useState<string | null>(null);
+
+  const cancelQuoteMutation = trpc.bookings.cancelQuote.useMutation({
+    onSuccess: () => {
+      toast.success("Quote cancelled successfully");
+      setCancelQuoteDialogOpen(false);
+      setCancelQuoteRef(null);
+      utils.bookings.myBookings.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to cancel quote");
+    },
+  });
+
+  const handleCancelQuoteClick = (e: React.MouseEvent, referenceNumber: string) => {
+    e.stopPropagation();
+    setCancelQuoteRef(referenceNumber);
+    setCancelQuoteDialogOpen(true);
+  };
+
+  const handleConfirmCancelQuote = () => {
+    if (!cancelQuoteRef) return;
+    cancelQuoteMutation.mutate({ referenceNumber: cancelQuoteRef });
   };
 
   const cancelMutation = trpc.bookings.cancel.useMutation({
@@ -234,8 +263,8 @@ export default function MyBookings() {
   }, [modifyBooking, modifyPickupAddress, modifyDropoffAddress, modifyDate, modifyTime, modifyPassengers, modifySpecialRequests]);
 
   const now = Date.now();
-  const upcoming = bookings?.filter((b: any) => b.pickupDate >= now && b.status !== "cancelled") ?? [];
-  const past = bookings?.filter((b: any) => b.pickupDate < now || b.status === "cancelled") ?? [];
+  const upcoming = bookings?.filter((b: any) => b.pickupDate >= now && b.status !== "cancelled" && b.status !== "expired") ?? [];
+  const past = bookings?.filter((b: any) => b.pickupDate < now || b.status === "cancelled" || b.status === "expired") ?? [];
 
   if (authLoading) {
     return (
@@ -292,8 +321,12 @@ export default function MyBookings() {
     const statusInfo = BOOKING_STATUSES[booking.status as BookingStatus];
     const paymentInfo = PAYMENT_METHODS[booking.paymentMethod as PaymentMethod];
     const Icon = SERVICE_ICONS[svcInfo?.icon ?? "Star"] || Star;
-    const canModify = showActions && (booking.status === "pending" || booking.status === "confirmed");
-    const canCancel = showActions && booking.status !== "cancelled" && booking.status !== "completed";
+    const isQuote = booking.status === "quote";
+    const isExpired = booking.status === "expired";
+    const canModify = showActions && !isQuote && !isExpired && (booking.status === "pending" || booking.status === "confirmed");
+    const canCancel = showActions && !isQuote && !isExpired && booking.status !== "cancelled" && booking.status !== "completed";
+    const canCancelQuote = showActions && isQuote;
+    const canBookQuote = showActions && isQuote;
     const isCompleted = booking.status === "completed";
 
     return (
@@ -373,6 +406,31 @@ export default function MyBookings() {
                     >
                       <Pencil className="w-3 h-3 mr-1" />
                       Modify
+                    </Button>
+                  )}
+                  {canBookQuote && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-primary border-primary/30 hover:bg-primary/10 hover:text-primary h-7 text-xs"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setLocation(`/book?quote=${booking.referenceNumber}`);
+                      }}
+                    >
+                      <CheckCircle2 className="w-3 h-3 mr-1" />
+                      Book Now
+                    </Button>
+                  )}
+                  {canCancelQuote && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-red-400 border-red-500/30 hover:bg-red-500/10 hover:text-red-300 h-7 text-xs"
+                      onClick={(e) => handleCancelQuoteClick(e, booking.referenceNumber)}
+                    >
+                      <XCircle className="w-3 h-3 mr-1" />
+                      Cancel Quote
                     </Button>
                   )}
                   {canCancel && (
@@ -531,7 +589,7 @@ export default function MyBookings() {
               <section className="space-y-4">
                 <div className="flex items-center gap-3">
                   <div className="w-2 h-2 rounded-full bg-muted-foreground" />
-                  <h2 className="font-heading text-xl font-semibold">Past & Cancelled</h2>
+                  <h2 className="font-heading text-xl font-semibold">Past, Cancelled & Expired</h2>
                   <span className="text-sm text-muted-foreground">({past.length})</span>
                 </div>
                 <div className="space-y-3">
@@ -848,6 +906,58 @@ export default function MyBookings() {
                 <>
                   <Pencil className="w-4 h-4 mr-2" />
                   Save Changes
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Cancel Quote Dialog */}
+      <Dialog open={cancelQuoteDialogOpen} onOpenChange={(open) => {
+        if (!open) {
+          setCancelQuoteDialogOpen(false);
+          setCancelQuoteRef(null);
+        }
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl">Cancel Quote</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to cancel quote <strong>{cancelQuoteRef}</strong>? You will no longer receive reminders about this quote.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-amber-400 mt-0.5 shrink-0" />
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                This action cannot be undone. If you change your mind later, you'll need to request a new quote.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => setCancelQuoteDialogOpen(false)}
+            >
+              Keep Quote
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmCancelQuote}
+              disabled={cancelQuoteMutation.isPending}
+            >
+              {cancelQuoteMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Cancelling...
+                </>
+              ) : (
+                <>
+                  <XCircle className="w-4 h-4 mr-2" />
+                  Cancel Quote
                 </>
               )}
             </Button>
