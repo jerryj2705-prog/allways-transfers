@@ -811,3 +811,4 @@
 - [x] Removed container class constraint from header to avoid max-width: 1280px clipping
 - [x] Two-row layout: top bar (logo + user), bottom scrollable nav bar with overflow-x-auto
 - [x] Added minWidth: max-content and whitespace-nowrap to prevent button shrinking/wrapping to zero
+- [x] Replace overflow-x-auto approach with Settings dropdown menu for Email Logs, Bank Details, Invoice
