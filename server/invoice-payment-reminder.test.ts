@@ -563,4 +563,208 @@ describe("invoiceSettings", () => {
     const fetched = await caller.invoiceSettings.getFooterMessage();
     expect(fetched.message).toBe("");
   });
+
+  // ─── ABN Tests ───
+
+  it("getAbn requires admin role", async () => {
+    const ctx = createUserContext({ role: "user" });
+    const caller = appRouter.createCaller(ctx);
+
+    await expect(
+      caller.invoiceSettings.getAbn()
+    ).rejects.toThrow(/permission/i);
+  });
+
+  it("setAbn requires admin role", async () => {
+    const ctx = createUserContext({ role: "user" });
+    const caller = appRouter.createCaller(ctx);
+
+    await expect(
+      caller.invoiceSettings.setAbn({ abn: "12 345 678 901" })
+    ).rejects.toThrow(/permission/i);
+  });
+
+  it("setAbn and getAbn work for admin", async () => {
+    const ctx = createUserContext({ role: "admin" });
+    const caller = appRouter.createCaller(ctx);
+
+    const testAbn = "99 888 777 666";
+    const result = await caller.invoiceSettings.setAbn({ abn: testAbn });
+    expect(result.success).toBe(true);
+
+    const fetched = await caller.invoiceSettings.getAbn();
+    expect(fetched.abn).toBe(testAbn);
+  });
+
+  it("setAbn allows empty string to clear ABN", async () => {
+    const ctx = createUserContext({ role: "admin" });
+    const caller = appRouter.createCaller(ctx);
+
+    const result = await caller.invoiceSettings.setAbn({ abn: "" });
+    expect(result.success).toBe(true);
+  });
+
+  it("setAbn rejects values over 50 characters", async () => {
+    const ctx = createUserContext({ role: "admin" });
+    const caller = appRouter.createCaller(ctx);
+
+    await expect(
+      caller.invoiceSettings.setAbn({ abn: "A".repeat(51) })
+    ).rejects.toThrow();
+  });
+
+  it("getAll returns both footerMessage and abn", async () => {
+    const ctx = createUserContext({ role: "admin" });
+    const caller = appRouter.createCaller(ctx);
+
+    const all = await caller.invoiceSettings.getAll();
+    expect(all).toHaveProperty("footerMessage");
+    expect(all).toHaveProperty("abn");
+    expect(typeof all.footerMessage).toBe("string");
+    expect(typeof all.abn).toBe("string");
+  });
+});
+
+// ─── Invoice PDF with ABN Tests ───
+
+describe("generateInvoicePDF with ABN option", () => {
+  it("generates PDF with custom ABN via options object", async () => {
+    const { generateInvoicePDF } = await import("./invoice");
+
+    const mockBooking = {
+      id: 10,
+      referenceNumber: "AWT-ABN001",
+      clientName: "ABN Test User",
+      clientEmail: "abn@example.com",
+      clientPhone: "0455555555",
+      serviceType: "airport_transfer" as const,
+      pickupAddress: "123 Main St, Brisbane QLD",
+      dropoffAddress: "Brisbane Airport",
+      additionalPickupCount: 0,
+      additionalDropoffCount: 0,
+      additionalPickupAddresses: null,
+      additionalDropoffAddresses: null,
+      additionalStopsSurcharge: "0.00",
+      publicHolidaySurcharge: "0.00",
+      publicHolidayName: null,
+      pickupDate: Date.now() + 86400000,
+      passengerCount: 2,
+      vehicleId: 1,
+      vehicleName: "Kia Carnival",
+      needsSupportVan: 0,
+      supportVanPrice: "0.00",
+      rearFacingSeats: 0,
+      forwardFacingSeats: 0,
+      boosterSeats: 0,
+      freightDescription: null,
+      freightWeight: null,
+      freightItemCount: null,
+      freightSpecialHandling: null,
+      routePreference: "fastest",
+      tollOverride: null,
+      airportTollSurcharge: "0.00",
+      airportTollDetails: null,
+      roadTollSurcharge: "0.00",
+      roadTollDetails: null,
+      isPetFriendly: 0,
+      numberOfPets: null,
+      petDescription: null,
+      estimatedDistance: "35.50",
+      estimatedDuration: 40,
+      basePrice: "95.00",
+      totalPrice: "95.00",
+      paymentMethod: "cash_postpay" as const,
+      paymentStatus: "unpaid" as const,
+      stripeSessionId: null,
+      paymentNote: null,
+      paymentProofUrl: null,
+      paymentProofKey: null,
+      paymentProofUploadedAt: null,
+      status: "confirmed" as const,
+      lastReminderSentAt: null,
+      lastPaymentReminderSentAt: null,
+      specialRequests: null,
+      adminNotes: null,
+      termsAccepted: 1,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    const pdfBuffer = await generateInvoicePDF(mockBooking, {
+      footerMessage: "Thank you!",
+      abn: "99 888 777 666",
+    });
+    expect(pdfBuffer).toBeInstanceOf(Buffer);
+    expect(pdfBuffer.length).toBeGreaterThan(0);
+    const header = pdfBuffer.subarray(0, 5).toString("ascii");
+    expect(header).toBe("%PDF-");
+  });
+
+  it("backward compatible: accepts string as second argument", async () => {
+    const { generateInvoicePDF } = await import("./invoice");
+
+    const mockBooking = {
+      id: 11,
+      referenceNumber: "AWT-COMPAT01",
+      clientName: "Compat User",
+      clientEmail: "compat@example.com",
+      clientPhone: "0466666666",
+      serviceType: "point_to_point" as const,
+      pickupAddress: "100 Test St",
+      dropoffAddress: "200 Dest St",
+      additionalPickupCount: 0,
+      additionalDropoffCount: 0,
+      additionalPickupAddresses: null,
+      additionalDropoffAddresses: null,
+      additionalStopsSurcharge: "0.00",
+      publicHolidaySurcharge: "0.00",
+      publicHolidayName: null,
+      pickupDate: Date.now() + 86400000,
+      passengerCount: 1,
+      vehicleId: 1,
+      vehicleName: "Kia Carnival",
+      needsSupportVan: 0,
+      supportVanPrice: "0.00",
+      rearFacingSeats: 0,
+      forwardFacingSeats: 0,
+      boosterSeats: 0,
+      freightDescription: null,
+      freightWeight: null,
+      freightItemCount: null,
+      freightSpecialHandling: null,
+      routePreference: "fastest",
+      tollOverride: null,
+      airportTollSurcharge: "0.00",
+      airportTollDetails: null,
+      roadTollSurcharge: "0.00",
+      roadTollDetails: null,
+      isPetFriendly: 0,
+      numberOfPets: null,
+      petDescription: null,
+      estimatedDistance: "50.00",
+      estimatedDuration: 40,
+      basePrice: "120.00",
+      totalPrice: "120.00",
+      paymentMethod: "cash_postpay" as const,
+      paymentStatus: "unpaid" as const,
+      stripeSessionId: null,
+      paymentNote: null,
+      paymentProofUrl: null,
+      paymentProofKey: null,
+      paymentProofUploadedAt: null,
+      status: "confirmed" as const,
+      lastReminderSentAt: null,
+      lastPaymentReminderSentAt: null,
+      specialRequests: null,
+      adminNotes: null,
+      termsAccepted: 1,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    // Pass string directly (backward compat)
+    const pdfBuffer = await generateInvoicePDF(mockBooking, "Legacy footer");
+    expect(pdfBuffer).toBeInstanceOf(Buffer);
+    expect(pdfBuffer.length).toBeGreaterThan(0);
+  });
 });

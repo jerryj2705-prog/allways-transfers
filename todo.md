@@ -753,3 +753,9 @@
 - [x] Add admin UI page (AdminInvoiceSettings) with preview, suggestions, and char counter
 - [x] Add "Invoice" button to admin dashboard navigation
 - [x] Write tests for the new feature (17 tests passing)
+
+## ABN/Tax Registration on Invoice
+- [x] Add tRPC procedures for admin to get/set ABN (reuse appSettings)
+- [x] Update invoice PDF to use dynamic ABN from settings instead of hardcoded value
+- [x] Add ABN input field to AdminInvoiceSettings page with live preview
+- [x] Write tests for ABN setting (25 tests passing)

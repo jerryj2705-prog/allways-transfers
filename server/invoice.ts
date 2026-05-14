@@ -92,7 +92,18 @@ const RED = "#EF4444";
  * Generate an invoice PDF for a booking.
  * Returns a Buffer containing the PDF data.
  */
-export async function generateInvoicePDF(booking: Booking, footerMessage?: string | null): Promise<Buffer> {
+interface InvoiceOptions {
+  footerMessage?: string | null;
+  abn?: string | null;
+}
+
+export async function generateInvoicePDF(booking: Booking, options?: InvoiceOptions | string | null): Promise<Buffer> {
+  // Backward compatibility: accept string as footerMessage
+  const opts: InvoiceOptions = typeof options === "string" || options === null || options === undefined
+    ? { footerMessage: options as string | null | undefined }
+    : options;
+  const abnValue = opts.abn?.trim() || "18 715 944 056";
+  const footerMessage = opts.footerMessage;
   return new Promise(async (resolve, reject) => {
     try {
       const doc = new PDFDocument({
@@ -133,7 +144,7 @@ export async function generateInvoicePDF(booking: Booking, footerMessage?: strin
       doc.text("All Ways Transfers", textStartX, 30);
       doc.fontSize(8).fillColor(MUTED_TEXT).font("Helvetica");
       doc.text("Phone: 0466 544 068  |  Email: bookings@allwaystransfers.com.au", textStartX, 50);
-      doc.text("ABN: 18 715 944 056  |  Queensland, Australia", textStartX, 62);
+      doc.text(`ABN: ${abnValue}  |  Queensland, Australia`, textStartX, 62);
 
       // Invoice title (right side)
       doc.fontSize(18).fillColor(GOLD).font("Helvetica-Bold");
@@ -503,7 +514,7 @@ export async function generateInvoicePDF(booking: Booking, footerMessage?: strin
       let fy = standardFooterY + 10;
 
       doc.fontSize(8).fillColor(MUTED_TEXT).font("Helvetica");
-      doc.text("All Ways Transfers  |  ABN 18 715 944 056  |  Queensland, Australia", leftCol, fy, {
+      doc.text(`All Ways Transfers  |  ABN ${abnValue}  |  Queensland, Australia`, leftCol, fy, {
         width: pageWidth,
         align: "center",
       });

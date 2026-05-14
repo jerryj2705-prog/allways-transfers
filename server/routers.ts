@@ -830,9 +830,12 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
         if (!booking) throw new Error("Booking not found");
         // Only allow invoices for actual bookings (not quotes)
         if (booking.status === "quote") throw new Error("Invoices are not available for quotes");
-        // Fetch custom invoice footer message
-        const footerMessage = await getAppSetting("invoice_footer_message");
-        const pdfBuffer = await generateInvoicePDF(booking, footerMessage);
+        // Fetch custom invoice settings
+        const [footerMessage, abn] = await Promise.all([
+          getAppSetting("invoice_footer_message"),
+          getAppSetting("invoice_abn"),
+        ]);
+        const pdfBuffer = await generateInvoicePDF(booking, { footerMessage, abn });
         return {
           data: pdfBuffer.toString("base64"),
           filename: `Invoice-${booking.referenceNumber}.pdf`,
@@ -1454,6 +1457,18 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
 
   // ─── Invoice Settings ───
   invoiceSettings: router({
+    // Admin: get all invoice settings
+    getAll: adminProcedure.query(async () => {
+      const [footerMessage, abn] = await Promise.all([
+        getAppSetting("invoice_footer_message"),
+        getAppSetting("invoice_abn"),
+      ]);
+      return {
+        footerMessage: footerMessage ?? "",
+        abn: abn ?? "18 715 944 056",
+      };
+    }),
+
     // Admin: get invoice footer message
     getFooterMessage: adminProcedure.query(async () => {
       const message = await getAppSetting("invoice_footer_message");
@@ -1465,6 +1480,20 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
       .input(z.object({ message: z.string().max(500, "Footer message must be 500 characters or less") }))
       .mutation(async ({ input }) => {
         await setAppSetting("invoice_footer_message", input.message.trim());
+        return { success: true };
+      }),
+
+    // Admin: get ABN
+    getAbn: adminProcedure.query(async () => {
+      const abn = await getAppSetting("invoice_abn");
+      return { abn: abn ?? "18 715 944 056" };
+    }),
+
+    // Admin: update ABN
+    setAbn: adminProcedure
+      .input(z.object({ abn: z.string().max(50, "ABN must be 50 characters or less") }))
+      .mutation(async ({ input }) => {
+        await setAppSetting("invoice_abn", input.abn.trim());
         return { success: true };
       }),
   }),
