@@ -774,3 +774,10 @@
 - [x] Add "AWAITING PAYMENT" watermark (red/pink rose-600) for unpaid invoices
 - [x] Keep "PAID" watermark green for paid invoices
 - [x] Update tests for both watermark states (32 tests passing)
+
+## Single-Page Invoice Redesign
+- [x] Compact header (smaller logo, inline business details)
+- [x] Remove detailed price breakdown table, show only total
+- [x] Condense all sections (2-column client/service layout) to fit on 1 page
+- [x] Watermark runs across the single page (PAID green, AWAITING PAYMENT red)
+- [x] All 32 tests passing
