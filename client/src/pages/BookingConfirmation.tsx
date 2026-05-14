@@ -2,11 +2,11 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useLocation, useParams } from "wouter";
-import { CheckCircle, XCircle, Copy, Home, Calendar, MapPin, Users, Car, CreditCard, Wallet, Banknote, Baby, Dog, AlertTriangle, Loader2, Receipt, Package, Navigation } from "lucide-react";
+import { CheckCircle, XCircle, Copy, Home, Calendar, MapPin, Users, Car, CreditCard, Wallet, Banknote, Baby, Dog, AlertTriangle, Loader2, Receipt, Package, Navigation, Upload, Image, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { SERVICE_TYPES, PAYMENT_METHODS } from "@shared/types";
 import type { ServiceType, PaymentMethod } from "@shared/types";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 
 const LOGO_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/logo-white_476df209.png";
 
@@ -50,6 +50,67 @@ export default function BookingConfirmation() {
       referenceNumber: params.ref,
       origin: window.location.origin,
     });
+  };
+
+  // Payment proof upload
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingProof, setUploadingProof] = useState(false);
+
+  const paymentProofQuery = trpc.bookings.getPaymentProof.useQuery(
+    { bookingId: booking?.id ?? 0 },
+    { enabled: !!booking && booking.paymentMethod === "direct_deposit" }
+  );
+
+  const uploadProofMutation = trpc.bookings.uploadPaymentProof.useMutation({
+    onSuccess: () => {
+      toast.success("Payment proof uploaded successfully! The admin will review it shortly.");
+      setUploadingProof(false);
+      paymentProofQuery.refetch();
+    },
+    onError: (err) => {
+      toast.error(err.message || "Failed to upload payment proof");
+      setUploadingProof(false);
+    },
+  });
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !booking) return;
+
+    // Validate file type
+    const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp", "application/pdf"];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error("Invalid file type. Please upload an image (JPEG, PNG, GIF, WebP) or PDF.");
+      return;
+    }
+
+    // Validate file size (10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("File too large. Maximum size is 10MB.");
+      return;
+    }
+
+    setUploadingProof(true);
+
+    // Read file as base64
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = (reader.result as string).split(",")[1]; // Remove data:... prefix
+      uploadProofMutation.mutate({
+        bookingId: booking.id,
+        fileData: base64,
+        fileName: file.name,
+        fileType: file.type,
+      });
+    };
+    reader.onerror = () => {
+      toast.error("Failed to read file");
+      setUploadingProof(false);
+    };
+    reader.readAsDataURL(file);
+
+    // Reset input
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const copyRef = () => {
@@ -412,6 +473,88 @@ export default function BookingConfirmation() {
                 Final price may vary based on actual distance and duration.
               </p>
             </div>
+
+            {/* Direct Deposit Payment Proof Upload */}
+            {booking.paymentMethod === "direct_deposit" && booking.status !== "cancelled" && (
+              <div className="border-t border-border/50 pt-4">
+                <div className="p-4 rounded-lg bg-primary/5 border border-primary/20 space-y-3">
+                  <div className="flex items-start gap-2">
+                    <Upload className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-sm font-medium">Payment Proof</p>
+                      <p className="text-xs text-muted-foreground">
+                        {paymentProofQuery.data?.paymentProofUrl
+                          ? "Your payment proof has been uploaded. You can replace it by uploading a new file."
+                          : "Upload a screenshot or photo of your bank transfer confirmation to help us verify your payment faster."}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Show existing proof */}
+                  {paymentProofQuery.data?.paymentProofUrl && (
+                    <div className="rounded-lg border border-border/50 overflow-hidden">
+                      {paymentProofQuery.data.paymentProofUrl.endsWith(".pdf") ? (
+                        <a
+                          href={paymentProofQuery.data.paymentProofUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 p-3 hover:bg-muted/50 transition-colors"
+                        >
+                          <FileText className="w-8 h-8 text-muted-foreground" />
+                          <div>
+                            <p className="text-sm font-medium">Payment Proof (PDF)</p>
+                            <p className="text-xs text-muted-foreground">
+                              Uploaded {paymentProofQuery.data.paymentProofUploadedAt
+                                ? new Date(paymentProofQuery.data.paymentProofUploadedAt).toLocaleDateString()
+                                : ""}
+                            </p>
+                          </div>
+                        </a>
+                      ) : (
+                        <a href={paymentProofQuery.data.paymentProofUrl} target="_blank" rel="noopener noreferrer">
+                          <img
+                            src={paymentProofQuery.data.paymentProofUrl}
+                            alt="Payment proof"
+                            className="w-full max-h-48 object-contain bg-black/20"
+                          />
+                        </a>
+                      )}
+                      <div className="px-3 py-2 bg-muted/30 text-xs text-muted-foreground flex items-center gap-1">
+                        <CheckCircle className="w-3 h-3 text-emerald-400" />
+                        Uploaded {paymentProofQuery.data.paymentProofUploadedAt
+                          ? new Date(paymentProofQuery.data.paymentProofUploadedAt).toLocaleDateString()
+                          : ""}
+                      </div>
+                    </div>
+                  )}
+
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif,image/webp,application/pdf"
+                    className="hidden"
+                    onChange={handleFileSelect}
+                  />
+                  <Button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingProof}
+                    variant="outline"
+                    className="w-full gap-2"
+                  >
+                    {uploadingProof ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Upload className="w-4 h-4" />
+                    )}
+                    {uploadingProof
+                      ? "Uploading..."
+                      : paymentProofQuery.data?.paymentProofUrl
+                        ? "Replace Payment Proof"
+                        : "Upload Payment Proof"}
+                  </Button>
+                </div>
+              </div>
+            )}
 
             {/* Retry Payment Button */}
             {canRetryPayment && (

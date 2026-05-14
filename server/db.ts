@@ -1512,3 +1512,39 @@ export async function getBankDetails(): Promise<BankDetails | null> {
 export async function setBankDetails(details: BankDetails): Promise<void> {
   await setAppSetting(BANK_DETAILS_KEY, JSON.stringify(details));
 }
+
+
+// Payment proof upload
+export async function updatePaymentProof(
+  bookingId: number,
+  proofUrl: string,
+  proofKey: string
+): Promise<void> {
+  const db = await getDb();
+  await db
+    .update(bookings)
+    .set({
+      paymentProofUrl: proofUrl,
+      paymentProofKey: proofKey,
+      paymentProofUploadedAt: Date.now(),
+    })
+    .where(eq(bookings.id, bookingId));
+}
+
+export async function getPaymentProof(bookingId: number): Promise<{
+  paymentProofUrl: string | null;
+  paymentProofKey: string | null;
+  paymentProofUploadedAt: number | null;
+} | null> {
+  const db = await getDb();
+  const [result] = await db
+    .select({
+      paymentProofUrl: bookings.paymentProofUrl,
+      paymentProofKey: bookings.paymentProofKey,
+      paymentProofUploadedAt: bookings.paymentProofUploadedAt,
+    })
+    .from(bookings)
+    .where(eq(bookings.id, bookingId))
+    .limit(1);
+  return result ?? null;
+}

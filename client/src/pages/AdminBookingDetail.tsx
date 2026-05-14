@@ -615,6 +615,43 @@ export default function AdminBookingDetail() {
                     <span className="text-xs text-right max-w-[200px]">{booking.paymentNote}</span>
                   </div>
                 )}
+                {/* Payment Proof for direct deposit */}
+                {booking.paymentMethod === "direct_deposit" && (
+                  <div className="border-t border-border/50 pt-3 space-y-2">
+                    <p className="text-xs text-muted-foreground">Payment Proof</p>
+                    {booking.paymentProofUrl ? (
+                      <div className="rounded-lg border border-border/50 overflow-hidden">
+                        {booking.paymentProofUrl.endsWith(".pdf") ? (
+                          <a
+                            href={booking.paymentProofUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 p-3 hover:bg-muted/50 transition-colors"
+                          >
+                            <Package className="w-8 h-8 text-muted-foreground" />
+                            <div>
+                              <p className="text-sm font-medium">Payment Proof (PDF)</p>
+                              <p className="text-xs text-muted-foreground">Click to view</p>
+                            </div>
+                          </a>
+                        ) : (
+                          <a href={booking.paymentProofUrl} target="_blank" rel="noopener noreferrer">
+                            <img
+                              src={booking.paymentProofUrl}
+                              alt="Payment proof"
+                              className="w-full max-h-48 object-contain bg-black/20 cursor-pointer"
+                            />
+                          </a>
+                        )}
+                        <div className="px-3 py-1.5 bg-muted/30 text-xs text-muted-foreground">
+                          Uploaded by client
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-amber-400 italic">No payment proof uploaded yet</p>
+                    )}
+                  </div>
+                )}
                 {/* Quick Mark as Paid button for direct deposit unpaid bookings */}
                 {booking.paymentMethod === "direct_deposit" && booking.paymentStatus === "unpaid" && (
                   <div className="border-t border-border/50 pt-3">

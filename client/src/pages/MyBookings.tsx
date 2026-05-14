@@ -28,7 +28,7 @@ import {
   Plane, Clock, MapPin, Star, CalendarDays, Users,
   ArrowRight, Loader2, LogIn, ChevronRight, Car,
   XCircle, AlertTriangle, ShieldAlert, CheckCircle2,
-  Pencil, MessageSquarePlus, Receipt
+  Pencil, MessageSquarePlus, Receipt, Upload
 } from "lucide-react";
 import { SERVICE_TYPES, BOOKING_STATUSES, PAYMENT_METHODS } from "@shared/types";
 import type { ServiceType, BookingStatus, PaymentMethod } from "@shared/types";
@@ -453,6 +453,20 @@ export default function MyBookings() {
                     >
                       <MessageSquarePlus className="w-3 h-3 mr-1" />
                       Leave Review
+                    </Button>
+                  )}
+                  {booking.paymentMethod === "direct_deposit" && booking.paymentStatus === "unpaid" && booking.status !== "cancelled" && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-primary border-primary/30 hover:bg-primary/10 hover:text-primary h-7 text-xs"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setLocation(`/confirmation/${booking.referenceNumber}`);
+                      }}
+                    >
+                      <Upload className="w-3 h-3 mr-1" />
+                      {booking.paymentProofUrl ? "View Proof" : "Upload Proof"}
                     </Button>
                   )}
                   {booking.paymentStatus === "paid" && (

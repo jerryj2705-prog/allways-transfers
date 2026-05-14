@@ -95,6 +95,9 @@ export const bookings = mysqlTable("bookings", {
   paymentStatus: mysqlEnum("paymentStatus", ["unpaid", "paid", "refunded"]).notNull().default("unpaid"),
   stripeSessionId: varchar("stripeSessionId", { length: 255 }),
   paymentNote: text("paymentNote"),
+  paymentProofUrl: text("paymentProofUrl"),
+  paymentProofKey: varchar("paymentProofKey", { length: 512 }),
+  paymentProofUploadedAt: bigint("paymentProofUploadedAt", { mode: "number" }),
   // Status
   status: mysqlEnum("status", ["quote", "pending", "confirmed", "completed", "cancelled", "expired"]).default("pending").notNull(),
   // Quote reminder tracking

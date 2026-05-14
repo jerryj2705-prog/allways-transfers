@@ -707,3 +707,14 @@
 - [x] Frontend: "Mark as Paid" button on admin booking detail page for direct deposit bookings
 - [x] Frontend: confirmation dialog before marking as paid (with send receipt checkbox)
 - [x] Write tests for mark-as-paid flow
+
+## Payment Proof Upload for Direct Deposit
+- [x] Database: add paymentProofUrl, paymentProofKey, paymentProofUploadedAt columns to bookings table
+- [x] Backend: file upload via Forge API storage (S3)
+- [x] Backend: tRPC procedure to upload and attach payment proof to a booking
+- [x] Backend: tRPC procedure to get payment proof URL
+- [x] Frontend: upload/view proof button on My Bookings page for direct deposit bookings
+- [x] Frontend: upload preview and re-upload option on booking confirmation page
+- [x] Frontend: display payment proof image/PDF on admin booking detail page with click-to-view
+- [x] Admin notification when payment proof is uploaded (via notifyOwner)
+- [x] Write tests for payment proof upload flow (9 tests)

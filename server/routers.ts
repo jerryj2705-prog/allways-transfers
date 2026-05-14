@@ -26,6 +26,8 @@ import {
   getEnquiryStats,
   updateBookingPaymentStatus,
   getBookingsByDateRange,
+  updatePaymentProof,
+  getPaymentProof,
   getAllPublicHolidays,
   getActivePublicHolidays,
   createPublicHoliday,
@@ -80,6 +82,7 @@ import { makeRequest, type PlaceDetailsResult } from "./_core/map";
 import { createCheckoutSession, createQuoteCheckoutSession } from "./stripe";
 import { notifyOwner } from "./_core/notification";
 import { sendBookingConfirmationEmail, sendCancellationConfirmationEmail, sendAdminNewBookingNotification, sendAdminCancellationNotification, sendPasswordResetEmail, sendQuoteEmail, sendQuoteReminderEmail, sendPaymentReceiptEmail } from "./email";
+import { storagePut } from "./storage";
 import crypto from "crypto";
 import { lookupSuburb, estimateDistance, isOutOfArea, getAllSuburbNames, getAllLocationsWithType, calculateDistance, classifyLGA } from "@shared/suburbs";
 
@@ -1306,6 +1309,79 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
         }
 
         return booking;
+      }),
+
+    // Upload payment proof for direct deposit bookings
+    uploadPaymentProof: protectedProcedure
+      .input(z.object({
+        bookingId: z.number(),
+        fileData: z.string(), // base64-encoded file data
+        fileName: z.string(),
+        fileType: z.string(), // MIME type
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const booking = await getBookingById(input.bookingId);
+        if (!booking) throw new Error("Booking not found");
+
+        // Verify the user owns this booking (by email match)
+        const user = ctx.user;
+        if (user.role !== "admin" && booking.clientEmail !== user.email) {
+          throw new Error("You can only upload payment proof for your own bookings");
+        }
+
+        // Validate file type
+        const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp", "application/pdf"];
+        if (!allowedTypes.includes(input.fileType)) {
+          throw new Error("Invalid file type. Allowed: JPEG, PNG, GIF, WebP, PDF");
+        }
+
+        // Validate file size (max 10MB in base64 ~ 13.3MB string)
+        if (input.fileData.length > 13_400_000) {
+          throw new Error("File too large. Maximum size is 10MB.");
+        }
+
+        // Decode base64 to buffer
+        const buffer = Buffer.from(input.fileData, "base64");
+
+        // Generate unique file key
+        const ext = input.fileName.split(".").pop() || "jpg";
+        const randomSuffix = crypto.randomBytes(8).toString("hex");
+        const fileKey = `payment-proofs/${booking.referenceNumber}-${randomSuffix}.${ext}`;
+
+        // Upload to S3
+        const { url } = await storagePut(fileKey, buffer, input.fileType);
+
+        // Save to database
+        await updatePaymentProof(input.bookingId, url, fileKey);
+
+        // Notify admin about payment proof upload
+        try {
+          await notifyOwner({
+            title: "Payment Proof Uploaded",
+            content: `Client ${booking.clientName} (${booking.clientEmail}) has uploaded payment proof for booking ${booking.referenceNumber}.\n\nPayment Method: Direct Deposit\nAmount: $${booking.totalPrice}\n\nPlease review the proof and mark the booking as paid if the transfer is confirmed.\n\nView proof: ${url}`,
+          });
+        } catch (e) {
+          console.warn("[PaymentProof] Failed to notify admin:", e);
+        }
+
+        return { url, uploadedAt: Date.now() };
+      }),
+
+    // Get payment proof for a booking
+    getPaymentProof: protectedProcedure
+      .input(z.object({ bookingId: z.number() }))
+      .query(async ({ input, ctx }) => {
+        const booking = await getBookingById(input.bookingId);
+        if (!booking) throw new Error("Booking not found");
+
+        // Verify the user owns this booking or is admin
+        const user = ctx.user;
+        if (user.role !== "admin" && booking.clientEmail !== user.email) {
+          throw new Error("You can only view payment proof for your own bookings");
+        }
+
+        const proof = await getPaymentProof(input.bookingId);
+        return proof;
       }),
   }),
 
