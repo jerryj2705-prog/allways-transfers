@@ -797,16 +797,22 @@ export async function calculatePrice(params: {
   const destLGA = destInfo?.lga?.toLowerCase() || "";
 
   // Define route corridors: which suburb/LGA patterns suggest a toll road is used
-  const TOLL_CORRIDORS: { key: string; label: string; pickupPatterns: string[]; destPatterns: string[]; pickupLGAs?: string[]; destLGAs?: string[]; bidirectional?: boolean }[] = [
+  // Airport patterns to exclude from road toll corridors (airport routes use M1/Bruce Hwy, not Gateway)
+  const AIRPORT_PATTERNS = ["brisbane airport", "brisbane domestic", "brisbane international", "bneairport", "sunshine coast airport", "maroochydore airport", "mcyairport"];
+  const isAirportLocation = (loc: string) => AIRPORT_PATTERNS.some(p => loc.includes(p));
+
+  const TOLL_CORRIDORS: { key: string; label: string; pickupPatterns: string[]; destPatterns: string[]; pickupLGAs?: string[]; destLGAs?: string[]; bidirectional?: boolean; excludeAirports?: boolean }[] = [
     {
       key: "toll_gateway_motorway",
       label: "Gateway Motorway",
       // Gateway connects north Brisbane / Sunshine Coast / Moreton Bay to south Brisbane / Gold Coast / Logan
+      // Exclude airport routes: SC/Moreton Bay → BNE Airport uses Bruce Hwy (M1), not Gateway
       pickupPatterns: ["caboolture", "morayfield", "north lakes", "redcliffe", "bribie", "deception bay", "burpengary", "narangba", "petrie"],
       pickupLGAs: ["sunshine coast", "noosa", "moreton bay"],
       destPatterns: [],
       destLGAs: ["gold coast", "logan", "ipswich", "brisbane", "redland", "scenic rim"],
       bidirectional: true,
+      excludeAirports: true,
     },
     {
       key: "toll_logan_motorway",
@@ -885,6 +891,10 @@ export async function calculatePrice(params: {
     }
 
     if (forwardMatch || reverseMatch) {
+      // Skip if corridor excludes airport routes and either endpoint is an airport
+      if (corridor.excludeAirports && (isAirportLocation(pickupLower) || isAirportLocation(destLower))) {
+        continue;
+      }
       roadTollSurcharge += amt;
       roadTollDetails.push({ road: corridor.label, amount: amt });
     }

@@ -1,0 +1,76 @@
+{
+  "query": "SELECT settingKey, settingValue, isActive, label FROM pricing_settings WHERE settingKey LIKE 'toll_%' ORDER BY settingKey;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway05.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3HWZfK7Ep6HZCJY.9379f7ca03be --database 2tTLZKCNzV8jFwxBsLMjpn --execute SELECT settingKey, settingValue, isActive, label FROM pricing_settings WHERE settingKey LIKE 'toll_%' ORDER BY settingKey;",
+  "rows": [
+    {
+      "settingKey": "toll_airportlink_m7",
+      "settingValue": "7.16",
+      "isActive": "1",
+      "label": "AirportlinkM7 Toll"
+    },
+    {
+      "settingKey": "toll_bne_entry",
+      "settingValue": "5.00",
+      "isActive": "1",
+      "label": "Brisbane Airport Entry Toll"
+    },
+    {
+      "settingKey": "toll_bne_exit",
+      "settingValue": "0.00",
+      "isActive": "0",
+      "label": "Brisbane Airport Exit Toll"
+    },
+    {
+      "settingKey": "toll_clem7",
+      "settingValue": "6.50",
+      "isActive": "1",
+      "label": "Clem7 Tunnel Toll"
+    },
+    {
+      "settingKey": "toll_gateway_motorway",
+      "settingValue": "5.78",
+      "isActive": "1",
+      "label": "Gateway Motorway Toll"
+    },
+    {
+      "settingKey": "toll_go_between_bridge",
+      "settingValue": "4.05",
+      "isActive": "1",
+      "label": "Go Between Bridge Toll"
+    },
+    {
+      "settingKey": "toll_legacy_way",
+      "settingValue": "7.00",
+      "isActive": "1",
+      "label": "Legacy Way Toll"
+    },
+    {
+      "settingKey": "toll_logan_motorway",
+      "settingValue": "3.41",
+      "isActive": "1",
+      "label": "Logan Motorway Toll"
+    },
+    {
+      "settingKey": "toll_sct_entry",
+      "settingValue": "5.00",
+      "isActive": "1",
+      "label": "Sunshine Coast Airport Entry Toll"
+    },
+    {
+      "settingKey": "toll_sct_exit",
+      "settingValue": "5.00",
+      "isActive": "1",
+      "label": "Sunshine Coast Airport Exit Toll"
+    },
+    {
+      "settingKey": "toll_toowoomba_bypass",
+      "settingValue": "2.88",
+      "isActive": "1",
+      "label": "Toowoomba Bypass Toll"
+    }
+  ],
+  "messages": [],
+  "stdout": "settingKey\tsettingValue\tisActive\tlabel\ntoll_airportlink_m7\t7.16\t1\tAirportlinkM7 Toll\ntoll_bne_entry\t5.00\t1\tBrisbane Airport Entry Toll\ntoll_bne_exit\t0.00\t0\tBrisbane Airport Exit Toll\ntoll_clem7\t6.50\t1\tClem7 Tunnel Toll\ntoll_gateway_motorway\t5.78\t1\tGateway Motorway Toll\ntoll_go_between_bridge\t4.05\t1\tGo Between Bridge Toll\ntoll_legacy_way\t7.00\t1\tLegacy Way Toll\ntoll_logan_motorway\t3.41\t1\tLogan Motorway Toll\ntoll_sct_entry\t5.00\t1\tSunshine Coast Airport Entry Toll\ntoll_sct_exit\t5.00\t1\tSunshine Coast Airport Exit Toll\ntoll_toowoomba_bypass\t2.88\t1\tToowoomba Bypass Toll\n",
+  "stderr": "",
+  "execution_time_ms": 1694
+}

@@ -1674,16 +1674,20 @@ async function calculatePrice(params) {
   const destInfo = lookupSuburb(params.destinationSuburb || "");
   const pickupLGA = pickupInfo?.lga?.toLowerCase() || "";
   const destLGA = destInfo?.lga?.toLowerCase() || "";
+  const AIRPORT_PATTERNS = ["brisbane airport", "brisbane domestic", "brisbane international", "bneairport", "sunshine coast airport", "maroochydore airport", "mcyairport"];
+  const isAirportLocation = (loc) => AIRPORT_PATTERNS.some((p) => loc.includes(p));
   const TOLL_CORRIDORS = [
     {
       key: "toll_gateway_motorway",
       label: "Gateway Motorway",
       // Gateway connects north Brisbane / Sunshine Coast / Moreton Bay to south Brisbane / Gold Coast / Logan
+      // Exclude airport routes: SC/Moreton Bay → BNE Airport uses Bruce Hwy (M1), not Gateway
       pickupPatterns: ["caboolture", "morayfield", "north lakes", "redcliffe", "bribie", "deception bay", "burpengary", "narangba", "petrie"],
       pickupLGAs: ["sunshine coast", "noosa", "moreton bay"],
       destPatterns: [],
       destLGAs: ["gold coast", "logan", "ipswich", "brisbane", "redland", "scenic rim"],
-      bidirectional: true
+      bidirectional: true,
+      excludeAirports: true
     },
     {
       key: "toll_logan_motorway",
@@ -1756,6 +1760,9 @@ async function calculatePrice(params) {
       reverseMatch = (pickupMatchesDestByName || pickupMatchesDestByLGA) && (destMatchesOriginByName || destMatchesOriginByLGA);
     }
     if (forwardMatch || reverseMatch) {
+      if (corridor.excludeAirports && (isAirportLocation(pickupLower) || isAirportLocation(destLower))) {
+        continue;
+      }
       roadTollSurcharge += amt;
       roadTollDetails.push({ road: corridor.label, amount: amt });
     }
