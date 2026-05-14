@@ -828,3 +828,9 @@
 
 ## Invoice Footer Message Alignment
 - [x] Centre-justify the footer message on the invoice PDF
+
+## Mobile Admin Hamburger Menu
+- [x] Add hamburger menu icon on small screens for admin nav
+- [x] Collapse all nav items (Calendar, Pricing, Enquiries, Reviews, Landmarks, Settings dropdown items) into slide-out/dropdown menu
+- [x] Keep desktop layout unchanged
+- [x] Ensure Settings sub-items (Email Logs, Bank Details, Invoice Settings) are accessible in mobile menu

@@ -17,8 +17,11 @@ import {
   Search, LayoutDashboard, Clock, CheckCircle, XCircle, AlertCircle,
   ChevronLeft, ChevronRight, LogOut, Home, DollarSign, MessageSquare, CalendarDays, Star,
   Download, X, Banknote, CreditCard, RotateCcw, MapPin, Trash2, Navigation, FileText, Mail, Building2,
-  Settings, ChevronDown,
+  Settings, ChevronDown, Menu,
 } from "lucide-react";
+import {
+  Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger,
+} from "@/components/ui/sheet";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -108,6 +111,7 @@ export default function AdminDashboard() {
   const pageSize = 15;
   const pwa = usePwaInstall();
 
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
   const searchTimeout = useMemo(() => {
@@ -232,10 +236,82 @@ export default function AdminDashboard() {
       {/* Sticky Header */}
       <div className="border-b border-border/50 bg-background/90 backdrop-blur-md sticky top-0 z-50">
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', flexWrap: 'nowrap' }}>
-          {/* Home */}
+          {/* Mobile hamburger - visible on small screens */}
+          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+            <SheetTrigger asChild>
+              <button
+                className="lg:hidden text-muted-foreground hover:text-foreground transition-colors"
+                style={{ flexShrink: 0 }}
+              >
+                <Menu className="w-5 h-5" />
+              </button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-72 p-0">
+              <SheetHeader className="border-b border-border/50 px-4 py-3">
+                <SheetTitle className="flex items-center gap-2">
+                  <img src={LOGO_IMG} alt="All Ways Transfers" className="h-8 w-auto" />
+                  <span className="text-sm font-medium">Admin</span>
+                </SheetTitle>
+              </SheetHeader>
+              <nav className="flex flex-col py-2">
+                <button onClick={() => { setLocation("/"); setMobileMenuOpen(false); }} className="flex items-center gap-3 px-4 py-3 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
+                  <Home className="w-4 h-4" />
+                  Home
+                </button>
+                <button onClick={() => { setLocation("/admin"); setMobileMenuOpen(false); }} className="flex items-center gap-3 px-4 py-3 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
+                  <LayoutDashboard className="w-4 h-4" />
+                  Dashboard
+                </button>
+                <div className="h-px bg-border/50 mx-4 my-1" />
+                <button onClick={() => { setLocation("/admin/calendar"); setMobileMenuOpen(false); }} className="flex items-center gap-3 px-4 py-3 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
+                  <CalendarDays className="w-4 h-4" />
+                  Calendar
+                </button>
+                <button onClick={() => { setLocation("/admin/pricing"); setMobileMenuOpen(false); }} className="flex items-center gap-3 px-4 py-3 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
+                  <DollarSign className="w-4 h-4" />
+                  Pricing
+                </button>
+                <button onClick={() => { setLocation("/admin/enquiries"); setMobileMenuOpen(false); }} className="flex items-center gap-3 px-4 py-3 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
+                  <MessageSquare className="w-4 h-4" />
+                  Enquiries
+                </button>
+                <button onClick={() => { setLocation("/admin/reviews"); setMobileMenuOpen(false); }} className="flex items-center gap-3 px-4 py-3 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
+                  <Star className="w-4 h-4" />
+                  Reviews
+                </button>
+                <button onClick={() => { setLocation("/admin/landmarks"); setMobileMenuOpen(false); }} className="flex items-center gap-3 px-4 py-3 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
+                  <MapPin className="w-4 h-4" />
+                  Landmarks
+                </button>
+                <div className="h-px bg-border/50 mx-4 my-1" />
+                <p className="px-4 pt-2 pb-1 text-xs font-medium text-muted-foreground/60 uppercase tracking-wider">Settings</p>
+                <button onClick={() => { setLocation("/admin/email-logs"); setMobileMenuOpen(false); }} className="flex items-center gap-3 px-4 py-3 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
+                  <Mail className="w-4 h-4" />
+                  Email Logs
+                </button>
+                <button onClick={() => { setLocation("/admin/bank-details"); setMobileMenuOpen(false); }} className="flex items-center gap-3 px-4 py-3 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
+                  <Building2 className="w-4 h-4" />
+                  Bank Details
+                </button>
+                <button onClick={() => { setLocation("/admin/invoice-settings"); setMobileMenuOpen(false); }} className="flex items-center gap-3 px-4 py-3 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
+                  <FileText className="w-4 h-4" />
+                  Invoice Settings
+                </button>
+                <div className="h-px bg-border/50 mx-4 my-1" />
+                <div className="px-4 py-3">
+                  <p className="text-xs text-muted-foreground mb-2">{user.name}</p>
+                  <Button variant="outline" size="sm" onClick={() => { logout(); setMobileMenuOpen(false); }} className="w-full gap-1 bg-background h-8 text-xs">
+                    <LogOut className="w-3.5 h-3.5" />
+                    Sign Out
+                  </Button>
+                </div>
+              </nav>
+            </SheetContent>
+          </Sheet>
+          {/* Home - hidden on mobile (available in slide-out) */}
           <button
             onClick={() => setLocation("/")}
-            className="text-muted-foreground hover:text-foreground transition-colors"
+            className="hidden lg:block text-muted-foreground hover:text-foreground transition-colors"
             style={{ flexShrink: 0 }}
           >
             <Home className="w-4 h-4" />
@@ -244,31 +320,31 @@ export default function AdminDashboard() {
           <img src={LOGO_IMG} alt="All Ways Transfers" className="h-10 w-auto" style={{ flexShrink: 0 }} />
           {/* Spacer */}
           <div style={{ flex: '1 1 0' }} />
-          {/* Nav buttons */}
-          <Button variant="outline" size="sm" onClick={() => setLocation("/admin/calendar")} className="gap-1 bg-background h-8 px-3 text-xs" style={{ flexShrink: 0 }}>
+          {/* Desktop nav buttons - hidden on mobile */}
+          <Button variant="outline" size="sm" onClick={() => setLocation("/admin/calendar")} className="hidden lg:inline-flex gap-1 bg-background h-8 px-3 text-xs" style={{ flexShrink: 0 }}>
             <CalendarDays className="w-3.5 h-3.5" />
             Calendar
           </Button>
-          <Button variant="outline" size="sm" onClick={() => setLocation("/admin/pricing")} className="gap-1 bg-background h-8 px-3 text-xs" style={{ flexShrink: 0 }}>
+          <Button variant="outline" size="sm" onClick={() => setLocation("/admin/pricing")} className="hidden lg:inline-flex gap-1 bg-background h-8 px-3 text-xs" style={{ flexShrink: 0 }}>
             <DollarSign className="w-3.5 h-3.5" />
             Pricing
           </Button>
-          <Button variant="outline" size="sm" onClick={() => setLocation("/admin/enquiries")} className="gap-1 bg-background h-8 px-3 text-xs" style={{ flexShrink: 0 }}>
+          <Button variant="outline" size="sm" onClick={() => setLocation("/admin/enquiries")} className="hidden lg:inline-flex gap-1 bg-background h-8 px-3 text-xs" style={{ flexShrink: 0 }}>
             <MessageSquare className="w-3.5 h-3.5" />
             Enquiries
           </Button>
-          <Button variant="outline" size="sm" onClick={() => setLocation("/admin/reviews")} className="gap-1 bg-background h-8 px-3 text-xs" style={{ flexShrink: 0 }}>
+          <Button variant="outline" size="sm" onClick={() => setLocation("/admin/reviews")} className="hidden lg:inline-flex gap-1 bg-background h-8 px-3 text-xs" style={{ flexShrink: 0 }}>
             <Star className="w-3.5 h-3.5" />
             Reviews
           </Button>
-          <Button variant="outline" size="sm" onClick={() => setLocation("/admin/landmarks")} className="gap-1 bg-background h-8 px-3 text-xs" style={{ flexShrink: 0 }}>
+          <Button variant="outline" size="sm" onClick={() => setLocation("/admin/landmarks")} className="hidden lg:inline-flex gap-1 bg-background h-8 px-3 text-xs" style={{ flexShrink: 0 }}>
             <MapPin className="w-3.5 h-3.5" />
             Landmarks
           </Button>
-          {/* Settings dropdown */}
+          {/* Settings dropdown - hidden on mobile */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-1 bg-background h-8 px-3 text-xs" style={{ flexShrink: 0 }}>
+              <Button variant="outline" size="sm" className="hidden lg:inline-flex gap-1 bg-background h-8 px-3 text-xs" style={{ flexShrink: 0 }}>
                 <Settings className="w-3.5 h-3.5" />
                 Settings
                 <ChevronDown className="w-3 h-3" />
@@ -289,9 +365,9 @@ export default function AdminDashboard() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          {/* User info */}
-          <span className="text-xs text-muted-foreground" style={{ flexShrink: 0 }}>{user.name}</span>
-          <Button variant="outline" size="sm" onClick={logout} className="gap-1 bg-background h-8 px-2 text-xs" style={{ flexShrink: 0 }}>
+          {/* User info - hidden on mobile */}
+          <span className="hidden lg:inline text-xs text-muted-foreground" style={{ flexShrink: 0 }}>{user.name}</span>
+          <Button variant="outline" size="sm" onClick={logout} className="hidden lg:inline-flex gap-1 bg-background h-8 px-2 text-xs" style={{ flexShrink: 0 }}>
             <LogOut className="w-3.5 h-3.5" />
             Sign Out
           </Button>
