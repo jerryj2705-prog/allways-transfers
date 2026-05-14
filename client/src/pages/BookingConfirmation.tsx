@@ -22,17 +22,31 @@ export default function BookingConfirmation() {
 
   const [showPaymentBanner, setShowPaymentBanner] = useState(!!paymentResult);
 
+  // Track whether we're still waiting for webhook to confirm payment
+  const [paymentConfirmed, setPaymentConfirmed] = useState(false);
+
   const { data: booking, isLoading, refetch } = trpc.bookings.getByReference.useQuery(
     { referenceNumber: params.ref ?? "" },
-    { enabled: !!params.ref, refetchInterval: paymentResult === "success" ? 3000 : false }
+    {
+      enabled: !!params.ref,
+      // Poll every 3s when returning from Stripe success and payment not yet confirmed
+      refetchInterval: (paymentResult === "success" && !paymentConfirmed) ? 3000 : false,
+    }
   );
 
   // Stop polling once payment status is confirmed as paid
   useEffect(() => {
     if (booking?.paymentStatus === "paid" && paymentResult === "success") {
-      // Payment confirmed, no need to keep polling
+      setPaymentConfirmed(true);
     }
   }, [booking?.paymentStatus, paymentResult]);
+
+  // Determine if we're in a "payment processing" state:
+  // User returned from Stripe with success, but webhook hasn't updated the DB yet
+  const isPaymentProcessing = paymentResult === "success" && booking?.paymentStatus !== "paid" && !paymentConfirmed;
+
+  // The effective payment status to display — if processing, show as "processing"
+  const displayPaymentStatus = isPaymentProcessing ? "processing" : booking?.paymentStatus;
 
   const invoiceMutation = trpc.bookings.downloadInvoice.useMutation({
     onSuccess: (result) => {
@@ -166,7 +180,8 @@ export default function BookingConfirmation() {
   const serviceLabel = SERVICE_TYPES[booking.serviceType as ServiceType]?.label ?? booking.serviceType;
   const isStripeBooking = booking.paymentMethod === "stripe_prepay";
   const isUnpaid = booking.paymentStatus !== "paid";
-  const canRetryPayment = isStripeBooking && isUnpaid && booking.status !== "cancelled";
+  // Only show "Payment Required" if it's a Stripe booking, actually unpaid, NOT processing, and not cancelled
+  const canRetryPayment = isStripeBooking && isUnpaid && !isPaymentProcessing && booking.status !== "cancelled";
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -187,7 +202,9 @@ export default function BookingConfirmation() {
             <div>
               <p className="font-medium text-emerald-400">Payment Successful!</p>
               <p className="text-sm text-muted-foreground">
-                Your payment has been processed successfully. You will receive a confirmation email shortly.
+                {isPaymentProcessing
+                  ? "Your payment is being processed. This page will update automatically once confirmed."
+                  : "Your payment has been processed successfully. You will receive a confirmation email shortly."}
               </p>
             </div>
             <button onClick={() => setShowPaymentBanner(false)} className="text-muted-foreground hover:text-foreground ml-auto shrink-0">&times;</button>
@@ -257,97 +274,31 @@ export default function BookingConfirmation() {
               <div>
                 <p className="text-muted-foreground">Status</p>
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
-                  Pending Confirmation
+                  {booking.status === "confirmed" ? "Confirmed" : booking.status === "cancelled" ? "Cancelled" : booking.status === "completed" ? "Completed" : "Pending"}
                 </span>
               </div>
               <div>
-                <p className="text-muted-foreground flex items-center gap-1"><MapPin className="w-3 h-3" /> Pickup</p>
-                <p className="font-medium">{booking.pickupAddress}</p>
-              </div>
-              {booking.dropoffAddress && (
-                <div>
-                  <p className="text-muted-foreground flex items-center gap-1"><MapPin className="w-3 h-3" /> Drop-off</p>
-                  <p className="font-medium">{booking.dropoffAddress}</p>
-                </div>
-              )}
-              <div>
-                <p className="text-muted-foreground">Date & Time</p>
+                <p className="text-muted-foreground">Date &amp; Time</p>
                 <p className="font-medium">
-                  {new Date(booking.pickupDate).toLocaleString("en-AU", {
-                    timeZone: "Australia/Brisbane",
-                    dateStyle: "medium",
-                    timeStyle: "short",
-                  })}
+                  {new Date(booking.pickupDate).toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short", year: "numeric" })}
+                  {" at "}
+                  {new Date(booking.pickupDate).toLocaleTimeString("en-AU", { hour: "2-digit", minute: "2-digit" })}
                 </p>
               </div>
               <div>
-                <p className="text-muted-foreground flex items-center gap-1"><Users className="w-3 h-3" /> Passengers</p>
-                <p className="font-medium">{booking.passengerCount}</p>
+                <p className="text-muted-foreground">Passengers</p>
+                <p className="font-medium flex items-center gap-1"><Users className="w-3 h-3" />{booking.passengerCount}</p>
               </div>
-              <div>
-                <p className="text-muted-foreground flex items-center gap-1"><Car className="w-3 h-3" /> Vehicle</p>
-                <p className="font-medium">{booking.vehicleName}</p>
+              <div className="col-span-2">
+                <p className="text-muted-foreground flex items-center gap-1"><MapPin className="w-3 h-3" /> Pickup</p>
+                <p className="font-medium">{booking.pickupAddress}</p>
               </div>
-              {booking.needsSupportVan === 1 && (
-                <div>
-                  <p className="text-muted-foreground">Support Van</p>
-                  <p className="font-medium">Included</p>
-                </div>
-              )}
-              {(booking.rearFacingSeats > 0 || booking.forwardFacingSeats > 0 || booking.boosterSeats > 0) && (
-                <div className="col-span-2">
-                  <p className="text-muted-foreground flex items-center gap-1"><Baby className="w-3 h-3" /> Child Seats</p>
-                  <p className="font-medium">
-                    {[booking.rearFacingSeats > 0 && `${booking.rearFacingSeats} Rear-Facing`, booking.forwardFacingSeats > 0 && `${booking.forwardFacingSeats} Forward-Facing`, booking.boosterSeats > 0 && `${booking.boosterSeats} Booster`].filter(Boolean).join(", ")}
-                  </p>
-                </div>
-              )}
-              {booking.isPetFriendly === 1 && (
-                <>
-                  {booking.numberOfPets != null && booking.numberOfPets > 0 && (
-                    <div>
-                      <p className="text-muted-foreground flex items-center gap-1"><Dog className="w-3 h-3" /> Number of Pets</p>
-                      <p className="font-medium">{booking.numberOfPets}</p>
-                    </div>
-                  )}
-                  <div className={booking.numberOfPets ? "" : "col-span-2"}>
-                    <p className="text-muted-foreground flex items-center gap-1"><Dog className="w-3 h-3" /> Pet(s) Description</p>
-                    <p className="font-medium">{booking.petDescription || "Yes"}</p>
-                  </div>
-                </>
-              )}
-              {booking.serviceType === "freight" && booking.freightDescription && (
-                <>
-                  <div className="col-span-2">
-                    <p className="text-muted-foreground flex items-center gap-1"><Package className="w-3 h-3" /> Item Description</p>
-                    <p className="font-medium">{booking.freightDescription}</p>
-                  </div>
-                  {booking.freightWeight && (
-                    <div>
-                      <p className="text-muted-foreground flex items-center gap-1"><Package className="w-3 h-3" /> Estimated Weight</p>
-                      <p className="font-medium">{{
-                        under_10kg: "Under 10 kg",
-                        "10_25kg": "10 \u2013 25 kg",
-                        "25_50kg": "25 \u2013 50 kg",
-                        "50_100kg": "50 \u2013 100 kg",
-                        "100_plus": "100+ kg",
-                      }[booking.freightWeight] || booking.freightWeight}</p>
-                    </div>
-                  )}
-                  {booking.freightItemCount != null && booking.freightItemCount > 0 && (
-                    <div>
-                      <p className="text-muted-foreground flex items-center gap-1"><Package className="w-3 h-3" /> Number of Items</p>
-                      <p className="font-medium">{booking.freightItemCount}</p>
-                    </div>
-                  )}
-                  {booking.freightSpecialHandling && (
-                    <div className="col-span-2">
-                      <p className="text-muted-foreground flex items-center gap-1"><Package className="w-3 h-3" /> Special Handling</p>
-                      <p className="font-medium">{booking.freightSpecialHandling}</p>
-                    </div>
-                  )}
-                </>
-              )}
+              <div className="col-span-2">
+                <p className="text-muted-foreground flex items-center gap-1"><MapPin className="w-3 h-3" /> Drop-off</p>
+                <p className="font-medium">{booking.dropoffAddress}</p>
+              </div>
+
+              {/* Additional stops */}
               {((booking.additionalPickupCount ?? 0) > 0 || (booking.additionalDropoffCount ?? 0) > 0) && (
                 <div className="col-span-2 space-y-2">
                   <p className="text-muted-foreground flex items-center gap-1"><MapPin className="w-3 h-3" /> Additional Stops</p>
@@ -403,13 +354,20 @@ export default function BookingConfirmation() {
               </div>
               <div>
                 <p className="text-muted-foreground">Payment Status</p>
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                  booking.paymentStatus === "paid" ? "bg-emerald-100 text-emerald-800" :
-                  booking.paymentStatus === "refunded" ? "bg-blue-100 text-blue-800" :
-                  "bg-amber-100 text-amber-800"
-                }`}>
-                  {booking.paymentStatus === "paid" ? "Paid" : booking.paymentStatus === "refunded" ? "Refunded" : "Unpaid"}
-                </span>
+                {displayPaymentStatus === "processing" ? (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    Processing
+                  </span>
+                ) : (
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    booking.paymentStatus === "paid" ? "bg-emerald-100 text-emerald-800" :
+                    booking.paymentStatus === "refunded" ? "bg-blue-100 text-blue-800" :
+                    "bg-amber-100 text-amber-800"
+                  }`}>
+                    {booking.paymentStatus === "paid" ? "Paid" : booking.paymentStatus === "refunded" ? "Refunded" : "Unpaid"}
+                  </span>
+                )}
                 {booking.paymentStatus === "paid" && (
                   <Button
                     variant="link"
@@ -486,6 +444,57 @@ export default function BookingConfirmation() {
               </div>
             )}
 
+            {/* Vehicle info */}
+            {booking.vehicleName && (
+              <div className="flex items-center gap-2 text-sm">
+                <Car className="w-4 h-4 text-primary" />
+                <span className="text-muted-foreground">Vehicle:</span>
+                <span className="font-medium">{booking.vehicleName}</span>
+              </div>
+            )}
+
+            {/* Child seats */}
+            {((booking.rearFacingSeats ?? 0) > 0 || (booking.forwardFacingSeats ?? 0) > 0 || (booking.boosterSeats ?? 0) > 0) && (
+              <div className="flex items-center gap-2 text-sm flex-wrap">
+                <Baby className="w-4 h-4 text-primary shrink-0" />
+                <span className="text-muted-foreground">Child Seats:</span>
+                {(booking.rearFacingSeats ?? 0) > 0 && <span className="font-medium">{booking.rearFacingSeats} Rear-facing</span>}
+                {(booking.forwardFacingSeats ?? 0) > 0 && <span className="font-medium">{booking.forwardFacingSeats} Forward-facing</span>}
+                {(booking.boosterSeats ?? 0) > 0 && <span className="font-medium">{booking.boosterSeats} Booster</span>}
+              </div>
+            )}
+
+            {/* Pets */}
+            {booking.isPetFriendly === 1 && (
+              <div className="flex items-center gap-2 text-sm">
+                <Dog className="w-4 h-4 text-primary" />
+                <span className="text-muted-foreground">Pets:</span>
+                <span className="font-medium">{booking.numberOfPets ?? 1} pet{(booking.numberOfPets ?? 1) > 1 ? "s" : ""}</span>
+                {booking.petDescription && <span className="text-muted-foreground">({booking.petDescription})</span>}
+              </div>
+            )}
+
+            {/* Freight */}
+            {booking.freightDescription && (
+              <div className="flex items-start gap-2 text-sm">
+                <Package className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                <div>
+                  <span className="text-muted-foreground">Freight: </span>
+                  <span className="font-medium">{booking.freightDescription}</span>
+                  {booking.freightWeight && <span className="text-muted-foreground"> ({booking.freightWeight}kg)</span>}
+                  {booking.freightItemCount && <span className="text-muted-foreground"> - {booking.freightItemCount} items</span>}
+                </div>
+              </div>
+            )}
+
+            {/* Special requests */}
+            {booking.specialRequests && (
+              <div className="text-sm">
+                <p className="text-muted-foreground mb-1">Special Requests</p>
+                <p className="font-medium bg-muted/30 rounded-lg p-3 text-sm">{booking.specialRequests}</p>
+              </div>
+            )}
+
             <div className="border-t border-border/50 pt-4">
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">Estimated Total</span>
@@ -497,6 +506,23 @@ export default function BookingConfirmation() {
                 Final price may vary based on actual distance and duration.
               </p>
             </div>
+
+            {/* Payment Processing Indicator */}
+            {isPaymentProcessing && (
+              <div className="border-t border-border/50 pt-4">
+                <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/30 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 text-blue-400 animate-spin shrink-0" />
+                    <div>
+                      <p className="text-sm font-medium text-blue-400">Payment Processing</p>
+                      <p className="text-xs text-muted-foreground">
+                        Your payment is being confirmed. This usually takes a few seconds. The page will update automatically.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Direct Deposit Payment Proof Upload */}
             {booking.paymentMethod === "direct_deposit" && booking.status !== "cancelled" && (
@@ -580,7 +606,7 @@ export default function BookingConfirmation() {
               </div>
             )}
 
-            {/* Retry Payment Button */}
+            {/* Retry Payment Button — only show when NOT processing and genuinely unpaid */}
             {canRetryPayment && (
               <div className="border-t border-border/50 pt-4">
                 <div className="p-4 rounded-lg bg-primary/5 border border-primary/20 space-y-3">

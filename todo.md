@@ -786,3 +786,8 @@
 - [x] Show bank transfer details box on ALL unpaid invoices (not just direct deposit)
 - [x] Add interactive invoice preview in admin Invoice Settings page (inline PDF viewer with paid/unpaid toggle)
 - [x] Test and verify (32 tests passing)
+
+## Bug Fixes
+- [x] Fix confirmation page showing "Payment Required" card after successful Stripe payment
+- [x] Fix confirmation page showing "Unpaid" payment status after successful Stripe payment
+- [x] Added "Payment Processing" state with spinner when returning from Stripe before webhook confirms
