@@ -25,6 +25,7 @@ async function sendAndLog(params: {
   subject: string;
   html: string;
   bookingReference?: string;
+  attachments?: { filename: string; content: Buffer }[];
 }): Promise<{ success: boolean; id?: string }> {
   const resend = getResend();
   try {
@@ -34,6 +35,7 @@ async function sendAndLog(params: {
       bcc: params.bcc,
       subject: params.subject,
       html: params.html,
+      attachments: params.attachments,
     });
 
     if (result.error) {
@@ -297,7 +299,7 @@ function buildTollsHtml(data: BookingEmailData): string {
   return html;
 }
 
-export async function sendBookingConfirmationEmail(data: BookingEmailData): Promise<boolean> {
+export async function sendBookingConfirmationEmail(data: BookingEmailData & { invoicePdf?: Buffer | null }): Promise<boolean> {
   if (process.env.VITEST || process.env.NODE_ENV === "test") {
     console.log(`[Email] Skipping email send in test environment for ${data.referenceNumber}`);
     return true;
@@ -478,6 +480,14 @@ export async function sendBookingConfirmationEmail(data: BookingEmailData): Prom
     </p>
   `;
 
+  const attachments: { filename: string; content: Buffer }[] = [];
+  if (data.invoicePdf) {
+    attachments.push({
+      filename: `Invoice-${data.referenceNumber}.pdf`,
+      content: data.invoicePdf,
+    });
+  }
+
   const { success } = await sendAndLog({
     emailType: "booking_confirmation",
     from: `All Ways Transfers <${ENV.resendFromEmail}>`,
@@ -485,6 +495,7 @@ export async function sendBookingConfirmationEmail(data: BookingEmailData): Prom
     subject: `Booking Confirmed — ${data.referenceNumber}`,
     html: wrapInTemplate(bodyContent),
     bookingReference: data.referenceNumber,
+    attachments: attachments.length > 0 ? attachments : undefined,
   });
   return success;
 }
@@ -1256,7 +1267,7 @@ export interface PaymentReceiptEmailData {
   routePreference?: string;
 }
 
-export async function sendPaymentReceiptEmail(data: PaymentReceiptEmailData): Promise<boolean> {
+export async function sendPaymentReceiptEmail(data: PaymentReceiptEmailData & { invoicePdf?: Buffer | null }): Promise<boolean> {
   if (process.env.VITEST || process.env.NODE_ENV === "test") {
     console.log(`[Email] Skipping email send in test environment for ${data.referenceNumber}`);
     return true;
@@ -1390,6 +1401,14 @@ export async function sendPaymentReceiptEmail(data: PaymentReceiptEmailData): Pr
     </table>
   `;
 
+  const attachments: { filename: string; content: Buffer }[] = [];
+  if (data.invoicePdf) {
+    attachments.push({
+      filename: `Invoice-${data.referenceNumber}.pdf`,
+      content: data.invoicePdf,
+    });
+  }
+
   const adminEmail = ENV.adminEmail || "admin@allwaystransfers.com.au";
   const { success } = await sendAndLog({
     emailType: "payment_receipt",
@@ -1399,6 +1418,7 @@ export async function sendPaymentReceiptEmail(data: PaymentReceiptEmailData): Pr
     subject: `Payment Receipt — ${data.referenceNumber}`,
     html: wrapInTemplate(bodyContent),
     bookingReference: data.referenceNumber,
+    attachments: attachments.length > 0 ? attachments : undefined,
   });
   return success;
 }

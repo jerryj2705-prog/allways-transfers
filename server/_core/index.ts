@@ -8,8 +8,9 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { constructWebhookEvent } from "../stripe";
-import { getBookingById, getBookingByStripeSession, updateBookingPaymentStatus, convertQuoteToBooking, getBookingByReference } from "../db";
+import { getBookingById, getBookingByStripeSession, updateBookingPaymentStatus, convertQuoteToBooking, getBookingByReference, getAppSetting } from "../db";
 import { sendPaymentReceiptEmail, sendBookingConfirmationEmail, sendAdminNewBookingNotification } from "../email";
+import { generateInvoicePDF } from "../invoice";
 import { initCronJobs } from "../cron";
 
 function isPortAvailable(port: number): Promise<boolean> {
@@ -70,6 +71,18 @@ async function startServer() {
                   const updatedBooking = await getBookingById(parseInt(bookingId));
                   if (updatedBooking) {
                     try {
+                      // Generate invoice PDF for attachment
+                      let webhookInvoicePdf: Buffer | null = null;
+                      try {
+                        const [footerMsg, abnVal] = await Promise.all([
+                          getAppSetting("invoice_footer_message"),
+                          getAppSetting("invoice_abn"),
+                        ]);
+                        webhookInvoicePdf = await generateInvoicePDF(updatedBooking, { footerMessage: footerMsg, abn: abnVal });
+                      } catch (pdfErr) {
+                        console.warn(`[Webhook] Failed to generate invoice PDF:`, pdfErr);
+                      }
+
                       await sendBookingConfirmationEmail({
                         referenceNumber: updatedBooking.referenceNumber,
                         clientName: updatedBooking.clientName,
@@ -88,6 +101,7 @@ async function startServer() {
                         publicHolidayName: updatedBooking.publicHolidayName,
                         publicHolidaySurcharge: updatedBooking.publicHolidaySurcharge,
                         routePreference: updatedBooking.routePreference ?? undefined,
+                        invoicePdf: webhookInvoicePdf,
                       });
                       // Notify admin of new booking from quote
                       await sendAdminNewBookingNotification({
@@ -121,6 +135,18 @@ async function startServer() {
             try {
               const booking = await getBookingById(parseInt(bookingId));
               if (booking) {
+                // Generate invoice PDF for receipt attachment
+                let receiptPdf: Buffer | null = null;
+                try {
+                  const [footerMsg, abnVal] = await Promise.all([
+                    getAppSetting("invoice_footer_message"),
+                    getAppSetting("invoice_abn"),
+                  ]);
+                  receiptPdf = await generateInvoicePDF(booking, { footerMessage: footerMsg, abn: abnVal });
+                } catch (pdfErr) {
+                  console.warn(`[Webhook] Failed to generate invoice PDF for receipt:`, pdfErr);
+                }
+
                 await sendPaymentReceiptEmail({
                   referenceNumber: booking.referenceNumber,
                   clientName: booking.clientName,
@@ -139,6 +165,7 @@ async function startServer() {
                   publicHolidayName: booking.publicHolidayName,
                   publicHolidaySurcharge: booking.publicHolidaySurcharge,
                   routePreference: booking.routePreference ?? undefined,
+                  invoicePdf: receiptPdf,
                 });
               }
             } catch (emailErr) {

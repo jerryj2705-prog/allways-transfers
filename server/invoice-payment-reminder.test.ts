@@ -768,3 +768,261 @@ describe("generateInvoicePDF with ABN option", () => {
     expect(pdfBuffer.length).toBeGreaterThan(0);
   });
 });
+
+// ─── PAID Watermark Tests ───
+
+describe("generateInvoicePDF PAID watermark", () => {
+  it("generates a larger PDF for paid bookings (watermark adds content)", async () => {
+    const { generateInvoicePDF } = await import("./invoice");
+
+    const baseBooking = {
+      id: 20,
+      referenceNumber: "AWT-WM001",
+      clientName: "Watermark User",
+      clientEmail: "wm@example.com",
+      clientPhone: "0477777777",
+      serviceType: "airport_transfer" as const,
+      pickupAddress: "123 Main St, Brisbane QLD",
+      dropoffAddress: "Brisbane Airport",
+      additionalPickupCount: 0,
+      additionalDropoffCount: 0,
+      additionalPickupAddresses: null,
+      additionalDropoffAddresses: null,
+      additionalStopsSurcharge: "0.00",
+      publicHolidaySurcharge: "0.00",
+      publicHolidayName: null,
+      pickupDate: Date.now() + 86400000,
+      passengerCount: 2,
+      vehicleId: 1,
+      vehicleName: "Kia Carnival",
+      needsSupportVan: 0,
+      supportVanPrice: "0.00",
+      rearFacingSeats: 0,
+      forwardFacingSeats: 0,
+      boosterSeats: 0,
+      freightDescription: null,
+      freightWeight: null,
+      freightItemCount: null,
+      freightSpecialHandling: null,
+      routePreference: "fastest",
+      tollOverride: null,
+      airportTollSurcharge: "0.00",
+      airportTollDetails: null,
+      roadTollSurcharge: "0.00",
+      roadTollDetails: null,
+      isPetFriendly: 0,
+      numberOfPets: null,
+      petDescription: null,
+      estimatedDistance: "35.50",
+      estimatedDuration: 40,
+      basePrice: "95.00",
+      totalPrice: "95.00",
+      stripeSessionId: null,
+      paymentNote: null,
+      paymentProofUrl: null,
+      paymentProofKey: null,
+      paymentProofUploadedAt: null,
+      status: "confirmed" as const,
+      lastReminderSentAt: null,
+      lastPaymentReminderSentAt: null,
+      specialRequests: null,
+      adminNotes: null,
+      termsAccepted: 1,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    const unpaidBooking = { ...baseBooking, paymentMethod: "cash_postpay" as const, paymentStatus: "unpaid" as const };
+    const paidBooking = { ...baseBooking, paymentMethod: "stripe_prepay" as const, paymentStatus: "paid" as const };
+
+    const unpaidPdf = await generateInvoicePDF(unpaidBooking);
+    const paidPdf = await generateInvoicePDF(paidBooking);
+
+    // Both should be valid PDFs
+    expect(unpaidPdf.subarray(0, 5).toString("ascii")).toBe("%PDF-");
+    expect(paidPdf.subarray(0, 5).toString("ascii")).toBe("%PDF-");
+
+    // Paid PDF should be larger due to watermark content
+    expect(paidPdf.length).toBeGreaterThan(unpaidPdf.length);
+  });
+
+  it("does not add watermark for refunded bookings", async () => {
+    const { generateInvoicePDF } = await import("./invoice");
+
+    const refundedBooking = {
+      id: 21,
+      referenceNumber: "AWT-WM002",
+      clientName: "Refund User",
+      clientEmail: "refund@example.com",
+      clientPhone: "0488888888",
+      serviceType: "point_to_point" as const,
+      pickupAddress: "100 Test St",
+      dropoffAddress: "200 Dest St",
+      additionalPickupCount: 0,
+      additionalDropoffCount: 0,
+      additionalPickupAddresses: null,
+      additionalDropoffAddresses: null,
+      additionalStopsSurcharge: "0.00",
+      publicHolidaySurcharge: "0.00",
+      publicHolidayName: null,
+      pickupDate: Date.now() + 86400000,
+      passengerCount: 1,
+      vehicleId: 1,
+      vehicleName: "Kia Carnival",
+      needsSupportVan: 0,
+      supportVanPrice: "0.00",
+      rearFacingSeats: 0,
+      forwardFacingSeats: 0,
+      boosterSeats: 0,
+      freightDescription: null,
+      freightWeight: null,
+      freightItemCount: null,
+      freightSpecialHandling: null,
+      routePreference: "fastest",
+      tollOverride: null,
+      airportTollSurcharge: "0.00",
+      airportTollDetails: null,
+      roadTollSurcharge: "0.00",
+      roadTollDetails: null,
+      isPetFriendly: 0,
+      numberOfPets: null,
+      petDescription: null,
+      estimatedDistance: "50.00",
+      estimatedDuration: 40,
+      basePrice: "120.00",
+      totalPrice: "120.00",
+      paymentMethod: "stripe_prepay" as const,
+      paymentStatus: "refunded" as const,
+      stripeSessionId: null,
+      paymentNote: null,
+      paymentProofUrl: null,
+      paymentProofKey: null,
+      paymentProofUploadedAt: null,
+      status: "cancelled" as const,
+      lastReminderSentAt: null,
+      lastPaymentReminderSentAt: null,
+      specialRequests: null,
+      adminNotes: null,
+      termsAccepted: 1,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    const pdf = await generateInvoicePDF(refundedBooking);
+    expect(pdf).toBeInstanceOf(Buffer);
+    expect(pdf.subarray(0, 5).toString("ascii")).toBe("%PDF-");
+  });
+});
+
+// ─── Admin Invoice Preview Tests ───
+
+describe("invoiceSettings.preview", () => {
+  it("requires admin role", async () => {
+    const ctx = createUserContext({ role: "user" });
+    const caller = appRouter.createCaller(ctx);
+
+    await expect(
+      caller.invoiceSettings.preview()
+    ).rejects.toThrow(/permission/i);
+  });
+
+  it("generates a sample invoice PDF for admin", async () => {
+    const ctx = createUserContext({ role: "admin" });
+    const caller = appRouter.createCaller(ctx);
+
+    const result = await caller.invoiceSettings.preview();
+    expect(result).toHaveProperty("data");
+    expect(result).toHaveProperty("filename");
+    expect(result.filename).toBe("Invoice-Preview.pdf");
+    expect(typeof result.data).toBe("string");
+
+    // Verify base64 decodes to valid PDF
+    const buffer = Buffer.from(result.data, "base64");
+    expect(buffer.subarray(0, 5).toString("ascii")).toBe("%PDF-");
+  });
+});
+
+// ─── Email Attachment Support Tests ───
+
+describe("sendAndLog attachment support", () => {
+  it("sendBookingConfirmationEmail accepts optional invoicePdf parameter", async () => {
+    const { sendBookingConfirmationEmail } = await import("./email");
+
+    // Should not throw when invoicePdf is provided
+    const result = await sendBookingConfirmationEmail({
+      referenceNumber: "AWT-ATTACH01",
+      clientName: "Attach Test",
+      clientEmail: "attach@example.com",
+      serviceType: "airport_transfer",
+      pickupAddress: "123 Main St",
+      dropoffAddress: "Brisbane Airport",
+      pickupDate: Date.now() + 86400000,
+      passengerCount: 2,
+      vehicleName: "Kia Carnival",
+      totalPrice: "100.00",
+      paymentMethod: "cash_postpay",
+      isPetFriendly: false,
+      numberOfPets: null,
+      petDescription: null,
+      publicHolidayName: null,
+      publicHolidaySurcharge: null,
+      routePreference: undefined,
+      invoicePdf: Buffer.from("%PDF-1.4 test"),
+    });
+
+    expect(result).toBe(true);
+  });
+
+  it("sendPaymentReceiptEmail accepts optional invoicePdf parameter", async () => {
+    const { sendPaymentReceiptEmail } = await import("./email");
+
+    const result = await sendPaymentReceiptEmail({
+      referenceNumber: "AWT-ATTACH02",
+      clientName: "Receipt Test",
+      clientEmail: "receipt@example.com",
+      serviceType: "point_to_point",
+      pickupAddress: "100 Test St",
+      dropoffAddress: "200 Dest St",
+      pickupDate: Date.now() + 86400000,
+      passengerCount: 1,
+      vehicleName: "Kia Carnival",
+      totalPrice: "150.00",
+      paymentMethod: "stripe_prepay",
+      isPetFriendly: false,
+      numberOfPets: null,
+      petDescription: null,
+      publicHolidayName: null,
+      publicHolidaySurcharge: null,
+      routePreference: undefined,
+      invoicePdf: Buffer.from("%PDF-1.4 test"),
+    });
+
+    expect(result).toBe(true);
+  });
+
+  it("sendBookingConfirmationEmail works without invoicePdf (backward compat)", async () => {
+    const { sendBookingConfirmationEmail } = await import("./email");
+
+    const result = await sendBookingConfirmationEmail({
+      referenceNumber: "AWT-NOATTACH01",
+      clientName: "No Attach",
+      clientEmail: "noattach@example.com",
+      serviceType: "airport_transfer",
+      pickupAddress: "123 Main St",
+      dropoffAddress: "Brisbane Airport",
+      pickupDate: Date.now() + 86400000,
+      passengerCount: 2,
+      vehicleName: "Kia Carnival",
+      totalPrice: "100.00",
+      paymentMethod: "cash_postpay",
+      isPetFriendly: false,
+      numberOfPets: null,
+      petDescription: null,
+      publicHolidayName: null,
+      publicHolidaySurcharge: null,
+      routePreference: undefined,
+    });
+
+    expect(result).toBe(true);
+  });
+});

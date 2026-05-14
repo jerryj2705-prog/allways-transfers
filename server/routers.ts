@@ -457,6 +457,21 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
           try { bankDetailsForEmail = await getBankDetails(); } catch (e) { /* ignore */ }
         }
 
+        // Generate invoice PDF for email attachment
+        let invoicePdf: Buffer | null = null;
+        try {
+          const createdBooking = await getBookingByReference(booking.referenceNumber);
+          if (createdBooking) {
+            const [footerMsg, abnVal] = await Promise.all([
+              getAppSetting("invoice_footer_message"),
+              getAppSetting("invoice_abn"),
+            ]);
+            invoicePdf = await generateInvoicePDF(createdBooking, { footerMessage: footerMsg, abn: abnVal });
+          }
+        } catch (pdfErr) {
+          console.warn("[Booking] Failed to generate invoice PDF for email:", pdfErr);
+        }
+
         // Send booking confirmation email
         if (input.origin) {
           try {
@@ -497,6 +512,7 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
               roadTollDetails: input.roadTollDetails ?? [],
               origin: input.origin,
               bankDetails: bankDetailsForEmail,
+              invoicePdf,
             });
           } catch (emailError) {
             console.warn("[Booking] Failed to send confirmation email:", emailError);
@@ -755,6 +771,18 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
           try { convertBankDetails = await getBankDetails(); } catch (e) { /* ignore */ }
         }
 
+        // Generate invoice PDF for email attachment
+        let convertInvoicePdf: Buffer | null = null;
+        try {
+          const [footerMsg, abnVal] = await Promise.all([
+            getAppSetting("invoice_footer_message"),
+            getAppSetting("invoice_abn"),
+          ]);
+          convertInvoicePdf = await generateInvoicePDF(booking, { footerMessage: footerMsg, abn: abnVal });
+        } catch (pdfErr) {
+          console.warn("[Booking] Failed to generate invoice PDF for email:", pdfErr);
+        }
+
         // Send booking confirmation email
         if (input.origin) {
           try {
@@ -785,6 +813,7 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
               specialRequests: booking.specialRequests ?? null,
               origin: input.origin,
               bankDetails: convertBankDetails,
+              invoicePdf: convertInvoicePdf,
             });
           } catch (emailError) {
             console.warn("[Booking] Failed to send confirmation email:", emailError);
@@ -892,6 +921,18 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
         // Send payment receipt email when marking as paid and sendReceipt is true
         if (input.paymentStatus === "paid" && input.sendReceipt) {
           try {
+            // Generate invoice PDF for attachment
+            let receiptInvoicePdf: Buffer | null = null;
+            try {
+              const [footerMsg, abnVal] = await Promise.all([
+                getAppSetting("invoice_footer_message"),
+                getAppSetting("invoice_abn"),
+              ]);
+              receiptInvoicePdf = await generateInvoicePDF(booking, { footerMessage: footerMsg, abn: abnVal });
+            } catch (pdfErr) {
+              console.warn(`[Payment] Failed to generate invoice PDF for receipt:`, pdfErr);
+            }
+
             await sendPaymentReceiptEmail({
               referenceNumber: booking.referenceNumber,
               clientName: booking.clientName,
@@ -904,6 +945,7 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
               vehicleName: booking.vehicleName,
               totalPrice: booking.totalPrice,
               paymentMethod: booking.paymentMethod,
+              invoicePdf: receiptInvoicePdf,
             });
             console.log(`[Payment] Receipt email sent to ${booking.clientEmail} for ${booking.referenceNumber}`);
           } catch (emailError) {
@@ -1271,6 +1313,18 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
           try { adminConvertBankDetails = await getBankDetails(); } catch (e) { /* ignore */ }
         }
 
+        // Generate invoice PDF for email attachment
+        let adminConvertInvoicePdf: Buffer | null = null;
+        try {
+          const [footerMsg, abnVal] = await Promise.all([
+            getAppSetting("invoice_footer_message"),
+            getAppSetting("invoice_abn"),
+          ]);
+          adminConvertInvoicePdf = await generateInvoicePDF(booking, { footerMessage: footerMsg, abn: abnVal });
+        } catch (pdfErr) {
+          console.warn("[Admin] Failed to generate invoice PDF for email:", pdfErr);
+        }
+
         // Send booking confirmation email
         if (input.origin) {
           try {
@@ -1301,6 +1355,7 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
               specialRequests: booking.specialRequests ?? null,
               origin: input.origin,
               bankDetails: adminConvertBankDetails,
+              invoicePdf: adminConvertInvoicePdf,
             });
           } catch (emailError) {
             console.warn("[Admin] Failed to send confirmation email for converted quote:", emailError);
@@ -1496,6 +1551,74 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
         await setAppSetting("invoice_abn", input.abn.trim());
         return { success: true };
       }),
+
+    // Admin: preview invoice with sample data
+    preview: adminProcedure.mutation(async () => {
+      const [footerMessage, abn] = await Promise.all([
+        getAppSetting("invoice_footer_message"),
+        getAppSetting("invoice_abn"),
+      ]);
+      // Create a sample booking for preview
+      const sampleBooking = {
+        id: 0,
+        referenceNumber: "AWT-PREVIEW",
+        clientName: "Jane Smith",
+        clientEmail: "jane.smith@example.com",
+        clientPhone: "0400 000 000",
+        serviceType: "airport_transfer" as const,
+        pickupAddress: "123 Queen Street, Brisbane QLD 4000",
+        dropoffAddress: "Brisbane Airport (BNE), Airport Drive, Brisbane Airport QLD 4008",
+        pickupDate: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days from now
+        passengerCount: 2,
+        vehicleName: "Premium SUV",
+        totalPrice: "185.00",
+        basePrice: "150.00",
+        paymentMethod: "direct_deposit",
+        paymentStatus: "paid",
+        status: "confirmed" as const,
+        rearFacingSeats: 0,
+        forwardFacingSeats: 1,
+        boosterSeats: 0,
+        isPetFriendly: 0,
+        numberOfPets: null,
+        petDescription: null,
+        freightDescription: null,
+        freightWeight: null,
+        freightItemCount: null,
+        freightSpecialHandling: null,
+        specialRequests: null,
+        routePreference: "fastest",
+        additionalPickupCount: 0,
+        additionalDropoffCount: 0,
+        additionalPickupAddresses: null,
+        additionalDropoffAddresses: null,
+        publicHolidaySurcharge: "0",
+        publicHolidayName: null,
+        airportTollSurcharge: "15.00",
+        airportTollDetails: JSON.stringify([{ airport: "Brisbane Airport", direction: "Departure", amount: 15 }]),
+        roadTollSurcharge: "20.00",
+        roadTollDetails: JSON.stringify([{ road: "Gateway Motorway", amount: 20 }]),
+        needsSupportVan: 0,
+        supportVanPrice: "0",
+        additionalStopsSurcharge: "0",
+        stripeSessionId: null,
+        userId: null,
+        adminNotes: null,
+        paymentNote: null,
+        paymentProofUrl: null,
+        paymentProofKey: null,
+        paymentProofUploadedAt: null,
+        tollsReviewed: 0,
+        lastPaymentReminderSentAt: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      const pdfBuffer = await generateInvoicePDF(sampleBooking as any, { footerMessage, abn });
+      return {
+        data: pdfBuffer.toString("base64"),
+        filename: "Invoice-Preview.pdf",
+      };
+    }),
   }),
 
   pricing: router({

@@ -759,3 +759,13 @@
 - [x] Update invoice PDF to use dynamic ABN from settings instead of hardcoded value
 - [x] Add ABN input field to AdminInvoiceSettings page with live preview
 - [x] Write tests for ABN setting (25 tests passing)
+
+## Auto-Attach Invoice PDF to Confirmation Emails
+- [x] Update sendAndLog to support attachments via Resend API
+- [x] Generate invoice PDF when sending booking confirmation email
+- [x] Attach PDF to the confirmation email via Resend attachments API
+- [x] Also attach to payment receipt emails
+- [x] Add admin invoice preview (sample PDF download) on Invoice Settings page
+- [x] Add PAID watermark to invoice PDF when payment status is 'paid'
+- [x] Write tests for the attachment flow (32 tests passing)
+- [ ] Push latest version to GitHub

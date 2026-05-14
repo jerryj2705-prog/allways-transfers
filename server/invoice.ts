@@ -530,6 +530,24 @@ export async function generateInvoicePDF(booking: Booking, options?: InvoiceOpti
         align: "center",
       });
 
+      // ─── PAID Watermark ───
+      if (booking.paymentStatus === "paid") {
+        // Go back to first page for watermark
+        const pages = doc.bufferedPageRange();
+        for (let i = pages.start; i < pages.start + pages.count; i++) {
+          doc.switchToPage(i);
+          doc.save();
+          const cx = doc.page.width / 2;
+          const cy = doc.page.height / 2;
+          // Rotate -30 degrees around center
+          doc.translate(cx, cy);
+          doc.rotate(-30, { origin: [0, 0] });
+          doc.fontSize(120).fillColor(GREEN).fillOpacity(0.08).font("Helvetica-Bold");
+          doc.text("PAID", -200, -50, { width: 400, align: "center" });
+          doc.restore();
+        }
+      }
+
       doc.end();
     } catch (error) {
       reject(error);
