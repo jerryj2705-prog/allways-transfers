@@ -303,8 +303,8 @@ export async function generateInvoicePDF(booking: Booking, options?: InvoiceOpti
       doc.text(formatPaymentStatus(booking.paymentStatus), L + 240, y);
       y += 16;
 
-      // Bank details for direct deposit (compact)
-      if (booking.paymentMethod === "direct_deposit" && booking.paymentStatus === "unpaid") {
+      // Bank details for all unpaid invoices so clients know where to send payment
+      if (booking.paymentStatus === "unpaid") {
         const bankDetails = await getBankDetails();
         if (bankDetails) {
           doc.rect(L, y, pageWidth, 55).fill("#F0FDF4");

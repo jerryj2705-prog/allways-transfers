@@ -781,3 +781,8 @@
 - [x] Condense all sections (2-column client/service layout) to fit on 1 page
 - [x] Watermark runs across the single page (PAID green, AWAITING PAYMENT red)
 - [x] All 32 tests passing
+
+## Bank Transfer Details on Unpaid Invoices
+- [x] Show bank transfer details box on ALL unpaid invoices (not just direct deposit)
+- [x] Add interactive invoice preview in admin Invoice Settings page (inline PDF viewer with paid/unpaid toggle)
+- [x] Test and verify (32 tests passing)

@@ -1552,8 +1552,11 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
         return { success: true };
       }),
 
-    // Admin: preview invoice with sample data
-    preview: adminProcedure.mutation(async () => {
+    // Admin: preview invoice with sample data (toggle paid/unpaid)
+    preview: adminProcedure
+      .input(z.object({ paymentStatus: z.enum(["paid", "unpaid"]).default("paid") }).optional())
+      .mutation(async ({ input }) => {
+      const previewStatus = input?.paymentStatus ?? "paid";
       const [footerMessage, abn] = await Promise.all([
         getAppSetting("invoice_footer_message"),
         getAppSetting("invoice_abn"),
@@ -1574,7 +1577,7 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
         totalPrice: "185.00",
         basePrice: "150.00",
         paymentMethod: "direct_deposit",
-        paymentStatus: "paid",
+        paymentStatus: previewStatus,
         status: "confirmed" as const,
         rearFacingSeats: 0,
         forwardFacingSeats: 1,
