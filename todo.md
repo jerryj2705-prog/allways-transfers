@@ -677,3 +677,6 @@
 ## Quote Disclaimer - Time Slot Not Guaranteed
 - [x] Add professional disclaimer to quote email that time slot is provisional and not guaranteed until booking is confirmed
 - [x] Add same disclaimer to quote reminder email
+
+## Quote Disclaimer on Booking Form
+- [x] Add professional time slot disclaimer to the quote summary page before client submits the form

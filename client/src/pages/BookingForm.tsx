@@ -2216,11 +2216,22 @@ export default function BookingForm() {
 
             {/* Terms - hidden in quote mode */}
             {isQuoteMode ? (
-              <div className="flex items-start gap-3 p-4 rounded-lg bg-amber-500/10 border border-amber-500/30">
-                <FileText className="w-5 h-5 text-amber-400 mt-0.5 shrink-0" />
-                <p className="text-sm text-amber-200/80 leading-relaxed">
-                  This is a quote only — no booking will be created. We'll email you the quote details with a link to book when you're ready.
-                </p>
+              <div className="space-y-3">
+                <div className="flex items-start gap-3 p-4 rounded-lg bg-amber-500/10 border border-amber-500/30">
+                  <FileText className="w-5 h-5 text-amber-400 mt-0.5 shrink-0" />
+                  <p className="text-sm text-amber-200/80 leading-relaxed">
+                    This is a quote only — no booking will be created. We'll email you the quote details with a link to book when you're ready.
+                  </p>
+                </div>
+                <div className="flex items-start gap-3 p-4 rounded-lg bg-[#2a2318] border-l-[3px] border-[#d4a843]">
+                  <AlertTriangle className="w-5 h-5 text-[#d4a843] mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-sm font-semibold text-[#d4a843] mb-1">Please Note</p>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      This quote does not constitute a confirmed reservation. The requested time slot remains subject to availability and may be allocated to another client prior to booking confirmation. To secure your preferred date and time, we recommend confirming your booking at your earliest convenience. Should your requested time slot become unavailable, our team will work with you to arrange a suitable alternative.
+                    </p>
+                  </div>
+                </div>
               </div>
             ) : (
               <div className="flex items-start gap-3 p-4 rounded-lg bg-secondary/50">
