@@ -231,72 +231,70 @@ export default function AdminDashboard() {
     <div className="min-h-screen bg-background text-foreground">
       {/* Sticky Header */}
       <div className="border-b border-border/50 bg-background/90 backdrop-blur-md sticky top-0 z-50">
-        <div className="flex items-center justify-between px-4 py-2">
-          {/* Left: Home + Logo */}
-          <div className="flex items-center gap-3 shrink-0">
-            <button
-              onClick={() => setLocation("/")}
-              className="flex items-center text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <Home className="w-4 h-4" />
-            </button>
-            <img src={LOGO_IMG} alt="All Ways Transfers" className="h-10 w-auto" />
-          </div>
-          {/* Center: Nav buttons */}
-          <div className="flex items-center gap-1.5 shrink-0">
-            <Button variant="outline" size="sm" onClick={() => setLocation("/admin/calendar")} className="gap-1 bg-background h-8 px-3 text-xs">
-              <CalendarDays className="w-3.5 h-3.5" />
-              Calendar
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => setLocation("/admin/pricing")} className="gap-1 bg-background h-8 px-3 text-xs">
-              <DollarSign className="w-3.5 h-3.5" />
-              Pricing
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => setLocation("/admin/enquiries")} className="gap-1 bg-background h-8 px-3 text-xs">
-              <MessageSquare className="w-3.5 h-3.5" />
-              Enquiries
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => setLocation("/admin/reviews")} className="gap-1 bg-background h-8 px-3 text-xs">
-              <Star className="w-3.5 h-3.5" />
-              Reviews
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => setLocation("/admin/landmarks")} className="gap-1 bg-background h-8 px-3 text-xs">
-              <MapPin className="w-3.5 h-3.5" />
-              Landmarks
-            </Button>
-            {/* Settings dropdown for Email Logs, Bank Details, Invoice */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-1 bg-background h-8 px-3 text-xs">
-                  <Settings className="w-3.5 h-3.5" />
-                  Settings
-                  <ChevronDown className="w-3 h-3" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setLocation("/admin/email-logs")} className="cursor-pointer">
-                  <Mail className="w-4 h-4 mr-2" />
-                  Email Logs
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setLocation("/admin/bank-details")} className="cursor-pointer">
-                  <Building2 className="w-4 h-4 mr-2" />
-                  Bank Details
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setLocation("/admin/invoice-settings")} className="cursor-pointer">
-                  <FileText className="w-4 h-4 mr-2" />
-                  Invoice Settings
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-          {/* Right: User + Sign Out */}
-          <div className="flex items-center gap-2 shrink-0">
-            <span className="text-xs text-muted-foreground">{user.name}</span>
-            <Button variant="outline" size="sm" onClick={logout} className="gap-1 bg-background h-8 px-2 text-xs">
-              <LogOut className="w-3.5 h-3.5" />
-              Sign Out
-            </Button>
-          </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', flexWrap: 'nowrap' }}>
+          {/* Home */}
+          <button
+            onClick={() => setLocation("/")}
+            className="text-muted-foreground hover:text-foreground transition-colors"
+            style={{ flexShrink: 0 }}
+          >
+            <Home className="w-4 h-4" />
+          </button>
+          {/* Logo */}
+          <img src={LOGO_IMG} alt="All Ways Transfers" className="h-10 w-auto" style={{ flexShrink: 0 }} />
+          {/* Spacer */}
+          <div style={{ flex: '1 1 0' }} />
+          {/* Nav buttons */}
+          <Button variant="outline" size="sm" onClick={() => setLocation("/admin/calendar")} className="gap-1 bg-background h-8 px-3 text-xs" style={{ flexShrink: 0 }}>
+            <CalendarDays className="w-3.5 h-3.5" />
+            Calendar
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setLocation("/admin/pricing")} className="gap-1 bg-background h-8 px-3 text-xs" style={{ flexShrink: 0 }}>
+            <DollarSign className="w-3.5 h-3.5" />
+            Pricing
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setLocation("/admin/enquiries")} className="gap-1 bg-background h-8 px-3 text-xs" style={{ flexShrink: 0 }}>
+            <MessageSquare className="w-3.5 h-3.5" />
+            Enquiries
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setLocation("/admin/reviews")} className="gap-1 bg-background h-8 px-3 text-xs" style={{ flexShrink: 0 }}>
+            <Star className="w-3.5 h-3.5" />
+            Reviews
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setLocation("/admin/landmarks")} className="gap-1 bg-background h-8 px-3 text-xs" style={{ flexShrink: 0 }}>
+            <MapPin className="w-3.5 h-3.5" />
+            Landmarks
+          </Button>
+          {/* Settings dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-1 bg-background h-8 px-3 text-xs" style={{ flexShrink: 0 }}>
+                <Settings className="w-3.5 h-3.5" />
+                Settings
+                <ChevronDown className="w-3 h-3" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setLocation("/admin/email-logs")} className="cursor-pointer">
+                <Mail className="w-4 h-4 mr-2" />
+                Email Logs
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setLocation("/admin/bank-details")} className="cursor-pointer">
+                <Building2 className="w-4 h-4 mr-2" />
+                Bank Details
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setLocation("/admin/invoice-settings")} className="cursor-pointer">
+                <FileText className="w-4 h-4 mr-2" />
+                Invoice Settings
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          {/* User info */}
+          <span className="text-xs text-muted-foreground" style={{ flexShrink: 0 }}>{user.name}</span>
+          <Button variant="outline" size="sm" onClick={logout} className="gap-1 bg-background h-8 px-2 text-xs" style={{ flexShrink: 0 }}>
+            <LogOut className="w-3.5 h-3.5" />
+            Sign Out
+          </Button>
         </div>
       </div>
 
