@@ -841,6 +841,7 @@ export const appRouter = router({
         pickupDate: z.number().optional(),
         passengerCount: z.number().min(0).max(7).optional(),
         specialRequests: z.string().nullable().optional(),
+        estimatedDuration: z.number().min(15).max(1440).optional(),
       }))
       .mutation(async ({ input }) => {
         const booking = await getBookingById(input.bookingId);
@@ -853,21 +854,25 @@ export const appRouter = router({
 
         const changes: string[] = [];
         if (input.pickupAddress && input.pickupAddress !== booking.pickupAddress) {
-          changes.push(`Pickup: ${booking.pickupAddress} → ${input.pickupAddress}`);
+          changes.push(`Pickup: ${booking.pickupAddress} \u2192 ${input.pickupAddress}`);
         }
         if (input.dropoffAddress !== undefined && input.dropoffAddress !== booking.dropoffAddress) {
-          changes.push(`Drop-off: ${booking.dropoffAddress ?? "N/A"} → ${input.dropoffAddress ?? "N/A"}`);
+          changes.push(`Drop-off: ${booking.dropoffAddress ?? "N/A"} \u2192 ${input.dropoffAddress ?? "N/A"}`);
         }
         if (input.pickupDate && input.pickupDate !== booking.pickupDate) {
           const oldDate = new Date(booking.pickupDate).toLocaleString("en-AU", { timeZone: "Australia/Brisbane" });
           const newDate = new Date(input.pickupDate).toLocaleString("en-AU", { timeZone: "Australia/Brisbane" });
-          changes.push(`Date/Time: ${oldDate} → ${newDate}`);
+          changes.push(`Date/Time: ${oldDate} \u2192 ${newDate}`);
         }
         if (input.passengerCount && input.passengerCount !== booking.passengerCount) {
-          changes.push(`Passengers: ${booking.passengerCount} → ${input.passengerCount}`);
+          changes.push(`Passengers: ${booking.passengerCount} \u2192 ${input.passengerCount}`);
         }
         if (input.specialRequests !== undefined && input.specialRequests !== booking.specialRequests) {
           changes.push(`Special requests updated`);
+        }
+        if (input.estimatedDuration && input.estimatedDuration !== booking.estimatedDuration) {
+          const oldDur = booking.estimatedDuration ?? 60;
+          changes.push(`Duration: ${oldDur}min \u2192 ${input.estimatedDuration}min`);
         }
 
         if (changes.length === 0) {
@@ -880,6 +885,7 @@ export const appRouter = router({
           pickupDate: input.pickupDate,
           passengerCount: input.passengerCount,
           specialRequests: input.specialRequests,
+          estimatedDuration: input.estimatedDuration,
         });
 
         return updated;

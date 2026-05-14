@@ -22,17 +22,21 @@ import type { ServiceType, BookingStatus } from "@shared/types";
 const LOGO_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/logo-white_476df209.png";
 
 const STATUS_COLORS: Record<string, { bg: string; text: string; dot: string; block: string; blockBorder: string }> = {
+  quote: { bg: "bg-purple-500/20", text: "text-purple-400", dot: "bg-purple-400", block: "bg-purple-500/10 border-dashed border border-purple-400/40", blockBorder: "border-l-purple-400 border-l-[3px] border-dashed" },
   pending: { bg: "bg-amber-500/20", text: "text-amber-400", dot: "bg-amber-400", block: "bg-amber-500/15", blockBorder: "border-l-amber-400" },
   confirmed: { bg: "bg-blue-500/20", text: "text-blue-400", dot: "bg-blue-400", block: "bg-blue-500/15", blockBorder: "border-l-blue-400" },
   completed: { bg: "bg-green-500/20", text: "text-green-400", dot: "bg-green-400", block: "bg-green-500/15", blockBorder: "border-l-green-400" },
   cancelled: { bg: "bg-red-500/20", text: "text-red-400", dot: "bg-red-400", block: "bg-red-500/10 opacity-50", blockBorder: "border-l-red-400" },
+  expired: { bg: "bg-zinc-500/15", text: "text-zinc-500", dot: "bg-zinc-400", block: "bg-zinc-500/10 opacity-40", blockBorder: "border-l-zinc-400" },
 };
 
 const STATUS_BADGE_STYLES: Record<string, string> = {
+  quote: "bg-purple-100 text-purple-800 border-purple-200",
   pending: "bg-amber-100 text-amber-800 border-amber-200",
   confirmed: "bg-blue-100 text-blue-800 border-blue-200",
   completed: "bg-green-100 text-green-800 border-green-200",
   cancelled: "bg-red-100 text-red-800 border-red-200",
+  expired: "bg-zinc-100 text-zinc-800 border-zinc-200",
 };
 
 // ─── Helpers ───
@@ -174,6 +178,20 @@ type RescheduleConfirm = {
   hasOverlap: boolean;
 };
 
+type ResizeState = {
+  bookingId: number;
+  startY: number;
+  originalDurationMin: number;
+  currentDurationMin: number;
+};
+
+type ResizeConfirm = {
+  booking: CalendarBooking;
+  oldDuration: number;
+  newDuration: number;
+  hasOverlap: boolean;
+};
+
 export default function AdminCalendar() {
   const { user, loading, logout } = useAuth();
   const [, setLocation] = useLocation();
@@ -215,7 +233,7 @@ export default function AdminCalendar() {
 
   // Selected day bookings
   const selectedBookings = selectedDay ? (bookingsByDay.get(selectedDay) ?? []) : [];
-  const activeSelectedBookings = selectedBookings.filter(b => b.status !== "cancelled");
+  const activeSelectedBookings = selectedBookings.filter(b => b.status !== "cancelled" && b.status !== "expired");
 
   // Detect overlaps
   const overlappingIds = useMemo(() => {
@@ -299,12 +317,12 @@ export default function AdminCalendar() {
 
   const daysInMonth = getDaysInMonth(viewYear, viewMonth);
   const firstDayOffset = getFirstDayOfWeek(viewYear, viewMonth);
-  const getActiveCount = (day: number) => (bookingsByDay.get(day) ?? []).filter(b => b.status !== "cancelled").length;
+  const getActiveCount = (day: number) => (bookingsByDay.get(day) ?? []).filter(b => b.status !== "cancelled" && b.status !== "expired").length;
 
   const daysWithOverlaps = (() => {
     const days = new Set<number>();
     bookingsByDay.forEach((dayBookings, day) => {
-      const active = dayBookings.filter(b => b.status !== "cancelled");
+      const active = dayBookings.filter(b => b.status !== "cancelled" && b.status !== "expired");
       for (let i = 0; i < active.length; i++) {
         for (let j = i + 1; j < active.length; j++) {
           if (bookingsOverlap(active[i], active[j])) { days.add(day); return; }
@@ -479,9 +497,10 @@ export default function AdminCalendar() {
                 </CardContent>
               </Card>
               <div className="flex flex-wrap gap-4 mt-4 text-xs text-muted-foreground">
-                {Object.entries(STATUS_COLORS).map(([status, colors]) => (
+                {Object.entries(STATUS_COLORS).filter(([s]) => s !== "expired").map(([status, colors]) => (
                   <div key={status} className="flex items-center gap-1.5">
-                    <div className={`w-2.5 h-2.5 rounded-full ${colors.dot}`} /><span className="capitalize">{status}</span>
+                    <div className={`w-2.5 h-2.5 rounded-full ${colors.dot} ${status === "quote" ? "border border-dashed border-purple-400" : ""}`} />
+                    <span className="capitalize">{status === "quote" ? "Quote (Provisional)" : status}</span>
                   </div>
                 ))}
                 <div className="flex items-center gap-1.5"><AlertTriangle className="w-3 h-3 text-red-400" /><span>Overlap</span></div>
@@ -641,6 +660,9 @@ function DayTimelineView({
   const [dragState, setDragState] = useState<DragState | null>(null);
   const [rescheduleConfirm, setRescheduleConfirm] = useState<RescheduleConfirm | null>(null);
   const dragRef = useRef<DragState | null>(null);
+  const [resizeState, setResizeState] = useState<ResizeState | null>(null);
+  const [resizeConfirm, setResizeConfirm] = useState<ResizeConfirm | null>(null);
+  const resizeRef = useRef<ResizeState | null>(null);
 
   const adminModify = trpc.bookings.adminModify.useMutation({
     onSuccess: () => {
@@ -786,6 +808,96 @@ function DayTimelineView({
     });
   };
 
+  // ─── Resize handlers ───
+
+  const handleResizeStart = useCallback((e: React.MouseEvent | React.TouchEvent, booking: CalendarBooking) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const clientY = "touches" in e ? e.touches[0].clientY : e.clientY;
+    const originalDuration = getEstimatedDurationMinutes(booking);
+    const state: ResizeState = {
+      bookingId: booking.id,
+      startY: clientY,
+      originalDurationMin: originalDuration,
+      currentDurationMin: originalDuration,
+    };
+    resizeRef.current = state;
+    setResizeState(state);
+    document.body.style.cursor = "ns-resize";
+    document.body.style.userSelect = "none";
+
+    const handleMove = (ev: MouseEvent | TouchEvent) => {
+      const cy = "touches" in ev ? ev.touches[0].clientY : ev.clientY;
+      if (!resizeRef.current) return;
+      const deltaY = cy - resizeRef.current.startY;
+      const deltaMinutes = (deltaY / HOUR_HEIGHT) * 60;
+      const newDuration = Math.max(15, Math.round((resizeRef.current.originalDurationMin + deltaMinutes) / 15) * 15);
+      resizeRef.current = { ...resizeRef.current, currentDurationMin: newDuration };
+      setResizeState({ ...resizeRef.current });
+    };
+
+    const handleEnd = () => {
+      document.removeEventListener("mousemove", handleMove);
+      document.removeEventListener("mouseup", handleEnd);
+      document.removeEventListener("touchmove", handleMove);
+      document.removeEventListener("touchend", handleEnd);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+
+      const finalState = resizeRef.current;
+      if (!finalState) return;
+
+      const newDuration = finalState.currentDurationMin;
+      const originalDuration = finalState.originalDurationMin;
+
+      if (newDuration === originalDuration) {
+        setResizeState(null);
+        resizeRef.current = null;
+        return;
+      }
+
+      // Check for overlaps with the new duration
+      const tempBooking = { ...booking, estimatedDuration: newDuration };
+      const wouldOverlap = bookings.some(b => {
+        if (b.id === booking.id) return false;
+        return bookingsOverlap(tempBooking, b);
+      });
+
+      setResizeConfirm({
+        booking,
+        oldDuration: originalDuration,
+        newDuration,
+        hasOverlap: wouldOverlap,
+      });
+
+      setResizeState(null);
+      resizeRef.current = null;
+    };
+
+    document.addEventListener("mousemove", handleMove);
+    document.addEventListener("mouseup", handleEnd);
+    document.addEventListener("touchmove", handleMove, { passive: false });
+    document.addEventListener("touchend", handleEnd);
+  }, [bookings]);
+
+  const confirmResize = () => {
+    if (!resizeConfirm) return;
+    adminModify.mutate({
+      bookingId: resizeConfirm.booking.id,
+      estimatedDuration: resizeConfirm.newDuration,
+    }, {
+      onSuccess: () => {
+        toast.success("Duration updated successfully");
+        onRescheduled();
+        setResizeConfirm(null);
+      },
+      onError: (err) => {
+        toast.error(`Failed to update duration: ${err.message}`);
+        setResizeConfirm(null);
+      },
+    });
+  };
+
   return (
     <>
       <div className="flex flex-col lg:flex-row gap-6">
@@ -853,8 +965,10 @@ function DayTimelineView({
                   {/* Booking blocks */}
                   {bookings.map((booking) => {
                     const isDragging = dragState?.bookingId === booking.id;
+                    const isResizing = resizeState?.bookingId === booking.id;
                     const displayHour = isDragging ? dragState!.currentHour : getHourFromTimestamp(booking.pickupDate);
-                    const durationHours = getEstimatedDurationMinutes(booking) / 60;
+                    const currentDurationMin = isResizing ? resizeState!.currentDurationMin : getEstimatedDurationMinutes(booking);
+                    const durationHours = currentDurationMin / 60;
                     const colors = STATUS_COLORS[booking.status] ?? STATUS_COLORS.pending;
                     const isOverlapping = overlappingIds.has(booking.id);
                     const layoutInfo = blockLayout.get(booking.id);
@@ -872,11 +986,13 @@ function DayTimelineView({
                     return (
                       <div
                         key={booking.id}
-                        onClick={() => { if (!isDragging) onBookingClick(booking.id); }}
+                        onClick={() => { if (!isDragging && !isResizing) onBookingClick(booking.id); }}
                         className={`absolute z-10 rounded-r-md border-l-[3px] group
                           ${colors.block} ${colors.blockBorder}
-                          ${isOverlapping && !isDragging ? "ring-1 ring-red-500/50" : ""}
-                          ${isDragging ? "z-40 opacity-80 shadow-xl ring-2 ring-[#d4a843]/60 scale-[1.02]" : "cursor-pointer hover:z-30 hover:brightness-110"}
+                          ${isOverlapping && !isDragging && !isResizing ? "ring-1 ring-red-500/50" : ""}
+                          ${isDragging ? "z-40 opacity-80 shadow-xl ring-2 ring-[#d4a843]/60 scale-[1.02]" : ""}
+                          ${isResizing ? "z-40 ring-2 ring-[#d4a843]/60" : ""}
+                          ${!isDragging && !isResizing ? "cursor-pointer hover:z-30 hover:brightness-110" : ""}
                           transition-shadow
                         `}
                         style={{
@@ -885,7 +1001,7 @@ function DayTimelineView({
                           left: `calc(4rem + ${colLeft}%)`,
                           width: `calc(${colWidth}% - 4rem / ${totalColumns} - 4px)`,
                           maxWidth: `calc(${colWidth}% - 4px)`,
-                          transition: isDragging ? "none" : "box-shadow 0.15s, transform 0.15s",
+                          transition: isDragging || isResizing ? "none" : "box-shadow 0.15s, transform 0.15s",
                         }}
                       >
                         {/* Drag handle */}
@@ -905,7 +1021,7 @@ function DayTimelineView({
                               {isDragging ? hourToTimeString(dragState!.currentHour) : formatTime(booking.pickupDate)}
                             </span>
                             <span className="text-[10px] text-muted-foreground">
-                              ({getEstimatedDurationMinutes(booking)}min)
+                              ({currentDurationMin}min)
                             </span>
                           </div>
                           {blockHeight > 50 && (
@@ -931,6 +1047,16 @@ function DayTimelineView({
                             </div>
                           )}
                         </div>
+
+                        {/* Resize handle (bottom edge) */}
+                        <div
+                          onMouseDown={(e) => handleResizeStart(e, booking)}
+                          onTouchStart={(e) => handleResizeStart(e, booking)}
+                          className="absolute bottom-0 left-0 w-full h-2 cursor-ns-resize z-10 flex items-center justify-center"
+                          title="Drag to extend/shorten duration"
+                        >
+                          <div className="w-8 h-1 rounded-full bg-muted-foreground/20 group-hover:bg-[#d4a843]/60 transition-colors" />
+                        </div>
                       </div>
                     );
                   })}
@@ -941,16 +1067,17 @@ function DayTimelineView({
 
           {/* Legend */}
           <div className="flex flex-wrap gap-4 mt-4 text-xs text-muted-foreground">
-            {Object.entries(STATUS_COLORS).filter(([s]) => s !== "cancelled").map(([status, colors]) => (
+            {Object.entries(STATUS_COLORS).filter(([s]) => s !== "cancelled" && s !== "expired").map(([status, colors]) => (
               <div key={status} className="flex items-center gap-1.5">
-                <div className={`w-2.5 h-2.5 rounded-full ${colors.dot}`} /><span className="capitalize">{status}</span>
+                <div className={`w-2.5 h-2.5 rounded-full ${colors.dot} ${status === "quote" ? "border border-dashed border-purple-400" : ""}`} />
+                <span className="capitalize">{status === "quote" ? "Quote (Provisional)" : status}</span>
               </div>
             ))}
             <div className="flex items-center gap-1.5"><AlertTriangle className="w-3 h-3 text-red-400" /><span>Overlap</span></div>
             <div className="flex items-center gap-1.5"><GripVertical className="w-3 h-3 text-muted-foreground" /><span>Drag to reschedule</span></div>
           </div>
           <p className="text-xs text-muted-foreground mt-2">
-            Hover over a booking block and drag the handle at the top to reschedule. Time snaps to 15-minute intervals.
+            Hover over a booking block and drag the handle at the top to reschedule, or drag the bottom edge to extend/shorten duration. Time snaps to 15-minute intervals.
           </p>
         </div>
 
@@ -1044,6 +1171,68 @@ function DayTimelineView({
               className="gold-gradient text-gold-foreground border-0"
             >
               {adminModify.isPending ? "Saving..." : "Confirm Reschedule"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Resize Duration Confirmation Dialog */}
+      <Dialog open={!!resizeConfirm} onOpenChange={(open) => { if (!open) setResizeConfirm(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Clock className="w-5 h-5 text-[#d4a843]" />
+              Adjust Duration
+            </DialogTitle>
+            <DialogDescription>
+              Confirm the new duration for this booking.
+            </DialogDescription>
+          </DialogHeader>
+
+          {resizeConfirm && (
+            <div className="space-y-4 py-2">
+              <div className="border border-border/50 rounded-lg p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="font-mono text-sm font-medium text-[#d4a843]">
+                    {resizeConfirm.booking.referenceNumber}
+                  </span>
+                  <span className="text-sm font-medium">{resizeConfirm.booking.clientName}</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="text-center">
+                    <p className="text-xs text-muted-foreground mb-1">From</p>
+                    <p className="text-lg font-bold text-red-400 line-through">{resizeConfirm.oldDuration}min</p>
+                  </div>
+                  <ArrowRight className="w-5 h-5 text-muted-foreground" />
+                  <div className="text-center">
+                    <p className="text-xs text-muted-foreground mb-1">To</p>
+                    <p className="text-lg font-bold text-green-400">{resizeConfirm.newDuration}min</p>
+                  </div>
+                </div>
+                <div className="text-xs text-muted-foreground text-center">
+                  {formatTime(resizeConfirm.booking.pickupDate)} – {formatTime(resizeConfirm.booking.pickupDate + resizeConfirm.newDuration * 60 * 1000)}
+                </div>
+              </div>
+
+              {resizeConfirm.hasOverlap && (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
+                  <AlertTriangle className="w-4 h-4 shrink-0" />
+                  <span>This duration overlaps with another booking.</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setResizeConfirm(null)} className="bg-background">
+              Cancel
+            </Button>
+            <Button
+              onClick={confirmResize}
+              disabled={adminModify.isPending}
+              className="gold-gradient text-gold-foreground border-0"
+            >
+              {adminModify.isPending ? "Saving..." : "Confirm Duration"}
             </Button>
           </DialogFooter>
         </DialogContent>

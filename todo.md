@@ -661,3 +661,15 @@
 - [x] Add Cancel Quote button on My Bookings page for quote-status bookings
 - [x] Add Cancel Quote link in quote reminder emails
 - [x] Send confirmation email when client cancels a quote (owner notified via notifyOwner)
+
+## Quote Provisional Slots on Admin Calendar
+- [x] Show quotes as provisional/reserved slots on admin calendar with distinct colour (purple dashed)
+- [x] Cancelled quotes automatically removed from calendar view
+- [x] Expired quotes automatically removed from calendar view
+- [x] Calendar legend updated to include quote/provisional status
+
+## Calendar: Resize/Extend Booking Duration
+- [x] Add resize handle at bottom of timeline booking blocks
+- [x] Drag bottom edge to extend or shorten booking duration
+- [x] Confirmation dialog for duration change with overlap warning
+- [x] Update estimatedDuration via adminModify procedure

@@ -728,3 +728,153 @@ describe("bookings.create with route preference", () => {
     expect(found?.routePreference).toBe("toll_free");
   });
 });
+
+describe("bookings.adminModify with estimatedDuration", () => {
+  it("allows admin to update estimatedDuration", async () => {
+    const publicCtx = createPublicContext();
+    const adminCtx = createAdminContext();
+    const publicCaller = appRouter.createCaller(publicCtx);
+    const adminCaller = appRouter.createCaller(adminCtx);
+
+    const vehicles = await publicCaller.vehicles.list();
+    const suv = vehicles.find((v) => v.type === "suv");
+
+    const created = await publicCaller.bookings.create({
+      clientName: "Duration Test",
+      clientEmail: "duration@example.com",
+      clientPhone: "+61 400 111 222",
+      serviceType: "airport_transfer",
+      pickupAddress: "Brisbane Airport",
+      dropoffAddress: "Gold Coast",
+      pickupDate: Date.now() + 86400000 * 2,
+      passengerCount: 2,
+      vehicleId: suv!.id,
+      vehicleName: suv!.name,
+      needsSupportVan: false,
+      supportVanPrice: 0,
+      basePrice: 170,
+      totalPrice: 170,
+      termsAccepted: true,
+      paymentMethod: "cash_postpay",
+    });
+
+    const updated = await adminCaller.bookings.adminModify({
+      bookingId: created.id,
+      estimatedDuration: 120,
+    });
+
+    expect(updated).toBeDefined();
+    expect(updated!.estimatedDuration).toBe(120);
+  });
+
+  it("rejects estimatedDuration below minimum (15 min)", async () => {
+    const adminCtx = createAdminContext();
+    const publicCtx = createPublicContext();
+    const publicCaller = appRouter.createCaller(publicCtx);
+    const adminCaller = appRouter.createCaller(adminCtx);
+
+    const vehicles = await publicCaller.vehicles.list();
+    const suv = vehicles.find((v) => v.type === "suv");
+
+    const created = await publicCaller.bookings.create({
+      clientName: "Duration Min Test",
+      clientEmail: "durmin@example.com",
+      clientPhone: "+61 400 111 333",
+      serviceType: "airport_transfer",
+      pickupAddress: "Brisbane Airport",
+      dropoffAddress: "Gold Coast",
+      pickupDate: Date.now() + 86400000 * 2,
+      passengerCount: 1,
+      vehicleId: suv!.id,
+      vehicleName: suv!.name,
+      needsSupportVan: false,
+      supportVanPrice: 0,
+      basePrice: 170,
+      totalPrice: 170,
+      termsAccepted: true,
+      paymentMethod: "cash_postpay",
+    });
+
+    await expect(
+      adminCaller.bookings.adminModify({
+        bookingId: created.id,
+        estimatedDuration: 5,
+      })
+    ).rejects.toThrow();
+  });
+});
+
+describe("bookings.adminModify with estimatedDuration", () => {
+  it("allows admin to update estimatedDuration", async () => {
+    const publicCtx = createPublicContext();
+    const adminCtx = createAdminContext();
+    const publicCaller = appRouter.createCaller(publicCtx);
+    const adminCaller = appRouter.createCaller(adminCtx);
+
+    const vehicles = await publicCaller.vehicles.list();
+    const suv = vehicles.find((v) => v.type === "suv");
+
+    const created = await publicCaller.bookings.create({
+      clientName: "Duration Test",
+      clientEmail: "duration@example.com",
+      clientPhone: "+61 400 111 222",
+      serviceType: "airport_transfer",
+      pickupAddress: "Brisbane Airport",
+      dropoffAddress: "Gold Coast",
+      pickupDate: Date.now() + 86400000 * 2,
+      passengerCount: 2,
+      vehicleId: suv!.id,
+      vehicleName: suv!.name,
+      needsSupportVan: false,
+      supportVanPrice: 0,
+      basePrice: 170,
+      totalPrice: 170,
+      termsAccepted: true,
+      paymentMethod: "cash_postpay",
+    });
+
+    const updated = await adminCaller.bookings.adminModify({
+      bookingId: created.id,
+      estimatedDuration: 120,
+    });
+
+    expect(updated).toBeDefined();
+    expect(updated!.estimatedDuration).toBe(120);
+  });
+
+  it("rejects estimatedDuration below minimum (15 min)", async () => {
+    const adminCtx = createAdminContext();
+    const publicCtx = createPublicContext();
+    const publicCaller = appRouter.createCaller(publicCtx);
+    const adminCaller = appRouter.createCaller(adminCtx);
+
+    const vehicles = await publicCaller.vehicles.list();
+    const suv = vehicles.find((v) => v.type === "suv");
+
+    const created = await publicCaller.bookings.create({
+      clientName: "Duration Min Test",
+      clientEmail: "durmin@example.com",
+      clientPhone: "+61 400 111 333",
+      serviceType: "airport_transfer",
+      pickupAddress: "Brisbane Airport",
+      dropoffAddress: "Gold Coast",
+      pickupDate: Date.now() + 86400000 * 2,
+      passengerCount: 1,
+      vehicleId: suv!.id,
+      vehicleName: suv!.name,
+      needsSupportVan: false,
+      supportVanPrice: 0,
+      basePrice: 170,
+      totalPrice: 170,
+      termsAccepted: true,
+      paymentMethod: "cash_postpay",
+    });
+
+    await expect(
+      adminCaller.bookings.adminModify({
+        bookingId: created.id,
+        estimatedDuration: 5,
+      })
+    ).rejects.toThrow();
+  });
+});
