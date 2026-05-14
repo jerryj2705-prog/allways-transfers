@@ -673,3 +673,7 @@
 - [x] Drag bottom edge to extend or shorten booking duration
 - [x] Confirmation dialog for duration change with overlap warning
 - [x] Update estimatedDuration via adminModify procedure
+
+## Quote Disclaimer - Time Slot Not Guaranteed
+- [x] Add professional disclaimer to quote email that time slot is provisional and not guaranteed until booking is confirmed
+- [x] Add same disclaimer to quote reminder email

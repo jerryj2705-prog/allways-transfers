@@ -565,6 +565,16 @@ export async function sendQuoteEmail(data: QuoteEmailData): Promise<boolean> {
       </tr>
     </table>
 
+    <!-- Time Slot Disclaimer -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+      <tr>
+        <td style="background-color:#2a2318;border-left:3px solid #d4a843;border-radius:4px;padding:14px 16px;">
+          <p style="margin:0;font-size:13px;color:#d4a843;font-weight:600;margin-bottom:6px;">Please Note</p>
+          <p style="margin:0;font-size:13px;color:#a3a3a3;line-height:1.5;">This quote is provided for your convenience and does not constitute a confirmed reservation. The requested time slot remains subject to availability and may be allocated to another client prior to booking confirmation. To secure your preferred date and time, we recommend confirming your booking at your earliest convenience. Should your requested time slot become unavailable, our team will work with you to arrange a suitable alternative.</p>
+        </td>
+      </tr>
+    </table>
+
     <p style="margin:0 0 16px;font-size:14px;color:#a3a3a3;text-align:center;">This quote expires 2 days before your pickup date. Ready to book?</p>
 
     <!-- Book Now CTA -->
@@ -1355,6 +1365,16 @@ export async function sendQuoteReminderEmail(data: QuoteReminderEmailData): Prom
         <td style="padding:12px 0 0;">
           <span style="color:#a3a3a3;font-size:13px;">Estimated Total</span><br/>
           <span style="color:#d4a843;font-size:22px;font-weight:700;">$${data.totalPrice}</span>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Time Slot Disclaimer -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+      <tr>
+        <td style="background-color:#2a2318;border-left:3px solid #d4a843;border-radius:4px;padding:14px 16px;">
+          <p style="margin:0;font-size:13px;color:#d4a843;font-weight:600;margin-bottom:6px;">Please Note</p>
+          <p style="margin:0;font-size:13px;color:#a3a3a3;line-height:1.5;">This quote does not constitute a confirmed reservation. The requested time slot remains subject to availability and may be allocated to another client prior to booking confirmation. To secure your preferred date and time, we recommend confirming your booking at your earliest convenience. Should your requested time slot become unavailable, our team will work with you to arrange a suitable alternative.</p>
         </td>
       </tr>
     </table>
