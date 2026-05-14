@@ -382,7 +382,14 @@ export default function MyBookings() {
                       {statusInfo?.label ?? booking.status}
                     </Badge>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-0.5 font-mono">{booking.referenceNumber}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5 font-mono">
+                    {booking.referenceNumber}
+                    {booking.invoiceNumber && (
+                      <span className="ml-2 text-primary/80">
+                        &middot; {booking.invoiceNumber}
+                      </span>
+                    )}
+                  </p>
                 </div>
                 <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors shrink-0 mt-1" />
               </div>

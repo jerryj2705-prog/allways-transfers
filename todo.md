@@ -839,9 +839,12 @@
 - [x] Fix Suburb/Landmark dropdown lists not working on Quote Trip Details page (was a caching issue from stale dist/)
 
 ## Quote Submit INSERT Error
-- [ ] Fix "Failed query: insert into bookings" error when submitting a quote
+- [x] Fix "Failed query: insert into bookings" error when submitting a quote (root cause: tRPC schema rejected null for numberOfPets/freightItemCount — fixed with .nullish())
 
 ## Toll Calculation Bugs
 - [x] Gateway Motorway toll incorrectly applied to Sunshine Coast → Brisbane Airport route — fixed by adding excludeAirports flag
 - [x] Airport Access Toll not missing — toll_bne_exit is correctly inactive per user confirmation (no toll for BNE dropoff)
-- [ ] Verify dist rebuild fixes the quote INSERT error on Hostinger
+- [x] Verify dist rebuild fixes the quote INSERT error on Hostinger
+
+## Invoice Numbers on My Bookings
+- [x] Display invoice number (INV-XXXX) on each booking card in My Bookings page
