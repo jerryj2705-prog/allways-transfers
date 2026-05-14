@@ -92,6 +92,7 @@ const RED = "#EF4444";
 interface InvoiceOptions {
   footerMessage?: string | null;
   abn?: string | null;
+  invoiceNumber?: string | null;
 }
 
 export async function generateInvoicePDF(booking: Booking, options?: InvoiceOptions | string | null): Promise<Buffer> {
@@ -153,10 +154,20 @@ export async function generateInvoicePDF(booking: Booking, options?: InvoiceOpti
       // ─── Invoice Meta (2-column compact) ───
       const midX = L + pageWidth / 2 + 10;
 
+      // Invoice number (INV-XXXX) or fallback to booking reference
+      const invoiceNum = opts.invoiceNumber || (booking as any).invoiceNumber || null;
       doc.fontSize(7).fillColor(MUTED_TEXT).font("Helvetica");
       doc.text("INVOICE #", L, y);
       doc.fontSize(10).fillColor(GOLD).font("Helvetica-Bold");
-      doc.text(booking.referenceNumber, L, y + 10);
+      doc.text(invoiceNum || booking.referenceNumber, L, y + 10);
+
+      // Show booking reference separately if we have a distinct invoice number
+      if (invoiceNum) {
+        doc.fontSize(7).fillColor(MUTED_TEXT).font("Helvetica");
+        doc.text("BOOKING REF", L + 80, y);
+        doc.fontSize(9).fillColor("#333333").font("Helvetica-Bold");
+        doc.text(booking.referenceNumber, L + 80, y + 10);
+      }
 
       doc.fontSize(7).fillColor(MUTED_TEXT).font("Helvetica");
       doc.text("STATUS", L + 140, y);

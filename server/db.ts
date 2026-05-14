@@ -1592,3 +1592,62 @@ export async function getPaymentProof(bookingId: number): Promise<{
     .limit(1);
   return result ?? null;
 }
+
+/**
+ * Assign the next sequential invoice number to a booking.
+ * Format: INV-0001, INV-0002, etc.
+ * Uses MAX query to find the highest existing number and increments.
+ */
+export async function assignInvoiceNumber(bookingId: number): Promise<string> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  // Find the highest existing invoice number
+  const result = await db
+    .select({ invoiceNumber: bookings.invoiceNumber })
+    .from(bookings)
+    .where(sql`${bookings.invoiceNumber} IS NOT NULL`)
+    .orderBy(sql`CAST(SUBSTRING(${bookings.invoiceNumber}, 5) AS UNSIGNED) DESC`)
+    .limit(1);
+
+  let nextNum = 1;
+  if (result.length > 0 && result[0].invoiceNumber) {
+    const match = result[0].invoiceNumber.match(/INV-(\d+)/);
+    if (match) {
+      nextNum = parseInt(match[1], 10) + 1;
+    }
+  }
+
+  const invoiceNumber = `INV-${String(nextNum).padStart(4, "0")}`;
+
+  await db
+    .update(bookings)
+    .set({ invoiceNumber })
+    .where(eq(bookings.id, bookingId));
+
+  return invoiceNumber;
+}
+
+/**
+ * Get the invoice number for a booking, or null if not assigned yet.
+ */
+export async function getInvoiceNumber(bookingId: number): Promise<string | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db
+    .select({ invoiceNumber: bookings.invoiceNumber })
+    .from(bookings)
+    .where(eq(bookings.id, bookingId))
+    .limit(1);
+  return result?.invoiceNumber ?? null;
+}
+
+/**
+ * Ensure a booking has an invoice number. If it already has one, return it.
+ * Otherwise, assign the next sequential number.
+ */
+export async function ensureInvoiceNumber(bookingId: number): Promise<string> {
+  const existing = await getInvoiceNumber(bookingId);
+  if (existing) return existing;
+  return assignInvoiceNumber(bookingId);
+}

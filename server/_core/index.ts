@@ -8,7 +8,7 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { constructWebhookEvent } from "../stripe";
-import { getBookingById, getBookingByStripeSession, updateBookingPaymentStatus, convertQuoteToBooking, getBookingByReference, getAppSetting } from "../db";
+import { getBookingById, getBookingByStripeSession, updateBookingPaymentStatus, convertQuoteToBooking, getBookingByReference, getAppSetting, ensureInvoiceNumber } from "../db";
 import { sendPaymentReceiptEmail, sendBookingConfirmationEmail, sendAdminNewBookingNotification } from "../email";
 import { generateInvoicePDF } from "../invoice";
 import { initCronJobs } from "../cron";
@@ -78,7 +78,8 @@ async function startServer() {
                           getAppSetting("invoice_footer_message"),
                           getAppSetting("invoice_abn"),
                         ]);
-                        webhookInvoicePdf = await generateInvoicePDF(updatedBooking, { footerMessage: footerMsg, abn: abnVal });
+                        const webhookInvNum = await ensureInvoiceNumber(updatedBooking.id).catch(() => null);
+                        webhookInvoicePdf = await generateInvoicePDF(updatedBooking, { footerMessage: footerMsg, abn: abnVal, invoiceNumber: webhookInvNum });
                       } catch (pdfErr) {
                         console.warn(`[Webhook] Failed to generate invoice PDF:`, pdfErr);
                       }
@@ -142,7 +143,8 @@ async function startServer() {
                     getAppSetting("invoice_footer_message"),
                     getAppSetting("invoice_abn"),
                   ]);
-                  receiptPdf = await generateInvoicePDF(booking, { footerMessage: footerMsg, abn: abnVal });
+                  const receiptInvNum = await ensureInvoiceNumber(booking.id).catch(() => null);
+                  receiptPdf = await generateInvoicePDF(booking, { footerMessage: footerMsg, abn: abnVal, invoiceNumber: receiptInvNum });
                 } catch (pdfErr) {
                   console.warn(`[Webhook] Failed to generate invoice PDF for receipt:`, pdfErr);
                 }

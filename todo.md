@@ -794,3 +794,12 @@
 
 ## Reviews Section Slogan
 - [x] Add slogan "If we did something wrong, tell us, if we did everything right - tell others" to reviews section
+
+## Sequential Invoice Numbers
+- [x] Add invoiceNumber column to bookings table (migration applied)
+- [x] Create db helpers: assignInvoiceNumber, getInvoiceNumber, ensureInvoiceNumber
+- [x] Assign invoice number at booking creation, quote conversion, admin conversion
+- [x] Update downloadInvoice and webhook handlers to assign invoice numbers
+- [x] Update invoice PDF to display INV-XXXX alongside booking reference
+- [x] Write tests (37 tests passing)
+- [ ] Push to GitHub

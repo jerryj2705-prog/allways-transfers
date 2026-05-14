@@ -211,6 +211,13 @@
       "when": 1778746246389,
       "tag": "0029_real_owl",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "5",
+      "when": 1778751991400,
+      "tag": "0030_puzzling_juggernaut",
+      "breakpoints": true
     }
   ]
 }

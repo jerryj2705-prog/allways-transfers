@@ -77,6 +77,7 @@ import {
   getBankDetails,
   setBankDetails,
   type BankDetails,
+  ensureInvoiceNumber,
 } from "./db";
 import { makeRequest, type PlaceDetailsResult } from "./_core/map";
 import { createCheckoutSession, createQuoteCheckoutSession } from "./stripe";
@@ -457,6 +458,17 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
           try { bankDetailsForEmail = await getBankDetails(); } catch (e) { /* ignore */ }
         }
 
+        // Assign sequential invoice number for non-quote bookings
+        let invoiceNum: string | null = null;
+        try {
+          const createdBooking = await getBookingByReference(booking.referenceNumber);
+          if (createdBooking) {
+            invoiceNum = await ensureInvoiceNumber(createdBooking.id);
+          }
+        } catch (invErr) {
+          console.warn("[Booking] Failed to assign invoice number:", invErr);
+        }
+
         // Generate invoice PDF for email attachment
         let invoicePdf: Buffer | null = null;
         try {
@@ -466,7 +478,7 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
               getAppSetting("invoice_footer_message"),
               getAppSetting("invoice_abn"),
             ]);
-            invoicePdf = await generateInvoicePDF(createdBooking, { footerMessage: footerMsg, abn: abnVal });
+            invoicePdf = await generateInvoicePDF(createdBooking, { footerMessage: footerMsg, abn: abnVal, invoiceNumber: invoiceNum });
           }
         } catch (pdfErr) {
           console.warn("[Booking] Failed to generate invoice PDF for email:", pdfErr);
@@ -771,6 +783,14 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
           try { convertBankDetails = await getBankDetails(); } catch (e) { /* ignore */ }
         }
 
+        // Assign sequential invoice number when quote is converted to booking
+        let convertInvoiceNum: string | null = null;
+        try {
+          convertInvoiceNum = await ensureInvoiceNumber(booking.id);
+        } catch (invErr) {
+          console.warn("[Booking] Failed to assign invoice number on quote conversion:", invErr);
+        }
+
         // Generate invoice PDF for email attachment
         let convertInvoicePdf: Buffer | null = null;
         try {
@@ -778,7 +798,7 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
             getAppSetting("invoice_footer_message"),
             getAppSetting("invoice_abn"),
           ]);
-          convertInvoicePdf = await generateInvoicePDF(booking, { footerMessage: footerMsg, abn: abnVal });
+          convertInvoicePdf = await generateInvoicePDF(booking, { footerMessage: footerMsg, abn: abnVal, invoiceNumber: convertInvoiceNum });
         } catch (pdfErr) {
           console.warn("[Booking] Failed to generate invoice PDF for email:", pdfErr);
         }
@@ -859,15 +879,17 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
         if (!booking) throw new Error("Booking not found");
         // Only allow invoices for actual bookings (not quotes)
         if (booking.status === "quote") throw new Error("Invoices are not available for quotes");
+        // Ensure invoice number is assigned
+        const invoiceNumber = await ensureInvoiceNumber(booking.id);
         // Fetch custom invoice settings
         const [footerMessage, abn] = await Promise.all([
           getAppSetting("invoice_footer_message"),
           getAppSetting("invoice_abn"),
         ]);
-        const pdfBuffer = await generateInvoicePDF(booking, { footerMessage, abn });
+        const pdfBuffer = await generateInvoicePDF(booking, { footerMessage, abn, invoiceNumber });
         return {
           data: pdfBuffer.toString("base64"),
-          filename: `Invoice-${booking.referenceNumber}.pdf`,
+          filename: `Invoice-${invoiceNumber || booking.referenceNumber}.pdf`,
         };
       }),
 
@@ -921,6 +943,13 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
         // Send payment receipt email when marking as paid and sendReceipt is true
         if (input.paymentStatus === "paid" && input.sendReceipt) {
           try {
+            // Ensure invoice number is assigned
+            let receiptInvoiceNum: string | null = null;
+            try {
+              receiptInvoiceNum = await ensureInvoiceNumber(booking.id);
+            } catch (invErr) {
+              console.warn("[Payment] Failed to assign invoice number:", invErr);
+            }
             // Generate invoice PDF for attachment
             let receiptInvoicePdf: Buffer | null = null;
             try {
@@ -928,7 +957,7 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
                 getAppSetting("invoice_footer_message"),
                 getAppSetting("invoice_abn"),
               ]);
-              receiptInvoicePdf = await generateInvoicePDF(booking, { footerMessage: footerMsg, abn: abnVal });
+              receiptInvoicePdf = await generateInvoicePDF(booking, { footerMessage: footerMsg, abn: abnVal, invoiceNumber: receiptInvoiceNum });
             } catch (pdfErr) {
               console.warn(`[Payment] Failed to generate invoice PDF for receipt:`, pdfErr);
             }
@@ -1313,6 +1342,14 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
           try { adminConvertBankDetails = await getBankDetails(); } catch (e) { /* ignore */ }
         }
 
+        // Assign sequential invoice number when admin converts quote
+        let adminConvertInvoiceNum: string | null = null;
+        try {
+          adminConvertInvoiceNum = await ensureInvoiceNumber(booking.id);
+        } catch (invErr) {
+          console.warn("[Admin] Failed to assign invoice number on quote conversion:", invErr);
+        }
+
         // Generate invoice PDF for email attachment
         let adminConvertInvoicePdf: Buffer | null = null;
         try {
@@ -1320,7 +1357,7 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
             getAppSetting("invoice_footer_message"),
             getAppSetting("invoice_abn"),
           ]);
-          adminConvertInvoicePdf = await generateInvoicePDF(booking, { footerMessage: footerMsg, abn: abnVal });
+          adminConvertInvoicePdf = await generateInvoicePDF(booking, { footerMessage: footerMsg, abn: abnVal, invoiceNumber: adminConvertInvoiceNum });
         } catch (pdfErr) {
           console.warn("[Admin] Failed to generate invoice PDF for email:", pdfErr);
         }

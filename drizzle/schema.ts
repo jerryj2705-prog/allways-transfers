@@ -104,6 +104,8 @@ export const bookings = mysqlTable("bookings", {
   lastReminderSentAt: bigint("lastReminderSentAt", { mode: "number" }),
   // Payment reminder tracking (direct deposit)
   lastPaymentReminderSentAt: bigint("lastPaymentReminderSentAt", { mode: "number" }),
+  // Invoice number (sequential: INV-0001, INV-0002, etc.)
+  invoiceNumber: varchar("invoiceNumber", { length: 20 }),
   // Notes
   specialRequests: text("specialRequests"),
   adminNotes: text("adminNotes"),

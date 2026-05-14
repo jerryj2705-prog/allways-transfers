@@ -1027,3 +1027,172 @@ describe("sendAndLog attachment support", () => {
     expect(result).toBe(true);
   });
 });
+
+
+// ─── Sequential Invoice Number Tests ───
+
+describe("ensureInvoiceNumber", () => {
+  it("is exported from db module", async () => {
+    const db = await import("./db");
+    expect(typeof db.ensureInvoiceNumber).toBe("function");
+  });
+
+  it("assignInvoiceNumber is exported from db module", async () => {
+    const db = await import("./db");
+    expect(typeof db.assignInvoiceNumber).toBe("function");
+  });
+
+  it("getInvoiceNumber is exported from db module", async () => {
+    const db = await import("./db");
+    expect(typeof db.getInvoiceNumber).toBe("function");
+  });
+});
+
+describe("generateInvoicePDF with invoiceNumber option", () => {
+  it("generates PDF with invoice number in options", async () => {
+    const { generateInvoicePDF } = await import("./invoice");
+
+    const mockBooking = {
+      id: 20,
+      referenceNumber: "AWT-INV001",
+      clientName: "Invoice Num Test",
+      clientEmail: "inv@example.com",
+      clientPhone: "0466000000",
+      serviceType: "airport_transfer" as const,
+      pickupAddress: "100 Queen St, Brisbane QLD",
+      dropoffAddress: "Brisbane Airport",
+      additionalPickupCount: 0,
+      additionalDropoffCount: 0,
+      additionalPickupAddresses: null,
+      additionalDropoffAddresses: null,
+      additionalStopsSurcharge: "0.00",
+      publicHolidaySurcharge: "0.00",
+      publicHolidayName: null,
+      pickupDate: Date.now() + 86400000,
+      passengerCount: 2,
+      vehicleId: 1,
+      vehicleName: "Kia Carnival",
+      needsSupportVan: 0,
+      supportVanPrice: "0.00",
+      rearFacingSeats: 0,
+      forwardFacingSeats: 0,
+      boosterSeats: 0,
+      freightDescription: null,
+      freightWeight: null,
+      freightItemCount: null,
+      freightSpecialHandling: null,
+      routePreference: "fastest",
+      tollOverride: null,
+      airportTollSurcharge: "0.00",
+      airportTollDetails: null,
+      roadTollSurcharge: "0.00",
+      roadTollDetails: null,
+      isPetFriendly: 0,
+      numberOfPets: null,
+      petDescription: null,
+      estimatedDistance: "30.00",
+      estimatedDuration: 35,
+      basePrice: "85.00",
+      totalPrice: "85.00",
+      paymentMethod: "cash_postpay" as const,
+      paymentStatus: "unpaid" as const,
+      stripeSessionId: null,
+      paymentNote: null,
+      paymentProofUrl: null,
+      paymentProofKey: null,
+      paymentProofUploadedAt: null,
+      status: "confirmed" as const,
+      lastReminderSentAt: null,
+      lastPaymentReminderSentAt: null,
+      specialRequests: null,
+      adminNotes: null,
+      termsAccepted: 1,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    // Generate with invoice number
+    const pdfBuffer = await generateInvoicePDF(mockBooking, {
+      invoiceNumber: "INV-0042",
+      footerMessage: "Thank you!",
+      abn: "18 715 944 056",
+    });
+
+    expect(pdfBuffer).toBeInstanceOf(Buffer);
+    expect(pdfBuffer.length).toBeGreaterThan(0);
+    const header = pdfBuffer.subarray(0, 5).toString("ascii");
+    expect(header).toBe("%PDF-");
+  });
+
+  it("generates PDF without invoice number (falls back to reference)", async () => {
+    const { generateInvoicePDF } = await import("./invoice");
+
+    const mockBooking = {
+      id: 21,
+      referenceNumber: "AWT-INV002",
+      clientName: "No Invoice Num",
+      clientEmail: "noinv@example.com",
+      clientPhone: "0466111111",
+      serviceType: "point_to_point" as const,
+      pickupAddress: "200 George St, Brisbane QLD",
+      dropoffAddress: "Gold Coast",
+      additionalPickupCount: 0,
+      additionalDropoffCount: 0,
+      additionalPickupAddresses: null,
+      additionalDropoffAddresses: null,
+      additionalStopsSurcharge: "0.00",
+      publicHolidaySurcharge: "0.00",
+      publicHolidayName: null,
+      pickupDate: Date.now() + 86400000,
+      passengerCount: 3,
+      vehicleId: 1,
+      vehicleName: "Kia Carnival",
+      needsSupportVan: 0,
+      supportVanPrice: "0.00",
+      rearFacingSeats: 0,
+      forwardFacingSeats: 0,
+      boosterSeats: 0,
+      freightDescription: null,
+      freightWeight: null,
+      freightItemCount: null,
+      freightSpecialHandling: null,
+      routePreference: "fastest",
+      tollOverride: null,
+      airportTollSurcharge: "0.00",
+      airportTollDetails: null,
+      roadTollSurcharge: "0.00",
+      roadTollDetails: null,
+      isPetFriendly: 0,
+      numberOfPets: null,
+      petDescription: null,
+      estimatedDistance: "80.00",
+      estimatedDuration: 60,
+      basePrice: "200.00",
+      totalPrice: "200.00",
+      paymentMethod: "stripe_prepay" as const,
+      paymentStatus: "paid" as const,
+      stripeSessionId: "cs_test_456",
+      paymentNote: null,
+      paymentProofUrl: null,
+      paymentProofKey: null,
+      paymentProofUploadedAt: null,
+      status: "confirmed" as const,
+      lastReminderSentAt: null,
+      lastPaymentReminderSentAt: null,
+      specialRequests: null,
+      adminNotes: null,
+      termsAccepted: 1,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    // Generate without invoice number option
+    const pdfBuffer = await generateInvoicePDF(mockBooking, {
+      footerMessage: null,
+      abn: null,
+    });
+
+    expect(pdfBuffer).toBeInstanceOf(Buffer);
+    expect(pdfBuffer.length).toBeGreaterThan(0);
+  });
+});
