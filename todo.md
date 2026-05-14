@@ -814,3 +814,14 @@
 - [x] Replace overflow-x-auto approach with Settings dropdown menu for Email Logs, Bank Details, Invoice
 - [x] Used inline styles (flexShrink: 0) to override global .flex { min-width: 0 } CSS that was collapsing buttons
 - [x] Flat single-row layout with inline styles to prevent Tailwind class override issues
+
+## Bank Details Save Bug
+- [x] Fix "No procedure found on path bankDetails.save" error when saving bank details from admin panel (same root cause as below - stale dist/)
+
+## Admin Procedure "No procedure found" Bug on Hostinger
+- [x] Fix bankDetails.save returning "No procedure found on path"
+- [x] Fix invoiceSettings.setAbn returning "No procedure found on path"
+- [x] Fix invoice preview "Failed to generate preview"
+- [x] All adminProcedure mutations affected on Hostinger deployment
+- [x] Root cause: dist/index.js committed to Git was stale (from old checkpoint), Hostinger uses pre-built dist instead of running pnpm build
+- [x] Fix: Rebuilt dist/ with latest routers and committed updated build output

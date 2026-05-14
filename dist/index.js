@@ -26,14 +26,15 @@ var init_env = __esm({
       resendFromEmail: process.env.RESEND_FROM_EMAIL ?? "onboarding@resend.dev",
       adminEmail: process.env.ADMIN_EMAIL ?? "admin@allwaystransfers.com.au",
       googleClientId: process.env.GOOGLE_CLIENT_ID ?? "",
-      googleClientSecret: process.env.GOOGLE_CLIENT_SECRET ?? ""
+      googleClientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
+      siteUrl: process.env.SITE_URL ?? "https://allwaystransfers.com.au"
     };
   }
 });
 
 // drizzle/schema.ts
 import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, decimal, bigint } from "drizzle-orm/mysql-core";
-var users, vehicles, bookings, pricingSettings, enquiries, publicHolidays, reviews, googleReviewsCache, appSettings, passwordResetTokens, landmarks;
+var users, vehicles, bookings, pricingSettings, enquiries, publicHolidays, reviews, googleReviewsCache, appSettings, passwordResetTokens, landmarks, emailLogs;
 var init_schema = __esm({
   "drizzle/schema.ts"() {
     "use strict";
@@ -127,12 +128,21 @@ var init_schema = __esm({
       basePrice: decimal("basePrice", { precision: 10, scale: 2 }).notNull(),
       totalPrice: decimal("totalPrice", { precision: 10, scale: 2 }).notNull(),
       // Payment
-      paymentMethod: mysqlEnum("paymentMethod", ["stripe_prepay", "square_postpay", "cash_postpay"]).notNull().default("cash_postpay"),
+      paymentMethod: mysqlEnum("paymentMethod", ["stripe_prepay", "square_postpay", "cash_postpay", "direct_deposit"]).notNull().default("cash_postpay"),
       paymentStatus: mysqlEnum("paymentStatus", ["unpaid", "paid", "refunded"]).notNull().default("unpaid"),
       stripeSessionId: varchar("stripeSessionId", { length: 255 }),
       paymentNote: text("paymentNote"),
+      paymentProofUrl: text("paymentProofUrl"),
+      paymentProofKey: varchar("paymentProofKey", { length: 512 }),
+      paymentProofUploadedAt: bigint("paymentProofUploadedAt", { mode: "number" }),
       // Status
-      status: mysqlEnum("status", ["quote", "pending", "confirmed", "completed", "cancelled"]).default("pending").notNull(),
+      status: mysqlEnum("status", ["quote", "pending", "confirmed", "completed", "cancelled", "expired"]).default("pending").notNull(),
+      // Quote reminder tracking
+      lastReminderSentAt: bigint("lastReminderSentAt", { mode: "number" }),
+      // Payment reminder tracking (direct deposit)
+      lastPaymentReminderSentAt: bigint("lastPaymentReminderSentAt", { mode: "number" }),
+      // Invoice number (sequential: INV-0001, INV-0002, etc.)
+      invoiceNumber: varchar("invoiceNumber", { length: 20 }),
       // Notes
       specialRequests: text("specialRequests"),
       adminNotes: text("adminNotes"),
@@ -227,6 +237,19 @@ var init_schema = __esm({
       isActive: int("isActive").notNull().default(1),
       createdAt: timestamp("createdAt").defaultNow().notNull(),
       updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull()
+    });
+    emailLogs = mysqlTable("email_logs", {
+      id: int("id").autoincrement().primaryKey(),
+      emailType: varchar("emailType", { length: 100 }).notNull(),
+      // e.g. booking_confirmation, quote, reminder, cancellation
+      toEmail: varchar("toEmail", { length: 320 }).notNull(),
+      fromEmail: varchar("fromEmail", { length: 320 }).notNull(),
+      subject: varchar("subject", { length: 500 }).notNull(),
+      status: mysqlEnum("status", ["sent", "failed"]).notNull(),
+      resendId: varchar("resendId", { length: 255 }),
+      error: text("error"),
+      bookingReference: varchar("bookingReference", { length: 20 }),
+      createdAt: timestamp("createdAt").defaultNow().notNull()
     });
   }
 });
@@ -999,7 +1022,10 @@ var init_suburbs = __esm({
 // server/db.ts
 var db_exports = {};
 __export(db_exports, {
+  adminConvertQuoteToBooking: () => adminConvertQuoteToBooking,
+  assignInvoiceNumber: () => assignInvoiceNumber,
   calculatePrice: () => calculatePrice,
+  cancelQuote: () => cancelQuote,
   clearGoogleReviewsCache: () => clearGoogleReviewsCache,
   convertQuoteToBooking: () => convertQuoteToBooking,
   createBooking: () => createBooking,
@@ -1015,6 +1041,8 @@ __export(db_exports, {
   deleteLandmark: () => deleteLandmark,
   deletePublicHoliday: () => deletePublicHoliday,
   deleteReview: () => deleteReview,
+  ensureInvoiceNumber: () => ensureInvoiceNumber,
+  expireQuote: () => expireQuote,
   getActiveLandmarks: () => getActiveLandmarks,
   getActivePublicHolidays: () => getActivePublicHolidays,
   getActiveVehicles: () => getActiveVehicles,
@@ -1023,6 +1051,7 @@ __export(db_exports, {
   getAllPublicHolidays: () => getAllPublicHolidays,
   getAppSetting: () => getAppSetting,
   getApprovedReviews: () => getApprovedReviews,
+  getBankDetails: () => getBankDetails,
   getBookingById: () => getBookingById,
   getBookingByReference: () => getBookingByReference,
   getBookingByStripeSession: () => getBookingByStripeSession,
@@ -1031,13 +1060,19 @@ __export(db_exports, {
   getBookingsByEmail: () => getBookingsByEmail,
   getCachedGoogleReviews: () => getCachedGoogleReviews,
   getDb: () => getDb,
+  getDirectDepositUnpaidBookings: () => getDirectDepositUnpaidBookings,
+  getEmailLogStats: () => getEmailLogStats,
   getEnquiryById: () => getEnquiryById,
   getEnquiryStats: () => getEnquiryStats,
   getGoogleReviewsCacheAge: () => getGoogleReviewsCacheAge,
+  getInvoiceNumber: () => getInvoiceNumber,
   getLandmarkById: () => getLandmarkById,
   getLandmarkStats: () => getLandmarkStats,
   getPasswordResetToken: () => getPasswordResetToken,
+  getPaymentProof: () => getPaymentProof,
   getPricingSettingByKey: () => getPricingSettingByKey,
+  getQuotesNeedingReminders: () => getQuotesNeedingReminders,
+  getQuotesToExpire: () => getQuotesToExpire,
   getReviewByBookingId: () => getReviewByBookingId,
   getReviewById: () => getReviewById,
   getReviewStats: () => getReviewStats,
@@ -1051,12 +1086,15 @@ __export(db_exports, {
   isDatePublicHoliday: () => isDatePublicHoliday,
   linkGoogleAccount: () => linkGoogleAccount,
   listBookings: () => listBookings,
+  listEmailLogs: () => listEmailLogs,
   listEnquiries: () => listEnquiries,
   listReviews: () => listReviews,
+  logEmail: () => logEmail,
   markPasswordResetTokenUsed: () => markPasswordResetTokenUsed,
   markTollsAsReviewed: () => markTollsAsReviewed,
   resetDbPool: () => resetDbPool,
   setAppSetting: () => setAppSetting,
+  setBankDetails: () => setBankDetails,
   toggleLandmarkActive: () => toggleLandmarkActive,
   updateBookingDetails: () => updateBookingDetails,
   updateBookingPaymentStatus: () => updateBookingPaymentStatus,
@@ -1064,6 +1102,9 @@ __export(db_exports, {
   updateBookingStripeSession: () => updateBookingStripeSession,
   updateEnquiryStatus: () => updateEnquiryStatus,
   updateLandmark: () => updateLandmark,
+  updateLastPaymentReminderSentAt: () => updateLastPaymentReminderSentAt,
+  updateLastReminderSentAt: () => updateLastReminderSentAt,
+  updatePaymentProof: () => updatePaymentProof,
   updatePricingSetting: () => updatePricingSetting,
   updatePublicHoliday: () => updatePublicHoliday,
   updateReviewStatus: () => updateReviewStatus,
@@ -1404,6 +1445,7 @@ async function updateBookingDetails(id, data) {
   if (data.pickupDate !== void 0) updateData.pickupDate = data.pickupDate;
   if (data.passengerCount !== void 0) updateData.passengerCount = data.passengerCount;
   if (data.specialRequests !== void 0) updateData.specialRequests = data.specialRequests;
+  if (data.estimatedDuration !== void 0) updateData.estimatedDuration = data.estimatedDuration;
   if (Object.keys(updateData).length === 0) throw new Error("No fields to update");
   await db.update(bookings).set(updateData).where(eq(bookings.id, id));
   return getBookingById(id);
@@ -1822,6 +1864,8 @@ async function getBookingStats() {
     confirmed: 0,
     completed: 0,
     cancelled: 0,
+    quote: 0,
+    expired: 0,
     totalRevenue: "0",
     unpaidAmount: "0",
     refundedAmount: "0",
@@ -1838,6 +1882,8 @@ async function getBookingStats() {
     confirmed: sql`sum(case when status = 'confirmed' then 1 else 0 end)`,
     completed: sql`sum(case when status = 'completed' then 1 else 0 end)`,
     cancelled: sql`sum(case when status = 'cancelled' then 1 else 0 end)`,
+    quote: sql`sum(case when status = 'quote' then 1 else 0 end)`,
+    expired: sql`sum(case when status = 'expired' then 1 else 0 end)`,
     totalRevenue: sql`coalesce(sum(case when paymentStatus = 'paid' then totalPrice else 0 end), 0)`,
     unpaidAmount: sql`coalesce(sum(case when paymentStatus = 'unpaid' and status != 'cancelled' then totalPrice else 0 end), 0)`,
     refundedAmount: sql`coalesce(sum(case when paymentStatus = 'refunded' then totalPrice else 0 end), 0)`,
@@ -1865,6 +1911,8 @@ async function getBookingStats() {
     confirmed: row?.confirmed ?? 0,
     completed: row?.completed ?? 0,
     cancelled: row?.cancelled ?? 0,
+    quote: row?.quote ?? 0,
+    expired: row?.expired ?? 0,
     totalRevenue: String(row?.totalRevenue ?? "0"),
     unpaidAmount: String(row?.unpaidAmount ?? "0"),
     refundedAmount: String(row?.refundedAmount ?? "0"),
@@ -2059,7 +2107,206 @@ async function getLandmarkStats() {
     byCategory: byCategory.map((r) => ({ category: r.category, count: r.count }))
   };
 }
-var _db, _pool;
+async function logEmail(data) {
+  const db = await getDb();
+  if (!db) return;
+  try {
+    await db.insert(emailLogs).values(data);
+  } catch (e) {
+    console.warn("[EmailLog] Failed to log email:", e);
+  }
+}
+async function listEmailLogs(params) {
+  const db = await getDb();
+  if (!db) return { logs: [], total: 0 };
+  const conditions = [];
+  if (params.emailType && params.emailType !== "all") {
+    conditions.push(eq(emailLogs.emailType, params.emailType));
+  }
+  if (params.status && params.status !== "all") {
+    conditions.push(eq(emailLogs.status, params.status));
+  }
+  if (params.search) {
+    const searchTerm = `%${params.search}%`;
+    conditions.push(
+      or(
+        like(emailLogs.toEmail, searchTerm),
+        like(emailLogs.subject, searchTerm),
+        like(emailLogs.bookingReference, searchTerm)
+      )
+    );
+  }
+  const whereClause = conditions.length > 0 ? and(...conditions) : void 0;
+  const [items, countResult] = await Promise.all([
+    db.select().from(emailLogs).where(whereClause).orderBy(desc(emailLogs.createdAt)).limit(params.limit ?? 20).offset(params.offset ?? 0),
+    db.select({ count: sql`count(*)` }).from(emailLogs).where(whereClause)
+  ]);
+  return { logs: items, total: countResult[0]?.count ?? 0 };
+}
+async function getEmailLogStats() {
+  const db = await getDb();
+  if (!db) return { total: 0, sent: 0, failed: 0, byType: [] };
+  const [result] = await db.select({
+    total: sql`count(*)`,
+    sent: sql`sum(case when status = 'sent' then 1 else 0 end)`,
+    failed: sql`sum(case when status = 'failed' then 1 else 0 end)`
+  }).from(emailLogs);
+  const byType = await db.select({
+    emailType: emailLogs.emailType,
+    count: sql`count(*)`
+  }).from(emailLogs).groupBy(emailLogs.emailType).orderBy(desc(sql`count(*)`));
+  return {
+    total: result?.total ?? 0,
+    sent: result?.sent ?? 0,
+    failed: result?.failed ?? 0,
+    byType: byType.map((r) => ({ emailType: r.emailType, count: r.count }))
+  };
+}
+async function getQuotesNeedingReminders() {
+  const db = await getDb();
+  if (!db) return [];
+  const now = Date.now();
+  const twoDaysFromNow = now + 2 * 24 * 60 * 60 * 1e3;
+  const twentyThreeHoursAgo = now - 23 * 60 * 60 * 1e3;
+  const result = await db.select().from(bookings).where(
+    and(
+      eq(bookings.status, "quote"),
+      // Pickup is more than 2 days away (not yet expired)
+      sql`${bookings.pickupDate} > ${twoDaysFromNow}`,
+      // Either never sent a reminder, or last reminder was >23h ago
+      or(
+        isNull(bookings.lastReminderSentAt),
+        sql`${bookings.lastReminderSentAt} < ${twentyThreeHoursAgo}`
+      )
+    )
+  );
+  return result;
+}
+async function getQuotesToExpire() {
+  const db = await getDb();
+  if (!db) return [];
+  const now = Date.now();
+  const twoDaysFromNow = now + 2 * 24 * 60 * 60 * 1e3;
+  const result = await db.select().from(bookings).where(
+    and(
+      eq(bookings.status, "quote"),
+      sql`${bookings.pickupDate} <= ${twoDaysFromNow}`
+    )
+  );
+  return result;
+}
+async function expireQuote(id) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(bookings).set({ status: "expired" }).where(eq(bookings.id, id));
+}
+async function updateLastReminderSentAt(id) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(bookings).set({ lastReminderSentAt: Date.now() }).where(eq(bookings.id, id));
+}
+async function cancelQuote(referenceNumber, clientEmail) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(bookings).set({ status: "cancelled" }).where(and(
+    eq(bookings.referenceNumber, referenceNumber),
+    eq(bookings.clientEmail, clientEmail),
+    eq(bookings.status, "quote")
+  ));
+  const result = await db.select().from(bookings).where(eq(bookings.referenceNumber, referenceNumber)).limit(1);
+  return result[0];
+}
+async function adminConvertQuoteToBooking(id, paymentMethod) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(bookings).set({ status: "pending", paymentMethod, termsAccepted: 1 }).where(and(
+    eq(bookings.id, id),
+    or(eq(bookings.status, "quote"), eq(bookings.status, "expired"))
+  ));
+  const result = await db.select().from(bookings).where(eq(bookings.id, id)).limit(1);
+  return result[0];
+}
+async function getBankDetails() {
+  const raw = await getAppSetting(BANK_DETAILS_KEY);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+async function setBankDetails(details) {
+  await setAppSetting(BANK_DETAILS_KEY, JSON.stringify(details));
+}
+async function getDirectDepositUnpaidBookings() {
+  const db = await getDb();
+  if (!db) return [];
+  const now = Date.now();
+  const twentyFourHoursAgoDate = new Date(now - 24 * 60 * 60 * 1e3);
+  const twentyThreeHoursAgo = now - 23 * 60 * 60 * 1e3;
+  const result = await db.select().from(bookings).where(
+    and(
+      eq(bookings.paymentMethod, "direct_deposit"),
+      eq(bookings.paymentStatus, "unpaid"),
+      or(eq(bookings.status, "pending"), eq(bookings.status, "confirmed")),
+      sql`${bookings.createdAt} < ${twentyFourHoursAgoDate}`,
+      or(
+        isNull(bookings.lastPaymentReminderSentAt),
+        sql`${bookings.lastPaymentReminderSentAt} < ${twentyThreeHoursAgo}`
+      )
+    )
+  );
+  return result;
+}
+async function updateLastPaymentReminderSentAt(id) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(bookings).set({ lastPaymentReminderSentAt: Date.now() }).where(eq(bookings.id, id));
+}
+async function updatePaymentProof(bookingId, proofUrl, proofKey) {
+  const db = await getDb();
+  await db.update(bookings).set({
+    paymentProofUrl: proofUrl,
+    paymentProofKey: proofKey,
+    paymentProofUploadedAt: Date.now()
+  }).where(eq(bookings.id, bookingId));
+}
+async function getPaymentProof(bookingId) {
+  const db = await getDb();
+  const [result] = await db.select({
+    paymentProofUrl: bookings.paymentProofUrl,
+    paymentProofKey: bookings.paymentProofKey,
+    paymentProofUploadedAt: bookings.paymentProofUploadedAt
+  }).from(bookings).where(eq(bookings.id, bookingId)).limit(1);
+  return result ?? null;
+}
+async function assignInvoiceNumber(bookingId) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.select({ invoiceNumber: bookings.invoiceNumber }).from(bookings).where(sql`${bookings.invoiceNumber} IS NOT NULL`).orderBy(sql`CAST(SUBSTRING(${bookings.invoiceNumber}, 5) AS UNSIGNED) DESC`).limit(1);
+  let nextNum = 1;
+  if (result.length > 0 && result[0].invoiceNumber) {
+    const match = result[0].invoiceNumber.match(/INV-(\d+)/);
+    if (match) {
+      nextNum = parseInt(match[1], 10) + 1;
+    }
+  }
+  const invoiceNumber = `INV-${String(nextNum).padStart(4, "0")}`;
+  await db.update(bookings).set({ invoiceNumber }).where(eq(bookings.id, bookingId));
+  return invoiceNumber;
+}
+async function getInvoiceNumber(bookingId) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.select({ invoiceNumber: bookings.invoiceNumber }).from(bookings).where(eq(bookings.id, bookingId)).limit(1);
+  return result?.invoiceNumber ?? null;
+}
+async function ensureInvoiceNumber(bookingId) {
+  const existing = await getInvoiceNumber(bookingId);
+  if (existing) return existing;
+  return assignInvoiceNumber(bookingId);
+}
+var _db, _pool, BANK_DETAILS_KEY;
 var init_db = __esm({
   "server/db.ts"() {
     "use strict";
@@ -2069,6 +2316,7 @@ var init_db = __esm({
     init_schema();
     _db = null;
     _pool = null;
+    BANK_DETAILS_KEY = "bank_details";
   }
 });
 
@@ -2429,6 +2677,41 @@ async function createCheckoutSession(params) {
   });
   return { url: session.url, sessionId: session.id };
 }
+async function createQuoteCheckoutSession(params) {
+  const stripe = getStripe();
+  const session = await stripe.checkout.sessions.create({
+    payment_method_types: ["card"],
+    mode: "payment",
+    customer_email: params.customerEmail,
+    client_reference_id: params.bookingId.toString(),
+    metadata: {
+      booking_id: params.bookingId.toString(),
+      booking_reference: params.bookingReference,
+      customer_name: params.customerName,
+      customer_email: params.customerEmail,
+      is_quote_payment: "true"
+    },
+    line_items: [
+      {
+        price_data: {
+          currency: "aud",
+          product_data: {
+            name: `All Ways Transfers - ${params.serviceDescription}`,
+            description: `Booking Reference: ${params.bookingReference}`
+          },
+          unit_amount: Math.round(params.amount * 100)
+        },
+        quantity: 1
+      }
+    ],
+    allow_promotion_codes: true,
+    // Quote checkout expires 24 hours from now
+    expires_at: Math.floor(Date.now() / 1e3) + 86400,
+    success_url: `${params.origin}/confirmation/${params.bookingReference}?payment=success`,
+    cancel_url: `${params.origin}/booking/${params.bookingReference}`
+  });
+  return { url: session.url, sessionId: session.id };
+}
 function constructWebhookEvent(payload, signature) {
   const stripe = getStripe();
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -2440,6 +2723,7 @@ function constructWebhookEvent(payload, signature) {
 
 // server/email.ts
 init_env();
+init_db();
 import { Resend as Resend2 } from "resend";
 var _resend = null;
 function getResend() {
@@ -2450,6 +2734,62 @@ function getResend() {
     _resend = new Resend2(ENV.resendApiKey);
   }
   return _resend;
+}
+async function sendAndLog(params) {
+  const resend = getResend();
+  try {
+    const result = await resend.emails.send({
+      from: params.from,
+      to: params.to,
+      bcc: params.bcc,
+      subject: params.subject,
+      html: params.html,
+      attachments: params.attachments
+    });
+    if (result.error) {
+      console.warn(`[Email] Failed to send ${params.emailType}:`, result.error);
+      for (const recipient of params.to) {
+        await logEmail({
+          emailType: params.emailType,
+          toEmail: recipient,
+          fromEmail: params.from,
+          subject: params.subject,
+          status: "failed",
+          error: JSON.stringify(result.error),
+          bookingReference: params.bookingReference ?? null
+        });
+      }
+      return { success: false };
+    }
+    const emailId = result.data?.id;
+    console.log(`[Email] ${params.emailType} sent to ${params.to.join(", ")} (ID: ${emailId})`);
+    for (const recipient of params.to) {
+      await logEmail({
+        emailType: params.emailType,
+        toEmail: recipient,
+        fromEmail: params.from,
+        subject: params.subject,
+        status: "sent",
+        resendId: emailId ?? null,
+        bookingReference: params.bookingReference ?? null
+      });
+    }
+    return { success: true, id: emailId };
+  } catch (error) {
+    console.warn(`[Email] Error sending ${params.emailType}:`, error);
+    for (const recipient of params.to) {
+      await logEmail({
+        emailType: params.emailType,
+        toEmail: recipient,
+        fromEmail: params.from,
+        subject: params.subject,
+        status: "failed",
+        error: error instanceof Error ? error.message : String(error),
+        bookingReference: params.bookingReference ?? null
+      });
+    }
+    return { success: false };
+  }
 }
 var LOGO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/logo-white_476df209.png";
 function formatDate(timestamp2) {
@@ -2476,7 +2816,8 @@ function formatPaymentMethod(method) {
   const labels = {
     stripe_prepay: "Pre-pay by Credit Card",
     square_postpay: "Pay Driver by Card",
-    cash_postpay: "Pay Driver by Cash"
+    cash_postpay: "Pay Driver by Cash",
+    direct_deposit: "Direct Bank Transfer"
   };
   return labels[method] ?? method;
 }
@@ -2737,6 +3078,26 @@ async function sendBookingConfirmationEmail(data) {
       </tr>
     </table>
 
+    ${data.paymentMethod === "direct_deposit" && data.bankDetails ? `
+    <!-- Bank Transfer Details -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+      <tr>
+        <td style="background-color:#1a2318;border:1px solid #16a34a40;border-radius:8px;padding:16px;">
+          <p style="margin:0 0 10px;font-size:14px;color:#4ade80;font-weight:600;">Bank Transfer Details</p>
+          <p style="margin:0 0 12px;font-size:13px;color:#a3a3a3;">Please transfer the total amount to the following account using your booking reference as the payment description.</p>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#262626;border-radius:6px;">
+            <tr><td style="padding:8px 14px;border-bottom:1px solid #333;"><span style="color:#a3a3a3;font-size:12px;">Bank</span><br/><span style="color:#e5e5e5;font-size:14px;font-weight:600;">${data.bankDetails.bankName}</span></td></tr>
+            <tr><td style="padding:8px 14px;border-bottom:1px solid #333;"><span style="color:#a3a3a3;font-size:12px;">BSB</span><br/><span style="color:#e5e5e5;font-size:14px;font-weight:600;font-family:monospace;">${data.bankDetails.bsb}</span></td></tr>
+            <tr><td style="padding:8px 14px;border-bottom:1px solid #333;"><span style="color:#a3a3a3;font-size:12px;">Account Number</span><br/><span style="color:#e5e5e5;font-size:14px;font-weight:600;font-family:monospace;">${data.bankDetails.accountNumber}</span></td></tr>
+            <tr><td style="padding:8px 14px;border-bottom:1px solid #333;"><span style="color:#a3a3a3;font-size:12px;">Account Name</span><br/><span style="color:#e5e5e5;font-size:14px;font-weight:600;">${data.bankDetails.accountName}</span></td></tr>
+            <tr><td style="padding:8px 14px;"><span style="color:#a3a3a3;font-size:12px;">Payment Reference</span><br/><span style="color:#d4a843;font-size:14px;font-weight:700;font-family:monospace;">${data.referenceNumber}</span></td></tr>
+          </table>
+          ${data.bankDetails.referenceInstructions ? `<p style="margin:10px 0 0;font-size:12px;color:#a3a3a3;font-style:italic;">${data.bankDetails.referenceInstructions}</p>` : ""}
+        </td>
+      </tr>
+    </table>
+    ` : ""}
+
     <!-- My Bookings CTA -->
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:16px;">
       <tr>
@@ -2753,23 +3114,23 @@ async function sendBookingConfirmationEmail(data) {
       <a href="${confirmationUrl}" style="color:#d4a843;text-decoration:underline;">confirmation page</a>.
     </p>
   `;
-  try {
-    const result = await resend.emails.send({
-      from: `All Ways Transfers <${ENV.resendFromEmail}>`,
-      to: [data.clientEmail],
-      subject: `Booking Confirmed \u2014 ${data.referenceNumber}`,
-      html: wrapInTemplate(bodyContent)
+  const attachments = [];
+  if (data.invoicePdf) {
+    attachments.push({
+      filename: `Invoice-${data.referenceNumber}.pdf`,
+      content: data.invoicePdf
     });
-    if (result.error) {
-      console.warn("[Email] Failed to send booking confirmation:", result.error);
-      return false;
-    }
-    console.log(`[Email] Booking confirmation sent to ${data.clientEmail} for ${data.referenceNumber}`);
-    return true;
-  } catch (error) {
-    console.warn("[Email] Error sending booking confirmation:", error);
-    return false;
   }
+  const { success } = await sendAndLog({
+    emailType: "booking_confirmation",
+    from: `All Ways Transfers <${ENV.resendFromEmail}>`,
+    to: [data.clientEmail],
+    subject: `Booking Confirmed \u2014 ${data.referenceNumber}`,
+    html: wrapInTemplate(bodyContent),
+    bookingReference: data.referenceNumber,
+    attachments: attachments.length > 0 ? attachments : void 0
+  });
+  return success;
 }
 async function sendQuoteEmail(data) {
   if (process.env.VITEST || process.env.NODE_ENV === "test") {
@@ -2846,39 +3207,122 @@ async function sendQuoteEmail(data) {
       </tr>
     </table>
 
-    <p style="margin:0 0 16px;font-size:14px;color:#a3a3a3;text-align:center;">This quote is valid for 7 days. Ready to book?</p>
+    <!-- Time Slot Disclaimer -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+      <tr>
+        <td style="background-color:#2a2318;border-left:3px solid #d4a843;border-radius:4px;padding:14px 16px;">
+          <p style="margin:0;font-size:13px;color:#d4a843;font-weight:600;margin-bottom:6px;">Please Note</p>
+          <p style="margin:0;font-size:13px;color:#a3a3a3;line-height:1.5;">This quote is provided for your convenience and does not constitute a confirmed reservation. The requested time slot remains subject to availability and may be allocated to another client prior to booking confirmation. To secure your preferred date and time, we recommend confirming your booking at your earliest convenience. Should your requested time slot become unavailable, our team will work with you to arrange a suitable alternative.</p>
+        </td>
+      </tr>
+    </table>
 
-    <!-- Book Now CTA -->
+    <p style="margin:0 0 16px;font-size:14px;color:#a3a3a3;text-align:center;">This quote expires 2 days before your pickup date. Ready to proceed?</p>
+
+    <!-- Payment Options Header -->
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:16px;">
       <tr>
-        <td align="center" style="padding:16px 0;">
-          <a href="${bookNowUrl}" style="display:inline-block;background-color:#d4a843;color:#0a0a0a;text-decoration:none;padding:14px 40px;border-radius:8px;font-weight:700;font-size:16px;">Book Now</a>
+        <td style="padding:12px 0;text-align:center;">
+          <p style="margin:0;font-size:16px;color:#e5e5e5;font-weight:600;">Choose How to Proceed</p>
+        </td>
+      </tr>
+    </table>
+
+    ${data.stripePaymentUrl ? `
+    <!-- Option 1: Pay Now with Card -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:12px;">
+      <tr>
+        <td style="background-color:#1a2332;border:1px solid #2563eb40;border-radius:8px;padding:16px;">
+          <p style="margin:0 0 8px;font-size:14px;color:#60a5fa;font-weight:600;">Option 1: Pay Now by Card</p>
+          <p style="margin:0 0 12px;font-size:13px;color:#a3a3a3;">Secure payment via Stripe. Your booking will be confirmed instantly upon payment.</p>
+          <table role="presentation" cellpadding="0" cellspacing="0">
+            <tr>
+              <td align="center">
+                <a href="${data.stripePaymentUrl}" style="display:inline-block;background-color:#2563eb;color:#ffffff;text-decoration:none;padding:12px 32px;border-radius:6px;font-weight:700;font-size:14px;">Pay $${data.totalPrice} Now</a>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+    ` : ""}
+
+    ${data.bankDetails ? `
+    <!-- Option: Bank Transfer -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:12px;">
+      <tr>
+        <td style="background-color:#1a2318;border:1px solid #16a34a40;border-radius:8px;padding:16px;">
+          <p style="margin:0 0 8px;font-size:14px;color:#4ade80;font-weight:600;">${data.stripePaymentUrl ? "Option 2" : "Option 1"}: Pay by Bank Transfer</p>
+          <p style="margin:0 0 12px;font-size:13px;color:#a3a3a3;">Transfer the quoted amount to the following account. Please use your booking reference as the payment description.</p>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#262626;border-radius:6px;">
+            <tr>
+              <td style="padding:10px 14px;border-bottom:1px solid #333;">
+                <span style="color:#a3a3a3;font-size:12px;">Bank</span><br/>
+                <span style="color:#e5e5e5;font-size:14px;font-weight:600;">${data.bankDetails.bankName}</span>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:10px 14px;border-bottom:1px solid #333;">
+                <span style="color:#a3a3a3;font-size:12px;">BSB</span><br/>
+                <span style="color:#e5e5e5;font-size:14px;font-weight:600;font-family:monospace;">${data.bankDetails.bsb}</span>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:10px 14px;border-bottom:1px solid #333;">
+                <span style="color:#a3a3a3;font-size:12px;">Account Number</span><br/>
+                <span style="color:#e5e5e5;font-size:14px;font-weight:600;font-family:monospace;">${data.bankDetails.accountNumber}</span>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:10px 14px;border-bottom:1px solid #333;">
+                <span style="color:#a3a3a3;font-size:12px;">Account Name</span><br/>
+                <span style="color:#e5e5e5;font-size:14px;font-weight:600;">${data.bankDetails.accountName}</span>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:10px 14px;">
+                <span style="color:#a3a3a3;font-size:12px;">Payment Reference</span><br/>
+                <span style="color:#d4a843;font-size:14px;font-weight:700;font-family:monospace;">${data.referenceNumber}</span>
+              </td>
+            </tr>
+          </table>
+          ${data.bankDetails.referenceInstructions ? `<p style="margin:10px 0 0;font-size:12px;color:#a3a3a3;font-style:italic;">${data.bankDetails.referenceInstructions}</p>` : ""}
+          <p style="margin:10px 0 0;font-size:12px;color:#4ade80;">Once your transfer is received, your booking will be confirmed and you will receive a confirmation email.</p>
+        </td>
+      </tr>
+    </table>
+    ` : ""}
+
+    <!-- Option: Book Now (Pay Later) -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:16px;">
+      <tr>
+        <td style="background-color:#262626;border:1px solid #d4a84340;border-radius:8px;padding:16px;">
+          <p style="margin:0 0 8px;font-size:14px;color:#d4a843;font-weight:600;">${data.stripePaymentUrl && data.bankDetails ? "Option 3" : data.stripePaymentUrl || data.bankDetails ? "Option 2" : ""}: Book Now &amp; Pay Later</p>
+          <p style="margin:0 0 12px;font-size:13px;color:#a3a3a3;">Confirm your booking now and choose to pay by cash or card on the day of your transfer.</p>
+          <table role="presentation" cellpadding="0" cellspacing="0">
+            <tr>
+              <td align="center">
+                <a href="${bookNowUrl}" style="display:inline-block;background-color:#d4a843;color:#0a0a0a;text-decoration:none;padding:12px 32px;border-radius:6px;font-weight:700;font-size:14px;">Book Now</a>
+              </td>
+            </tr>
+          </table>
         </td>
       </tr>
     </table>
 
     <p style="margin:0;font-size:13px;color:#737373;text-align:center;">
-      Click the button above to confirm your booking using quote reference <strong style="color:#d4a843;">${data.referenceNumber}</strong>.
-      Final price may vary based on actual distance and conditions.
+      Quote reference: <strong style="color:#d4a843;">${data.referenceNumber}</strong>. Final price may vary based on actual distance and conditions.
     </p>
   `;
-  try {
-    const result = await resend.emails.send({
-      from: `All Ways Transfers <${ENV.resendFromEmail}>`,
-      to: [data.clientEmail],
-      subject: `Your Quote \u2014 ${data.referenceNumber}`,
-      html: wrapInTemplate(bodyContent)
-    });
-    if (result.error) {
-      console.warn("[Email] Failed to send quote email:", result.error);
-      return false;
-    }
-    console.log(`[Email] Quote email sent to ${data.clientEmail} for ${data.referenceNumber}`);
-    return true;
-  } catch (error) {
-    console.warn("[Email] Error sending quote email:", error);
-    return false;
-  }
+  const { success } = await sendAndLog({
+    emailType: "quote",
+    from: `All Ways Transfers <${ENV.resendFromEmail}>`,
+    to: [data.clientEmail],
+    subject: `Your Quote \u2014 ${data.referenceNumber}`,
+    html: wrapInTemplate(bodyContent),
+    bookingReference: data.referenceNumber
+  });
+  return success;
 }
 async function sendCancellationConfirmationEmail(data) {
   if (process.env.VITEST || process.env.NODE_ENV === "test") {
@@ -2985,23 +3429,15 @@ async function sendCancellationConfirmationEmail(data) {
       or call 0466 544 068.
     </p>
   `;
-  try {
-    const result = await resend.emails.send({
-      from: `All Ways Transfers <${ENV.resendFromEmail}>`,
-      to: [data.clientEmail],
-      subject: `Booking Cancelled \u2014 ${data.referenceNumber}`,
-      html: wrapInTemplate(bodyContent)
-    });
-    if (result.error) {
-      console.warn("[Email] Failed to send cancellation confirmation:", result.error);
-      return false;
-    }
-    console.log(`[Email] Cancellation confirmation sent to ${data.clientEmail} for ${data.referenceNumber}`);
-    return true;
-  } catch (error) {
-    console.warn("[Email] Error sending cancellation confirmation:", error);
-    return false;
-  }
+  const { success } = await sendAndLog({
+    emailType: "cancellation_confirmation",
+    from: `All Ways Transfers <${ENV.resendFromEmail}>`,
+    to: [data.clientEmail],
+    subject: `Booking Cancelled \u2014 ${data.referenceNumber}`,
+    html: wrapInTemplate(bodyContent),
+    bookingReference: data.referenceNumber
+  });
+  return success;
 }
 var ADMIN_EMAIL = ENV.adminEmail || "admin@allwaystransfers.com.au";
 async function sendAdminNewBookingNotification(data) {
@@ -3168,23 +3604,15 @@ async function sendAdminNewBookingNotification(data) {
       </tr>
     </table>
   `;
-  try {
-    const result = await resend.emails.send({
-      from: `All Ways Transfers <${ENV.resendFromEmail}>`,
-      to: [ADMIN_EMAIL],
-      subject: `\u{1F514} New Booking \u2014 ${data.referenceNumber} \u2014 ${data.clientName}`,
-      html: wrapInTemplate(bodyContent)
-    });
-    if (result.error) {
-      console.warn("[Email] Failed to send admin new booking notification:", result.error);
-      return false;
-    }
-    console.log(`[Email] Admin notification sent for new booking ${data.referenceNumber}`);
-    return true;
-  } catch (error) {
-    console.warn("[Email] Error sending admin new booking notification:", error);
-    return false;
-  }
+  const { success } = await sendAndLog({
+    emailType: "admin_new_booking",
+    from: `All Ways Transfers <${ENV.resendFromEmail}>`,
+    to: [ADMIN_EMAIL],
+    subject: `\u{1F514} New Booking \u2014 ${data.referenceNumber} \u2014 ${data.clientName}`,
+    html: wrapInTemplate(bodyContent),
+    bookingReference: data.referenceNumber
+  });
+  return success;
 }
 async function sendAdminCancellationNotification(data) {
   if (process.env.VITEST || process.env.NODE_ENV === "test") {
@@ -3299,23 +3727,15 @@ async function sendAdminCancellationNotification(data) {
       </tr>
     </table>
   `;
-  try {
-    const result = await resend.emails.send({
-      from: `All Ways Transfers <${ENV.resendFromEmail}>`,
-      to: [ADMIN_EMAIL],
-      subject: `\u274C Booking Cancelled \u2014 ${data.referenceNumber} \u2014 ${data.clientName}`,
-      html: wrapInTemplate(bodyContent)
-    });
-    if (result.error) {
-      console.warn("[Email] Failed to send admin cancellation notification:", result.error);
-      return false;
-    }
-    console.log(`[Email] Admin cancellation notification sent for ${data.referenceNumber}`);
-    return true;
-  } catch (error) {
-    console.warn("[Email] Error sending admin cancellation notification:", error);
-    return false;
-  }
+  const { success } = await sendAndLog({
+    emailType: "admin_cancellation",
+    from: `All Ways Transfers <${ENV.resendFromEmail}>`,
+    to: [ADMIN_EMAIL],
+    subject: `\u274C Booking Cancelled \u2014 ${data.referenceNumber} \u2014 ${data.clientName}`,
+    html: wrapInTemplate(bodyContent),
+    bookingReference: data.referenceNumber
+  });
+  return success;
 }
 async function sendPasswordResetEmail(data) {
   if (process.env.VITEST || process.env.NODE_ENV === "test") {
@@ -3356,23 +3776,14 @@ async function sendPasswordResetEmail(data) {
       </tr>
     </table>
   `;
-  try {
-    const result = await resend.emails.send({
-      from: `All Ways Transfers <${ENV.resendFromEmail}>`,
-      to: [data.email],
-      subject: "Reset Your Password \u2014 All Ways Transfers",
-      html: wrapInTemplate(bodyContent)
-    });
-    if (result.error) {
-      console.warn("[Email] Failed to send password reset email:", result.error);
-      return false;
-    }
-    console.log(`[Email] Password reset email sent to ${data.email}`);
-    return true;
-  } catch (error) {
-    console.warn("[Email] Error sending password reset email:", error);
-    return false;
-  }
+  const { success } = await sendAndLog({
+    emailType: "password_reset",
+    from: `All Ways Transfers <${ENV.resendFromEmail}>`,
+    to: [data.email],
+    subject: "Reset Your Password \u2014 All Ways Transfers",
+    html: wrapInTemplate(bodyContent)
+  });
+  return success;
 }
 async function sendPaymentReceiptEmail(data) {
   if (process.env.VITEST || process.env.NODE_ENV === "test") {
@@ -3505,25 +3916,650 @@ async function sendPaymentReceiptEmail(data) {
       </tr>
     </table>
   `;
-  try {
-    const adminEmail = ENV.adminEmail || "admin@allwaystransfers.com.au";
-    const result = await resend.emails.send({
-      from: `All Ways Transfers <${ENV.resendFromEmail}>`,
-      to: [data.clientEmail],
-      bcc: [adminEmail],
-      subject: `Payment Receipt \u2014 ${data.referenceNumber}`,
-      html: wrapInTemplate(bodyContent)
+  const attachments = [];
+  if (data.invoicePdf) {
+    attachments.push({
+      filename: `Invoice-${data.referenceNumber}.pdf`,
+      content: data.invoicePdf
     });
-    if (result.error) {
-      console.warn("[Email] Failed to send payment receipt:", result.error);
-      return false;
-    }
-    console.log(`[Email] Payment receipt sent to ${data.clientEmail} for ${data.referenceNumber}`);
-    return true;
-  } catch (error) {
-    console.warn("[Email] Error sending payment receipt:", error);
-    return false;
   }
+  const adminEmail = ENV.adminEmail || "admin@allwaystransfers.com.au";
+  const { success } = await sendAndLog({
+    emailType: "payment_receipt",
+    from: `All Ways Transfers <${ENV.resendFromEmail}>`,
+    to: [data.clientEmail],
+    bcc: [adminEmail],
+    subject: `Payment Receipt \u2014 ${data.referenceNumber}`,
+    html: wrapInTemplate(bodyContent),
+    bookingReference: data.referenceNumber,
+    attachments: attachments.length > 0 ? attachments : void 0
+  });
+  return success;
+}
+async function sendQuoteReminderEmail(data) {
+  if (process.env.VITEST || process.env.NODE_ENV === "test") {
+    console.log(`[Email] Skipping quote reminder in test environment for ${data.referenceNumber}`);
+    return true;
+  }
+  const bookNowUrl = `${data.origin}/book?quote=${data.referenceNumber}`;
+  const cancelUrl = `${data.origin}/my-bookings?cancelQuote=${data.referenceNumber}`;
+  const urgencyText = data.daysUntilExpiry <= 3 ? `<span style="color:#ef4444;font-weight:700;">expires in ${data.daysUntilExpiry} day${data.daysUntilExpiry !== 1 ? "s" : ""}</span>` : `expires in ${data.daysUntilExpiry} days`;
+  const bodyContent = `
+    <h1 style="margin:0 0 8px;font-size:24px;color:#d4a843;font-weight:700;">Quote Reminder</h1>
+    <p style="margin:0 0 24px;font-size:15px;color:#a3a3a3;">Hi ${data.clientName}, your quote ${urgencyText}. Don't miss out!</p>
+
+    <!-- Reference Number -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+      <tr>
+        <td style="background-color:#262626;border-radius:8px;padding:16px;text-align:center;">
+          <p style="margin:0 0 4px;font-size:12px;color:#a3a3a3;text-transform:uppercase;letter-spacing:1px;">Quote Reference</p>
+          <p style="margin:0;font-size:22px;font-weight:700;color:#d4a843;letter-spacing:2px;">${data.referenceNumber}</p>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Quote Summary -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+      <tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Service</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${formatServiceType(data.serviceType)}</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Date &amp; Time</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${formatDate(data.pickupDate)} at ${formatTime(data.pickupDate)} (AEST)</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Pickup</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${data.pickupAddress}</span>
+        </td>
+      </tr>
+      ${data.dropoffAddress ? `<tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Drop-off</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${data.dropoffAddress}</span>
+        </td>
+      </tr>` : ""}
+      <tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Vehicle</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${data.vehicleName}</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:12px 0 0;">
+          <span style="color:#a3a3a3;font-size:13px;">Estimated Total</span><br/>
+          <span style="color:#d4a843;font-size:22px;font-weight:700;">$${data.totalPrice}</span>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Time Slot Disclaimer -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+      <tr>
+        <td style="background-color:#2a2318;border-left:3px solid #d4a843;border-radius:4px;padding:14px 16px;">
+          <p style="margin:0;font-size:13px;color:#d4a843;font-weight:600;margin-bottom:6px;">Please Note</p>
+          <p style="margin:0;font-size:13px;color:#a3a3a3;line-height:1.5;">This quote does not constitute a confirmed reservation. The requested time slot remains subject to availability and may be allocated to another client prior to booking confirmation. To secure your preferred date and time, we recommend confirming your booking at your earliest convenience. Should your requested time slot become unavailable, our team will work with you to arrange a suitable alternative.</p>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Book Now CTA -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:16px;">
+      <tr>
+        <td align="center" style="padding:16px 0;">
+          <a href="${bookNowUrl}" style="display:inline-block;background-color:#d4a843;color:#0a0a0a;text-decoration:none;padding:14px 40px;border-radius:8px;font-weight:700;font-size:16px;">Book Now</a>
+        </td>
+      </tr>
+    </table>
+
+    <p style="margin:0 0 24px;font-size:13px;color:#737373;text-align:center;">
+      Click the button above to confirm your booking using quote reference <strong style="color:#d4a843;">${data.referenceNumber}</strong>.
+    </p>
+
+    <!-- Cancel Quote link -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td align="center" style="padding:8px 0;">
+          <p style="margin:0;font-size:13px;color:#737373;">
+            No longer interested?
+            <a href="${cancelUrl}" style="color:#a3a3a3;text-decoration:underline;">Cancel this quote</a>
+          </p>
+        </td>
+      </tr>
+    </table>
+  `;
+  const { success } = await sendAndLog({
+    emailType: "quote_reminder",
+    from: `All Ways Transfers <${ENV.resendFromEmail}>`,
+    to: [data.clientEmail],
+    subject: `Reminder: Your Quote ${data.referenceNumber} \u2014 ${data.daysUntilExpiry} day${data.daysUntilExpiry !== 1 ? "s" : ""} left`,
+    html: wrapInTemplate(bodyContent),
+    bookingReference: data.referenceNumber
+  });
+  return success;
+}
+async function sendQuoteExpiredEmail(data) {
+  if (process.env.VITEST || process.env.NODE_ENV === "test") {
+    console.log(`[Email] Skipping quote expired email in test environment for ${data.referenceNumber}`);
+    return true;
+  }
+  const contactUrl = `${data.origin}/contact`;
+  const bodyContent = `
+    <h1 style="margin:0 0 8px;font-size:24px;color:#ef4444;font-weight:700;">Quote Expired</h1>
+    <p style="margin:0 0 24px;font-size:15px;color:#a3a3a3;">Hi ${data.clientName}, your quote has expired as the pickup date is approaching.</p>
+
+    <!-- Reference Number -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+      <tr>
+        <td style="background-color:#262626;border-radius:8px;padding:16px;text-align:center;">
+          <p style="margin:0 0 4px;font-size:12px;color:#a3a3a3;text-transform:uppercase;letter-spacing:1px;">Expired Quote</p>
+          <p style="margin:0;font-size:22px;font-weight:700;color:#737373;letter-spacing:2px;">${data.referenceNumber}</p>
+        </td>
+      </tr>
+    </table>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+      <tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Service</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${formatServiceType(data.serviceType)}</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:8px 0;">
+          <span style="color:#a3a3a3;font-size:13px;">Pickup Date</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${formatDate(data.pickupDate)} at ${formatTime(data.pickupDate)} (AEST)</span>
+        </td>
+      </tr>
+    </table>
+
+    <p style="margin:0 0 16px;font-size:14px;color:#a3a3a3;text-align:center;">
+      If you'd still like to book a transfer, please contact us and we'll be happy to help.
+    </p>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td align="center" style="padding:16px 0;">
+          <a href="${contactUrl}" style="display:inline-block;background-color:#d4a843;color:#0a0a0a;text-decoration:none;padding:14px 40px;border-radius:8px;font-weight:700;font-size:16px;">Contact Us</a>
+        </td>
+      </tr>
+    </table>
+  `;
+  const { success } = await sendAndLog({
+    emailType: "quote_expired",
+    from: `All Ways Transfers <${ENV.resendFromEmail}>`,
+    to: [data.clientEmail],
+    subject: `Quote Expired \u2014 ${data.referenceNumber}`,
+    html: wrapInTemplate(bodyContent),
+    bookingReference: data.referenceNumber
+  });
+  return success;
+}
+async function sendDirectDepositPaymentReminderEmail(data) {
+  if (process.env.VITEST || process.env.NODE_ENV === "test") {
+    console.log(`[Email] Skipping payment reminder in test environment for ${data.referenceNumber}`);
+    return true;
+  }
+  const confirmationUrl = `${data.origin}/confirmation/${data.referenceNumber}`;
+  const bodyContent = `
+    <h1 style="margin:0 0 8px;font-size:24px;color:#d4a843;font-weight:700;">Payment Reminder</h1>
+    <p style="margin:0 0 24px;font-size:15px;color:#a3a3a3;">Hi ${data.clientName}, this is a friendly reminder that payment for your booking is still outstanding.</p>
+
+    <!-- Reference Number -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+      <tr>
+        <td style="background-color:#262626;border-radius:8px;padding:16px;text-align:center;">
+          <p style="margin:0 0 4px;font-size:12px;color:#a3a3a3;text-transform:uppercase;letter-spacing:1px;">Booking Reference</p>
+          <p style="margin:0;font-size:22px;font-weight:700;color:#d4a843;letter-spacing:2px;">${data.referenceNumber}</p>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Booking Summary -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+      <tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Service</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${formatServiceType(data.serviceType)}</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Date &amp; Time</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${formatDate(data.pickupDate)} at ${formatTime(data.pickupDate)} (AEST)</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Pickup</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${data.pickupAddress}</span>
+        </td>
+      </tr>
+      ${data.dropoffAddress ? `<tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Drop-off</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${data.dropoffAddress}</span>
+        </td>
+      </tr>` : ""}
+      <tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Vehicle</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${data.vehicleName}</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:12px 0 0;">
+          <span style="color:#a3a3a3;font-size:13px;">Amount Due</span><br/>
+          <span style="color:#ef4444;font-size:22px;font-weight:700;">$${data.totalPrice} AUD</span>
+        </td>
+      </tr>
+    </table>
+
+    ${data.bankDetails ? `
+    <!-- Bank Transfer Details -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+      <tr>
+        <td style="background-color:#1a2318;border:1px solid #16a34a40;border-radius:8px;padding:16px;">
+          <p style="margin:0 0 10px;font-size:14px;color:#4ade80;font-weight:600;">Bank Transfer Details</p>
+          <p style="margin:0 0 12px;font-size:13px;color:#a3a3a3;">Please transfer the total amount to the following account using your booking reference as the payment description.</p>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#262626;border-radius:6px;">
+            <tr><td style="padding:8px 14px;border-bottom:1px solid #333;"><span style="color:#a3a3a3;font-size:12px;">Bank</span><br/><span style="color:#e5e5e5;font-size:14px;font-weight:600;">${data.bankDetails.bankName}</span></td></tr>
+            <tr><td style="padding:8px 14px;border-bottom:1px solid #333;"><span style="color:#a3a3a3;font-size:12px;">BSB</span><br/><span style="color:#e5e5e5;font-size:14px;font-weight:600;font-family:monospace;">${data.bankDetails.bsb}</span></td></tr>
+            <tr><td style="padding:8px 14px;border-bottom:1px solid #333;"><span style="color:#a3a3a3;font-size:12px;">Account Number</span><br/><span style="color:#e5e5e5;font-size:14px;font-weight:600;font-family:monospace;">${data.bankDetails.accountNumber}</span></td></tr>
+            <tr><td style="padding:8px 14px;border-bottom:1px solid #333;"><span style="color:#a3a3a3;font-size:12px;">Account Name</span><br/><span style="color:#e5e5e5;font-size:14px;font-weight:600;">${data.bankDetails.accountName}</span></td></tr>
+            <tr><td style="padding:8px 14px;"><span style="color:#a3a3a3;font-size:12px;">Payment Reference</span><br/><span style="color:#d4a843;font-size:14px;font-weight:700;font-family:monospace;">${data.referenceNumber}</span></td></tr>
+          </table>
+          ${data.bankDetails.referenceInstructions ? `<p style="margin:10px 0 0;font-size:12px;color:#a3a3a3;font-style:italic;">${data.bankDetails.referenceInstructions}</p>` : ""}
+        </td>
+      </tr>
+    </table>
+    ` : ""}
+
+    <!-- Upload Proof CTA -->
+    <p style="margin:0 0 12px;font-size:14px;color:#a3a3a3;text-align:center;">Once you have completed the transfer, please upload a screenshot or photo of your payment confirmation:</p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+      <tr>
+        <td align="center" style="padding:16px 0;">
+          <a href="${confirmationUrl}" style="display:inline-block;background-color:#d4a843;color:#0a0a0a;text-decoration:none;padding:14px 40px;border-radius:8px;font-weight:700;font-size:16px;">Upload Payment Proof</a>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Note -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td style="background-color:#262626;border-radius:8px;padding:16px;">
+          <p style="margin:0 0 4px;font-size:13px;color:#a3a3a3;">
+            If you have already made the payment, please disregard this reminder. If you have any questions, please contact us at
+            <a href="mailto:bookings@allwaystransfers.com.au" style="color:#d4a843;text-decoration:underline;">bookings@allwaystransfers.com.au</a>
+            or call <strong style="color:#e5e5e5;">0466 544 068</strong>.
+          </p>
+        </td>
+      </tr>
+    </table>
+  `;
+  const adminEmail = ENV.adminEmail || "admin@allwaystransfers.com.au";
+  const { success } = await sendAndLog({
+    emailType: "payment_reminder",
+    from: `All Ways Transfers <${ENV.resendFromEmail}>`,
+    to: [data.clientEmail],
+    bcc: [adminEmail],
+    subject: `Payment Reminder \u2014 ${data.referenceNumber}`,
+    html: wrapInTemplate(bodyContent),
+    bookingReference: data.referenceNumber
+  });
+  return success;
+}
+
+// server/storage.ts
+var FORGE_API_URL = process.env.BUILT_IN_FORGE_API_URL ?? "";
+var FORGE_API_KEY = process.env.BUILT_IN_FORGE_API_KEY ?? "";
+async function storagePut(key, data, contentType) {
+  if (!FORGE_API_URL || !FORGE_API_KEY) {
+    throw new Error("Storage is not configured. BUILT_IN_FORGE_API_URL and BUILT_IN_FORGE_API_KEY are required.");
+  }
+  const blob = new Blob(
+    [data instanceof Buffer ? new Uint8Array(data) : data],
+    { type: contentType || "application/octet-stream" }
+  );
+  const filename = key.split("/").pop() || "file";
+  const formData = new FormData();
+  formData.append("file", blob, filename);
+  formData.append("path", key);
+  const response = await fetch(`${FORGE_API_URL}/v1/storage/upload`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${FORGE_API_KEY}`
+    },
+    body: formData
+  });
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Storage upload failed (${response.status}): ${errorText}`);
+  }
+  const result = await response.json();
+  return {
+    key,
+    url: result.url
+  };
+}
+
+// server/invoice.ts
+init_db();
+import PDFDocument from "pdfkit";
+import https from "https";
+import http from "http";
+var LOGO_URL2 = "https://files.manuscdn.com/user_upload_by_module/session_file/310519663486426022/jlnrNxKOAAbakZcE.png";
+var cachedLogoBuffer = null;
+async function fetchLogoBuffer() {
+  if (cachedLogoBuffer) return cachedLogoBuffer;
+  try {
+    const buffer = await new Promise((resolve, reject) => {
+      const client = LOGO_URL2.startsWith("https") ? https : http;
+      client.get(LOGO_URL2, (res) => {
+        if (res.statusCode !== 200) {
+          reject(new Error(`Failed to fetch logo: ${res.statusCode}`));
+          return;
+        }
+        const chunks = [];
+        res.on("data", (chunk) => chunks.push(chunk));
+        res.on("end", () => resolve(Buffer.concat(chunks)));
+        res.on("error", reject);
+      }).on("error", reject);
+    });
+    cachedLogoBuffer = buffer;
+    return buffer;
+  } catch (err) {
+    console.error("[Invoice] Failed to fetch logo:", err);
+    return null;
+  }
+}
+function formatDate2(timestamp2) {
+  return new Date(timestamp2).toLocaleDateString("en-AU", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: "Australia/Brisbane"
+  });
+}
+function formatTime2(timestamp2) {
+  return new Date(timestamp2).toLocaleTimeString("en-AU", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: "Australia/Brisbane"
+  });
+}
+function formatServiceType2(serviceType) {
+  return serviceType.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+function formatPaymentMethod2(method) {
+  const labels = {
+    stripe_prepay: "Credit Card",
+    square_postpay: "Pay Driver (Card)",
+    cash_postpay: "Pay Driver (Cash)",
+    direct_deposit: "Bank Transfer"
+  };
+  return labels[method] ?? method;
+}
+function formatPaymentStatus2(status) {
+  const labels = {
+    paid: "Paid",
+    unpaid: "Unpaid",
+    refunded: "Refunded"
+  };
+  return labels[status] ?? status;
+}
+var GOLD = "#C4952E";
+var DARK_BG = "#1A1A1A";
+var MUTED_TEXT = "#A3A3A3";
+var GREEN = "#16A34A";
+var RED = "#EF4444";
+async function generateInvoicePDF(booking, options) {
+  const opts = typeof options === "string" || options === null || options === void 0 ? { footerMessage: options } : options;
+  const abnValue = opts.abn?.trim() || "18 715 944 056";
+  const footerMessage = opts.footerMessage;
+  return new Promise(async (resolve, reject) => {
+    try {
+      const doc = new PDFDocument({
+        size: "A4",
+        margins: { top: 30, bottom: 30, left: 40, right: 40 },
+        info: {
+          Title: `Invoice - ${booking.referenceNumber}`,
+          Author: "All Ways Transfers",
+          Subject: `Booking Invoice ${booking.referenceNumber}`
+        }
+      });
+      const chunks = [];
+      doc.on("data", (chunk) => chunks.push(chunk));
+      doc.on("end", () => resolve(Buffer.concat(chunks)));
+      doc.on("error", reject);
+      const L = 40;
+      const R = doc.page.width - 40;
+      const pageWidth = R - L;
+      let y = 30;
+      const logoBuffer = await fetchLogoBuffer();
+      if (logoBuffer) {
+        doc.image(logoBuffer, L, y, { width: 50, height: 50 });
+      }
+      const textX = logoBuffer ? L + 56 : L;
+      doc.fontSize(13).fillColor(DARK_BG).font("Helvetica-Bold");
+      doc.text("All Ways Transfers", textX, y + 4);
+      doc.fontSize(7).fillColor(MUTED_TEXT).font("Helvetica");
+      doc.text(`0466 544 068 | bookings@allwaystransfers.com.au | ABN: ${abnValue}`, textX, y + 20);
+      doc.text("Queensland, Australia", textX, y + 30);
+      doc.fontSize(14).fillColor(GOLD).font("Helvetica-Bold");
+      doc.text("TAX INVOICE", R - 140, y + 2, { width: 140, align: "right" });
+      doc.fontSize(8).fillColor(MUTED_TEXT).font("Helvetica");
+      const headerDate = (/* @__PURE__ */ new Date()).toLocaleDateString("en-AU", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+        timeZone: "Australia/Brisbane"
+      });
+      doc.text(headerDate, R - 140, y + 20, { width: 140, align: "right" });
+      y += 56;
+      doc.moveTo(L, y).lineTo(R, y).strokeColor(GOLD).lineWidth(1.5).stroke();
+      y += 10;
+      const midX = L + pageWidth / 2 + 10;
+      const invoiceNum = opts.invoiceNumber || booking.invoiceNumber || null;
+      doc.fontSize(7).fillColor(MUTED_TEXT).font("Helvetica");
+      doc.text("INVOICE #", L, y);
+      doc.fontSize(10).fillColor(GOLD).font("Helvetica-Bold");
+      doc.text(invoiceNum || booking.referenceNumber, L, y + 10);
+      if (invoiceNum) {
+        doc.fontSize(7).fillColor(MUTED_TEXT).font("Helvetica");
+        doc.text("BOOKING REF", L + 80, y);
+        doc.fontSize(9).fillColor("#333333").font("Helvetica-Bold");
+        doc.text(booking.referenceNumber, L + 80, y + 10);
+      }
+      doc.fontSize(7).fillColor(MUTED_TEXT).font("Helvetica");
+      doc.text("STATUS", L + 140, y);
+      doc.fontSize(9).fillColor("#333333").font("Helvetica-Bold");
+      doc.text(booking.status.charAt(0).toUpperCase() + booking.status.slice(1), L + 140, y + 10);
+      doc.fontSize(7).fillColor(MUTED_TEXT).font("Helvetica");
+      doc.text("PICKUP", midX, y);
+      doc.fontSize(9).fillColor("#333333").font("Helvetica");
+      doc.text(`${formatDate2(booking.pickupDate)} at ${formatTime2(booking.pickupDate)}`, midX, y + 10);
+      y += 28;
+      doc.moveTo(L, y).lineTo(R, y).strokeColor("#E5E5E5").lineWidth(0.5).stroke();
+      y += 8;
+      const col1W = pageWidth * 0.38;
+      const col2X = L + col1W + 15;
+      const col2W = pageWidth - col1W - 15;
+      doc.fontSize(8).fillColor(GOLD).font("Helvetica-Bold");
+      doc.text("CLIENT", L, y);
+      let cy = y + 12;
+      const clientRows = [
+        ["Name", booking.clientName],
+        ["Email", booking.clientEmail],
+        ["Phone", booking.clientPhone]
+      ];
+      for (const [label, value] of clientRows) {
+        doc.fontSize(7).fillColor(MUTED_TEXT).font("Helvetica");
+        doc.text(label, L, cy, { width: 40 });
+        doc.fontSize(8).fillColor("#333333").font("Helvetica");
+        doc.text(value, L + 42, cy, { width: col1W - 42 });
+        cy += 13;
+      }
+      doc.fontSize(8).fillColor(GOLD).font("Helvetica-Bold");
+      doc.text("SERVICE", col2X, y);
+      let sy = y + 12;
+      const serviceRows = [
+        ["Type", formatServiceType2(booking.serviceType)],
+        ["From", booking.pickupAddress]
+      ];
+      if (booking.dropoffAddress) {
+        serviceRows.push(["To", booking.dropoffAddress]);
+      }
+      if (booking.additionalPickupCount > 0 && booking.additionalPickupAddresses) {
+        try {
+          const addrs = JSON.parse(booking.additionalPickupAddresses);
+          serviceRows.push([`+${booking.additionalPickupCount} pickup`, addrs.join("; ")]);
+        } catch {
+        }
+      }
+      if (booking.additionalDropoffCount > 0 && booking.additionalDropoffAddresses) {
+        try {
+          const addrs = JSON.parse(booking.additionalDropoffAddresses);
+          serviceRows.push([`+${booking.additionalDropoffCount} dropoff`, addrs.join("; ")]);
+        } catch {
+        }
+      }
+      serviceRows.push(["Vehicle", booking.vehicleName]);
+      serviceRows.push(["Pax", String(booking.passengerCount)]);
+      const childSeats = [];
+      if (booking.rearFacingSeats > 0) childSeats.push(`${booking.rearFacingSeats}\xD7 Rear`);
+      if (booking.forwardFacingSeats > 0) childSeats.push(`${booking.forwardFacingSeats}\xD7 Fwd`);
+      if (booking.boosterSeats > 0) childSeats.push(`${booking.boosterSeats}\xD7 Boost`);
+      if (childSeats.length > 0) {
+        serviceRows.push(["Seats", childSeats.join(", ")]);
+      }
+      if (booking.isPetFriendly === 1 && booking.numberOfPets) {
+        const petText = `${booking.numberOfPets} pet${booking.numberOfPets !== 1 ? "s" : ""}${booking.petDescription ? ` \u2014 ${booking.petDescription}` : ""}`;
+        serviceRows.push(["Pets", petText]);
+      }
+      if (booking.freightDescription) {
+        serviceRows.push(["Freight", booking.freightDescription]);
+      }
+      for (const [label, value] of serviceRows) {
+        doc.fontSize(7).fillColor(MUTED_TEXT).font("Helvetica");
+        doc.text(label, col2X, sy, { width: 55 });
+        doc.fontSize(8).fillColor("#333333").font("Helvetica");
+        const h = doc.heightOfString(value, { width: col2W - 58 });
+        doc.text(value, col2X + 58, sy, { width: col2W - 58 });
+        sy += Math.max(13, h + 4);
+      }
+      y = Math.max(cy, sy) + 4;
+      if (booking.specialRequests) {
+        doc.fontSize(7).fillColor(MUTED_TEXT).font("Helvetica");
+        doc.text("Special Requests:", L, y);
+        doc.fontSize(8).fillColor("#555").font("Helvetica-Oblique");
+        const reqH = doc.heightOfString(booking.specialRequests, { width: pageWidth });
+        doc.text(booking.specialRequests, L + 80, y, { width: pageWidth - 80 });
+        y += Math.max(13, reqH + 4);
+      }
+      y += 4;
+      doc.moveTo(L, y).lineTo(R, y).strokeColor("#E5E5E5").lineWidth(0.5).stroke();
+      y += 8;
+      const totalPrice = parseFloat(String(booking.totalPrice));
+      doc.rect(L, y, pageWidth, 28).fill("#FFF8E7");
+      doc.rect(L, y, pageWidth, 28).strokeColor(GOLD).lineWidth(0.5).stroke();
+      doc.fontSize(10).fillColor("#333333").font("Helvetica-Bold");
+      doc.text("TOTAL (AUD)", L + 10, y + 8);
+      doc.fontSize(7).fillColor(MUTED_TEXT).font("Helvetica-Oblique");
+      doc.text("incl. GST", L + 110, y + 10);
+      doc.fontSize(13).fillColor(GOLD).font("Helvetica-Bold");
+      doc.text(`$${totalPrice.toFixed(2)}`, R - 130, y + 6, { width: 120, align: "right" });
+      y += 36;
+      doc.fontSize(8).fillColor(GOLD).font("Helvetica-Bold");
+      doc.text("PAYMENT", L, y);
+      y += 12;
+      doc.fontSize(7).fillColor(MUTED_TEXT).font("Helvetica");
+      doc.text("Method", L, y, { width: 40 });
+      doc.fontSize(8).fillColor("#333333").font("Helvetica");
+      doc.text(formatPaymentMethod2(booking.paymentMethod), L + 42, y);
+      doc.fontSize(7).fillColor(MUTED_TEXT).font("Helvetica");
+      doc.text("Status", L + 200, y, { width: 40 });
+      const statusColor = booking.paymentStatus === "paid" ? GREEN : booking.paymentStatus === "refunded" ? "#6366F1" : RED;
+      doc.fontSize(8).fillColor(statusColor).font("Helvetica-Bold");
+      doc.text(formatPaymentStatus2(booking.paymentStatus), L + 240, y);
+      y += 16;
+      if (booking.paymentStatus === "unpaid") {
+        const bankDetails = await getBankDetails();
+        if (bankDetails) {
+          doc.rect(L, y, pageWidth, 55).fill("#F0FDF4");
+          doc.rect(L, y, pageWidth, 55).strokeColor("#BBF7D0").lineWidth(0.5).stroke();
+          let by = y + 6;
+          doc.fontSize(8).fillColor(GREEN).font("Helvetica-Bold");
+          doc.text("Bank Transfer Details", L + 8, by);
+          by += 12;
+          doc.fontSize(7).fillColor(MUTED_TEXT).font("Helvetica");
+          doc.text(`Bank: `, L + 8, by);
+          doc.fillColor("#333").font("Helvetica-Bold").text(bankDetails.bankName, L + 40, by);
+          doc.fillColor(MUTED_TEXT).font("Helvetica").text(`BSB: `, L + 180, by);
+          doc.fillColor("#333").font("Helvetica-Bold").text(bankDetails.bsb, L + 205, by);
+          doc.fillColor(MUTED_TEXT).font("Helvetica").text(`Acc: `, L + 280, by);
+          doc.fillColor("#333").font("Helvetica-Bold").text(bankDetails.accountNumber, L + 305, by);
+          by += 12;
+          doc.fontSize(7).fillColor(MUTED_TEXT).font("Helvetica");
+          doc.text(`Name: `, L + 8, by);
+          doc.fillColor("#333").font("Helvetica-Bold").text(bankDetails.accountName, L + 40, by);
+          doc.fillColor(MUTED_TEXT).font("Helvetica").text(`Ref: `, L + 280, by);
+          doc.fillColor(GOLD).font("Helvetica-Bold").text(booking.referenceNumber, L + 305, by);
+          y += 60;
+        }
+      }
+      if (footerMessage && footerMessage.trim()) {
+        y += 4;
+        const textWidth = pageWidth - 16;
+        const textHeight = doc.fontSize(7).heightOfString(footerMessage.trim(), { width: textWidth });
+        const boxHeight = textHeight + 12;
+        doc.roundedRect(L, y, pageWidth, boxHeight, 3).fill("#FFFBEB");
+        doc.roundedRect(L, y, pageWidth, boxHeight, 3).strokeColor("#F5E6B8").lineWidth(0.5).stroke();
+        doc.fontSize(7).fillColor("#78600D").font("Helvetica-Oblique");
+        doc.text(footerMessage.trim(), L + 8, y + 6, { width: textWidth });
+        y += boxHeight + 6;
+      }
+      const footerY = doc.page.height - 60;
+      doc.moveTo(L, footerY).lineTo(R, footerY).strokeColor("#E5E5E5").lineWidth(0.5).stroke();
+      doc.fontSize(6.5).fillColor(MUTED_TEXT).font("Helvetica");
+      doc.text(`All Ways Transfers | ABN ${abnValue} | Queensland, Australia | 0466 544 068 | bookings@allwaystransfers.com.au`, L, footerY + 6, {
+        width: pageWidth,
+        align: "center",
+        lineBreak: false
+      });
+      doc.fontSize(6).fillColor("#CCCCCC").font("Helvetica");
+      doc.text(`Generated ${(/* @__PURE__ */ new Date()).toLocaleString("en-AU", { timeZone: "Australia/Brisbane", dateStyle: "medium", timeStyle: "short" })} (AEST)`, L, footerY + 16, {
+        width: pageWidth,
+        align: "center",
+        lineBreak: false
+      });
+      const wmText = booking.paymentStatus === "paid" ? "PAID" : booking.paymentStatus === "unpaid" ? "AWAITING PAYMENT" : null;
+      const wmColor = booking.paymentStatus === "paid" ? GREEN : "#E11D48";
+      if (wmText) {
+        const wmFontSize = wmText === "PAID" ? 140 : 72;
+        const pages = doc.bufferedPageRange();
+        doc.switchToPage(pages.start);
+        doc.save();
+        const cx = doc.page.width / 2;
+        const cy2 = doc.page.height / 2;
+        doc.translate(cx, cy2);
+        doc.rotate(-35, { origin: [0, 0] });
+        doc.fontSize(wmFontSize).fillColor(wmColor).fillOpacity(0.1).font("Helvetica-Bold");
+        doc.text(wmText, -300, -40, { width: 600, align: "center" });
+        doc.restore();
+      }
+      doc.end();
+    } catch (error) {
+      reject(error);
+    }
+  });
 }
 
 // server/routers.ts
@@ -3736,7 +4772,7 @@ var appRouter = router({
         roadTollDetails: z2.array(z2.object({ road: z2.string(), amount: z2.number() })).default([]),
         specialRequests: z2.string().optional(),
         termsAccepted: z2.boolean(),
-        paymentMethod: z2.enum(["stripe_prepay", "square_postpay", "cash_postpay"]),
+        paymentMethod: z2.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direct_deposit"]),
         origin: z2.string().optional()
       })
     ).mutation(async ({ input }) => {
@@ -3834,6 +4870,35 @@ Total: $${input.totalPrice.toFixed(2)}${input.needsSupportVan ? "\n+ Support Van
           console.warn("Failed to create Stripe checkout session:", e);
         }
       }
+      let bankDetailsForEmail = null;
+      if (input.paymentMethod === "direct_deposit") {
+        try {
+          bankDetailsForEmail = await getBankDetails();
+        } catch (e) {
+        }
+      }
+      let invoiceNum = null;
+      try {
+        const createdBooking = await getBookingByReference(booking.referenceNumber);
+        if (createdBooking) {
+          invoiceNum = await ensureInvoiceNumber(createdBooking.id);
+        }
+      } catch (invErr) {
+        console.warn("[Booking] Failed to assign invoice number:", invErr);
+      }
+      let invoicePdf = null;
+      try {
+        const createdBooking = await getBookingByReference(booking.referenceNumber);
+        if (createdBooking) {
+          const [footerMsg, abnVal] = await Promise.all([
+            getAppSetting("invoice_footer_message"),
+            getAppSetting("invoice_abn")
+          ]);
+          invoicePdf = await generateInvoicePDF(createdBooking, { footerMessage: footerMsg, abn: abnVal, invoiceNumber: invoiceNum });
+        }
+      } catch (pdfErr) {
+        console.warn("[Booking] Failed to generate invoice PDF for email:", pdfErr);
+      }
       if (input.origin) {
         try {
           await sendBookingConfirmationEmail({
@@ -3871,7 +4936,9 @@ Total: $${input.totalPrice.toFixed(2)}${input.needsSupportVan ? "\n+ Support Van
             airportTollDetails: input.airportTollDetails ?? [],
             roadTollSurcharge: input.roadTollSurcharge ?? 0,
             roadTollDetails: input.roadTollDetails ?? [],
-            origin: input.origin
+            origin: input.origin,
+            bankDetails: bankDetailsForEmail,
+            invoicePdf
           });
         } catch (emailError) {
           console.warn("[Booking] Failed to send confirmation email:", emailError);
@@ -4011,6 +5078,27 @@ Total: $${input.totalPrice.toFixed(2)}${input.needsSupportVan ? "\n+ Support Van
       });
       if (input.origin) {
         try {
+          let stripePaymentUrl;
+          try {
+            const { url } = await createQuoteCheckoutSession({
+              bookingReference: quote.referenceNumber,
+              bookingId: quote.id,
+              amount: input.totalPrice,
+              customerEmail: input.clientEmail,
+              customerName: input.clientName,
+              serviceDescription: input.serviceType.replace(/_/g, " "),
+              origin: input.origin
+            });
+            stripePaymentUrl = url;
+          } catch (stripeErr) {
+            console.warn("[Quote] Failed to create Stripe checkout for quote email:", stripeErr);
+          }
+          let bankDetailsData = null;
+          try {
+            bankDetailsData = await getBankDetails();
+          } catch (bankErr) {
+            console.warn("[Quote] Failed to fetch bank details:", bankErr);
+          }
           await sendQuoteEmail({
             referenceNumber: quote.referenceNumber,
             clientName: input.clientName,
@@ -4033,7 +5121,9 @@ Total: $${input.totalPrice.toFixed(2)}${input.needsSupportVan ? "\n+ Support Van
             airportTollDetails: input.airportTollDetails ?? [],
             roadTollSurcharge: input.roadTollSurcharge ?? 0,
             roadTollDetails: input.roadTollDetails ?? [],
-            origin: input.origin
+            origin: input.origin,
+            stripePaymentUrl,
+            bankDetails: bankDetailsData
           });
         } catch (emailError) {
           console.warn("[Quote] Failed to send quote email:", emailError);
@@ -4056,7 +5146,7 @@ Total: $${input.totalPrice.toFixed(2)}`
     convertQuote: publicProcedure.input(
       z2.object({
         referenceNumber: z2.string(),
-        paymentMethod: z2.enum(["stripe_prepay", "square_postpay", "cash_postpay"]),
+        paymentMethod: z2.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direct_deposit"]),
         origin: z2.string().optional()
       })
     ).mutation(async ({ input }) => {
@@ -4082,6 +5172,29 @@ Total: $${input.totalPrice.toFixed(2)}`
         } catch (e) {
           console.warn("Failed to create Stripe checkout session:", e);
         }
+      }
+      let convertBankDetails = null;
+      if (input.paymentMethod === "direct_deposit") {
+        try {
+          convertBankDetails = await getBankDetails();
+        } catch (e) {
+        }
+      }
+      let convertInvoiceNum = null;
+      try {
+        convertInvoiceNum = await ensureInvoiceNumber(booking.id);
+      } catch (invErr) {
+        console.warn("[Booking] Failed to assign invoice number on quote conversion:", invErr);
+      }
+      let convertInvoicePdf = null;
+      try {
+        const [footerMsg, abnVal] = await Promise.all([
+          getAppSetting("invoice_footer_message"),
+          getAppSetting("invoice_abn")
+        ]);
+        convertInvoicePdf = await generateInvoicePDF(booking, { footerMessage: footerMsg, abn: abnVal, invoiceNumber: convertInvoiceNum });
+      } catch (pdfErr) {
+        console.warn("[Booking] Failed to generate invoice PDF for email:", pdfErr);
       }
       if (input.origin) {
         try {
@@ -4110,7 +5223,9 @@ Total: $${input.totalPrice.toFixed(2)}`
             paymentMethod: input.paymentMethod,
             paymentStatus: "unpaid",
             specialRequests: booking.specialRequests ?? null,
-            origin: input.origin
+            origin: input.origin,
+            bankDetails: convertBankDetails,
+            invoicePdf: convertInvoicePdf
           });
         } catch (emailError) {
           console.warn("[Booking] Failed to send confirmation email:", emailError);
@@ -4141,6 +5256,22 @@ Total: $${input.totalPrice.toFixed(2)}`
     getByReference: publicProcedure.input(z2.object({ referenceNumber: z2.string() })).query(async ({ input }) => {
       return getBookingByReference(input.referenceNumber);
     }),
+    // Download invoice PDF for a booking
+    downloadInvoice: publicProcedure.input(z2.object({ referenceNumber: z2.string() })).mutation(async ({ input }) => {
+      const booking = await getBookingByReference(input.referenceNumber);
+      if (!booking) throw new Error("Booking not found");
+      if (booking.status === "quote") throw new Error("Invoices are not available for quotes");
+      const invoiceNumber = await ensureInvoiceNumber(booking.id);
+      const [footerMessage, abn] = await Promise.all([
+        getAppSetting("invoice_footer_message"),
+        getAppSetting("invoice_abn")
+      ]);
+      const pdfBuffer = await generateInvoicePDF(booking, { footerMessage, abn, invoiceNumber });
+      return {
+        data: pdfBuffer.toString("base64"),
+        filename: `Invoice-${invoiceNumber || booking.referenceNumber}.pdf`
+      };
+    }),
     // Admin routes
     list: adminProcedure.input(
       z2.object({
@@ -4169,12 +5300,51 @@ Total: $${input.totalPrice.toFixed(2)}`
       z2.object({
         id: z2.number(),
         paymentStatus: z2.enum(["unpaid", "paid", "refunded"]),
-        paymentNote: z2.string().optional()
+        paymentNote: z2.string().optional(),
+        sendReceipt: z2.boolean().optional()
       })
     ).mutation(async ({ input }) => {
       const booking = await getBookingById(input.id);
       if (!booking) throw new Error("Booking not found");
-      return updateBookingPaymentStatus(input.id, input.paymentStatus, input.paymentNote);
+      const result = await updateBookingPaymentStatus(input.id, input.paymentStatus, input.paymentNote);
+      if (input.paymentStatus === "paid" && input.sendReceipt) {
+        try {
+          let receiptInvoiceNum = null;
+          try {
+            receiptInvoiceNum = await ensureInvoiceNumber(booking.id);
+          } catch (invErr) {
+            console.warn("[Payment] Failed to assign invoice number:", invErr);
+          }
+          let receiptInvoicePdf = null;
+          try {
+            const [footerMsg, abnVal] = await Promise.all([
+              getAppSetting("invoice_footer_message"),
+              getAppSetting("invoice_abn")
+            ]);
+            receiptInvoicePdf = await generateInvoicePDF(booking, { footerMessage: footerMsg, abn: abnVal, invoiceNumber: receiptInvoiceNum });
+          } catch (pdfErr) {
+            console.warn(`[Payment] Failed to generate invoice PDF for receipt:`, pdfErr);
+          }
+          await sendPaymentReceiptEmail({
+            referenceNumber: booking.referenceNumber,
+            clientName: booking.clientName,
+            clientEmail: booking.clientEmail,
+            serviceType: booking.serviceType,
+            pickupAddress: booking.pickupAddress,
+            dropoffAddress: booking.dropoffAddress ?? null,
+            pickupDate: typeof booking.pickupDate === "number" ? booking.pickupDate : new Date(booking.pickupDate).getTime(),
+            passengerCount: booking.passengerCount,
+            vehicleName: booking.vehicleName,
+            totalPrice: booking.totalPrice,
+            paymentMethod: booking.paymentMethod,
+            invoicePdf: receiptInvoicePdf
+          });
+          console.log(`[Payment] Receipt email sent to ${booking.clientEmail} for ${booking.referenceNumber}`);
+        } catch (emailError) {
+          console.warn(`[Payment] Failed to send receipt email for ${booking.referenceNumber}:`, emailError);
+        }
+      }
+      return result;
     }),
     stats: adminProcedure.query(async () => {
       return getBookingStats();
@@ -4192,7 +5362,8 @@ Total: $${input.totalPrice.toFixed(2)}`
       dropoffAddress: z2.string().nullable().optional(),
       pickupDate: z2.number().optional(),
       passengerCount: z2.number().min(0).max(7).optional(),
-      specialRequests: z2.string().nullable().optional()
+      specialRequests: z2.string().nullable().optional(),
+      estimatedDuration: z2.number().min(15).max(1440).optional()
     })).mutation(async ({ input }) => {
       const booking = await getBookingById(input.bookingId);
       if (!booking) throw new Error("Booking not found");
@@ -4217,6 +5388,10 @@ Total: $${input.totalPrice.toFixed(2)}`
       if (input.specialRequests !== void 0 && input.specialRequests !== booking.specialRequests) {
         changes.push(`Special requests updated`);
       }
+      if (input.estimatedDuration && input.estimatedDuration !== booking.estimatedDuration) {
+        const oldDur = booking.estimatedDuration ?? 60;
+        changes.push(`Duration: ${oldDur}min \u2192 ${input.estimatedDuration}min`);
+      }
       if (changes.length === 0) {
         return booking;
       }
@@ -4225,7 +5400,8 @@ Total: $${input.totalPrice.toFixed(2)}`
         dropoffAddress: input.dropoffAddress ?? void 0,
         pickupDate: input.pickupDate,
         passengerCount: input.passengerCount,
-        specialRequests: input.specialRequests
+        specialRequests: input.specialRequests,
+        estimatedDuration: input.estimatedDuration
       });
       return updated;
     }),
@@ -4425,6 +5601,319 @@ Pickup was: ${new Date(booking.pickupDate).toLocaleString("en-AU", { timeZone: "
       });
       await updateBookingStripeSession(booking.id, sessionId);
       return { checkoutUrl: url };
+    }),
+    // Authenticated user: cancel their own quote
+    cancelQuote: protectedProcedure.input(z2.object({
+      referenceNumber: z2.string()
+    })).mutation(async ({ input, ctx }) => {
+      if (!ctx.user?.email) throw new Error("Unauthorized");
+      const booking = await getBookingByReference(input.referenceNumber);
+      if (!booking) throw new Error("Quote not found");
+      if (booking.clientEmail !== ctx.user.email) throw new Error("Unauthorized");
+      if (booking.status !== "quote") throw new Error("Only active quotes can be cancelled");
+      const result = await cancelQuote(input.referenceNumber, ctx.user.email);
+      if (!result || result.status !== "cancelled") {
+        throw new Error("Failed to cancel quote");
+      }
+      try {
+        await notifyOwner({
+          title: `Quote Cancelled: ${booking.referenceNumber}`,
+          content: `Quote ${booking.referenceNumber} cancelled by client ${booking.clientName} (${booking.clientEmail}).
+Service: ${booking.serviceType}
+Pickup: ${new Date(booking.pickupDate).toLocaleString("en-AU", { timeZone: "Australia/Brisbane" })}`
+        });
+      } catch (e) {
+        console.warn("Failed to send quote cancellation notification:", e);
+      }
+      return result;
+    }),
+    // Admin: convert a quote (or expired quote) to a booking
+    adminConvertQuote: adminProcedure.input(z2.object({
+      bookingId: z2.number(),
+      paymentMethod: z2.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direct_deposit"]),
+      origin: z2.string().optional()
+    })).mutation(async ({ input }) => {
+      const booking = await adminConvertQuoteToBooking(input.bookingId, input.paymentMethod);
+      if (!booking || booking.status !== "pending") {
+        throw new Error("Quote not found or already converted");
+      }
+      let adminConvertBankDetails = null;
+      if (input.paymentMethod === "direct_deposit") {
+        try {
+          adminConvertBankDetails = await getBankDetails();
+        } catch (e) {
+        }
+      }
+      let adminConvertInvoiceNum = null;
+      try {
+        adminConvertInvoiceNum = await ensureInvoiceNumber(booking.id);
+      } catch (invErr) {
+        console.warn("[Admin] Failed to assign invoice number on quote conversion:", invErr);
+      }
+      let adminConvertInvoicePdf = null;
+      try {
+        const [footerMsg, abnVal] = await Promise.all([
+          getAppSetting("invoice_footer_message"),
+          getAppSetting("invoice_abn")
+        ]);
+        adminConvertInvoicePdf = await generateInvoicePDF(booking, { footerMessage: footerMsg, abn: abnVal, invoiceNumber: adminConvertInvoiceNum });
+      } catch (pdfErr) {
+        console.warn("[Admin] Failed to generate invoice PDF for email:", pdfErr);
+      }
+      if (input.origin) {
+        try {
+          await sendBookingConfirmationEmail({
+            referenceNumber: booking.referenceNumber,
+            clientName: booking.clientName,
+            clientEmail: booking.clientEmail,
+            serviceType: booking.serviceType,
+            pickupAddress: booking.pickupAddress,
+            dropoffAddress: booking.dropoffAddress ?? null,
+            pickupDate: typeof booking.pickupDate === "number" ? booking.pickupDate : new Date(booking.pickupDate).getTime(),
+            passengerCount: booking.passengerCount,
+            vehicleName: booking.vehicleName,
+            rearFacingSeats: booking.rearFacingSeats ?? 0,
+            forwardFacingSeats: booking.forwardFacingSeats ?? 0,
+            boosterSeats: booking.boosterSeats ?? 0,
+            isPetFriendly: !!booking.isPetFriendly,
+            numberOfPets: booking.numberOfPets ?? null,
+            petDescription: booking.petDescription ?? null,
+            freightDescription: booking.freightDescription ?? null,
+            freightWeight: booking.freightWeight ?? null,
+            freightItemCount: booking.freightItemCount ?? null,
+            freightSpecialHandling: booking.freightSpecialHandling ?? null,
+            routePreference: booking.routePreference ?? "fastest",
+            totalPrice: booking.totalPrice,
+            paymentMethod: input.paymentMethod,
+            paymentStatus: "unpaid",
+            specialRequests: booking.specialRequests ?? null,
+            origin: input.origin,
+            bankDetails: adminConvertBankDetails,
+            invoicePdf: adminConvertInvoicePdf
+          });
+        } catch (emailError) {
+          console.warn("[Admin] Failed to send confirmation email for converted quote:", emailError);
+        }
+        try {
+          await sendAdminNewBookingNotification({
+            referenceNumber: booking.referenceNumber,
+            clientName: booking.clientName,
+            clientEmail: booking.clientEmail,
+            serviceType: booking.serviceType,
+            pickupAddress: booking.pickupAddress,
+            dropoffAddress: booking.dropoffAddress ?? null,
+            pickupDate: typeof booking.pickupDate === "number" ? booking.pickupDate : new Date(booking.pickupDate).getTime(),
+            passengerCount: booking.passengerCount,
+            vehicleName: booking.vehicleName,
+            totalPrice: booking.totalPrice,
+            paymentMethod: input.paymentMethod,
+            paymentStatus: "unpaid",
+            specialRequests: booking.specialRequests ?? null,
+            origin: input.origin
+          });
+        } catch (e) {
+          console.warn("[Admin] Failed to send admin notification for converted quote:", e);
+        }
+      }
+      return booking;
+    }),
+    // Upload payment proof for direct deposit bookings
+    uploadPaymentProof: protectedProcedure.input(z2.object({
+      bookingId: z2.number(),
+      fileData: z2.string(),
+      // base64-encoded file data
+      fileName: z2.string(),
+      fileType: z2.string()
+      // MIME type
+    })).mutation(async ({ input, ctx }) => {
+      const booking = await getBookingById(input.bookingId);
+      if (!booking) throw new Error("Booking not found");
+      const user = ctx.user;
+      if (user.role !== "admin" && booking.clientEmail !== user.email) {
+        throw new Error("You can only upload payment proof for your own bookings");
+      }
+      const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp", "application/pdf"];
+      if (!allowedTypes.includes(input.fileType)) {
+        throw new Error("Invalid file type. Allowed: JPEG, PNG, GIF, WebP, PDF");
+      }
+      if (input.fileData.length > 134e5) {
+        throw new Error("File too large. Maximum size is 10MB.");
+      }
+      const buffer = Buffer.from(input.fileData, "base64");
+      const ext = input.fileName.split(".").pop() || "jpg";
+      const randomSuffix = crypto.randomBytes(8).toString("hex");
+      const fileKey = `payment-proofs/${booking.referenceNumber}-${randomSuffix}.${ext}`;
+      const { url } = await storagePut(fileKey, buffer, input.fileType);
+      await updatePaymentProof(input.bookingId, url, fileKey);
+      try {
+        await notifyOwner({
+          title: "Payment Proof Uploaded",
+          content: `Client ${booking.clientName} (${booking.clientEmail}) has uploaded payment proof for booking ${booking.referenceNumber}.
+
+Payment Method: Direct Deposit
+Amount: $${booking.totalPrice}
+
+Please review the proof and mark the booking as paid if the transfer is confirmed.
+
+View proof: ${url}`
+        });
+      } catch (e) {
+        console.warn("[PaymentProof] Failed to notify admin:", e);
+      }
+      return { url, uploadedAt: Date.now() };
+    }),
+    // Get payment proof for a booking
+    getPaymentProof: protectedProcedure.input(z2.object({ bookingId: z2.number() })).query(async ({ input, ctx }) => {
+      const booking = await getBookingById(input.bookingId);
+      if (!booking) throw new Error("Booking not found");
+      const user = ctx.user;
+      if (user.role !== "admin" && booking.clientEmail !== user.email) {
+        throw new Error("You can only view payment proof for your own bookings");
+      }
+      const proof = await getPaymentProof(input.bookingId);
+      return proof;
+    })
+  }),
+  // ─── Email Logs (Admin) ───
+  emailLogs: router({
+    list: adminProcedure.input(z2.object({
+      emailType: z2.string().optional(),
+      status: z2.string().optional(),
+      search: z2.string().optional(),
+      limit: z2.number().optional(),
+      offset: z2.number().optional()
+    })).query(async ({ input }) => {
+      return listEmailLogs(input);
+    }),
+    stats: adminProcedure.query(async () => {
+      return getEmailLogStats();
+    })
+  }),
+  // ─── Bank Details (Direct Deposit) ───
+  bankDetails: router({
+    // Public: get bank details for display to clients (only if enabled)
+    get: publicProcedure.query(async () => {
+      const details = await getBankDetails();
+      if (!details || !details.isEnabled) return null;
+      return details;
+    }),
+    // Admin: get bank details (including disabled state)
+    adminGet: adminProcedure.query(async () => {
+      return await getBankDetails();
+    }),
+    // Admin: save bank details
+    save: adminProcedure.input(z2.object({
+      bankName: z2.string().min(1, "Bank name is required"),
+      bsb: z2.string().min(1, "BSB is required"),
+      accountNumber: z2.string().min(1, "Account number is required"),
+      accountName: z2.string().min(1, "Account name is required"),
+      referenceInstructions: z2.string().default("Please use your booking reference number as the payment reference."),
+      isEnabled: z2.boolean().default(true)
+    })).mutation(async ({ input }) => {
+      await setBankDetails(input);
+      return { success: true };
+    })
+  }),
+  // ─── Invoice Settings ───
+  invoiceSettings: router({
+    // Admin: get all invoice settings
+    getAll: adminProcedure.query(async () => {
+      const [footerMessage, abn] = await Promise.all([
+        getAppSetting("invoice_footer_message"),
+        getAppSetting("invoice_abn")
+      ]);
+      return {
+        footerMessage: footerMessage ?? "",
+        abn: abn ?? "18 715 944 056"
+      };
+    }),
+    // Admin: get invoice footer message
+    getFooterMessage: adminProcedure.query(async () => {
+      const message = await getAppSetting("invoice_footer_message");
+      return { message: message ?? "" };
+    }),
+    // Admin: update invoice footer message
+    setFooterMessage: adminProcedure.input(z2.object({ message: z2.string().max(500, "Footer message must be 500 characters or less") })).mutation(async ({ input }) => {
+      await setAppSetting("invoice_footer_message", input.message.trim());
+      return { success: true };
+    }),
+    // Admin: get ABN
+    getAbn: adminProcedure.query(async () => {
+      const abn = await getAppSetting("invoice_abn");
+      return { abn: abn ?? "18 715 944 056" };
+    }),
+    // Admin: update ABN
+    setAbn: adminProcedure.input(z2.object({ abn: z2.string().max(50, "ABN must be 50 characters or less") })).mutation(async ({ input }) => {
+      await setAppSetting("invoice_abn", input.abn.trim());
+      return { success: true };
+    }),
+    // Admin: preview invoice with sample data (toggle paid/unpaid)
+    preview: adminProcedure.input(z2.object({ paymentStatus: z2.enum(["paid", "unpaid"]).default("paid") }).optional()).mutation(async ({ input }) => {
+      const previewStatus = input?.paymentStatus ?? "paid";
+      const [footerMessage, abn] = await Promise.all([
+        getAppSetting("invoice_footer_message"),
+        getAppSetting("invoice_abn")
+      ]);
+      const sampleBooking = {
+        id: 0,
+        referenceNumber: "AWT-PREVIEW",
+        clientName: "Jane Smith",
+        clientEmail: "jane.smith@example.com",
+        clientPhone: "0400 000 000",
+        serviceType: "airport_transfer",
+        pickupAddress: "123 Queen Street, Brisbane QLD 4000",
+        dropoffAddress: "Brisbane Airport (BNE), Airport Drive, Brisbane Airport QLD 4008",
+        pickupDate: Date.now() + 7 * 24 * 60 * 60 * 1e3,
+        // 7 days from now
+        passengerCount: 2,
+        vehicleName: "Premium SUV",
+        totalPrice: "185.00",
+        basePrice: "150.00",
+        paymentMethod: "direct_deposit",
+        paymentStatus: previewStatus,
+        status: "confirmed",
+        rearFacingSeats: 0,
+        forwardFacingSeats: 1,
+        boosterSeats: 0,
+        isPetFriendly: 0,
+        numberOfPets: null,
+        petDescription: null,
+        freightDescription: null,
+        freightWeight: null,
+        freightItemCount: null,
+        freightSpecialHandling: null,
+        specialRequests: null,
+        routePreference: "fastest",
+        additionalPickupCount: 0,
+        additionalDropoffCount: 0,
+        additionalPickupAddresses: null,
+        additionalDropoffAddresses: null,
+        publicHolidaySurcharge: "0",
+        publicHolidayName: null,
+        airportTollSurcharge: "15.00",
+        airportTollDetails: JSON.stringify([{ airport: "Brisbane Airport", direction: "Departure", amount: 15 }]),
+        roadTollSurcharge: "20.00",
+        roadTollDetails: JSON.stringify([{ road: "Gateway Motorway", amount: 20 }]),
+        needsSupportVan: 0,
+        supportVanPrice: "0",
+        additionalStopsSurcharge: "0",
+        stripeSessionId: null,
+        userId: null,
+        adminNotes: null,
+        paymentNote: null,
+        paymentProofUrl: null,
+        paymentProofKey: null,
+        paymentProofUploadedAt: null,
+        tollsReviewed: 0,
+        lastPaymentReminderSentAt: null,
+        createdAt: /* @__PURE__ */ new Date(),
+        updatedAt: /* @__PURE__ */ new Date()
+      };
+      const pdfBuffer = await generateInvoicePDF(sampleBooking, { footerMessage, abn });
+      return {
+        data: pdfBuffer.toString("base64"),
+        filename: "Invoice-Preview.pdf"
+      };
     })
   }),
   pricing: router({
@@ -5047,6 +6536,8 @@ init_db();
 
 // server/cron.ts
 import cron from "node-cron";
+init_env();
+init_db();
 function startTollReviewReminder() {
   cron.schedule("0 9 1 1,4,7,10 *", async () => {
     console.log("[Cron] Running quarterly toll price review reminder");
@@ -5085,8 +6576,118 @@ If prices have changed, update the amounts on the admin pricing page. The "Last 
   });
   console.log("[Cron] Quarterly toll review reminder scheduled (1st of Jan/Apr/Jul/Oct at 9:00 AM AEST)");
 }
+function startQuoteExpiryCheck() {
+  cron.schedule("0 8 * * *", async () => {
+    console.log("[Cron] Running daily quote expiry check");
+    const origin = ENV.siteUrl;
+    try {
+      const quotesToExpire = await getQuotesToExpire();
+      for (const quote of quotesToExpire) {
+        try {
+          await expireQuote(quote.id);
+          console.log(`[Cron] Expired quote ${quote.referenceNumber} (pickup: ${new Date(quote.pickupDate).toISOString()})`);
+          await sendQuoteExpiredEmail({
+            referenceNumber: quote.referenceNumber,
+            clientName: quote.clientName,
+            clientEmail: quote.clientEmail,
+            serviceType: quote.serviceType,
+            pickupDate: quote.pickupDate,
+            origin
+          });
+        } catch (err) {
+          console.error(`[Cron] Failed to expire quote ${quote.referenceNumber}:`, err);
+        }
+      }
+      if (quotesToExpire.length > 0) {
+        console.log(`[Cron] Expired ${quotesToExpire.length} quote(s)`);
+      }
+      const quotesNeedingReminders = await getQuotesNeedingReminders();
+      for (const quote of quotesNeedingReminders) {
+        try {
+          const now = Date.now();
+          const twoDaysMs = 2 * 24 * 60 * 60 * 1e3;
+          const expiryTime = quote.pickupDate - twoDaysMs;
+          const daysUntilExpiry = Math.max(1, Math.ceil((expiryTime - now) / (24 * 60 * 60 * 1e3)));
+          const vehicle = quote.vehicleId ? await getVehicleById(quote.vehicleId) : null;
+          const vehicleName = vehicle?.name ?? "Standard Vehicle";
+          await sendQuoteReminderEmail({
+            referenceNumber: quote.referenceNumber,
+            clientName: quote.clientName,
+            clientEmail: quote.clientEmail,
+            serviceType: quote.serviceType,
+            pickupAddress: quote.pickupAddress,
+            dropoffAddress: quote.dropoffAddress,
+            pickupDate: quote.pickupDate,
+            totalPrice: String(quote.totalPrice),
+            vehicleName,
+            daysUntilExpiry,
+            origin
+          });
+          await updateLastReminderSentAt(quote.id);
+          console.log(`[Cron] Sent reminder for quote ${quote.referenceNumber} (${daysUntilExpiry} days until expiry)`);
+        } catch (err) {
+          console.error(`[Cron] Failed to send reminder for quote ${quote.referenceNumber}:`, err);
+        }
+      }
+      if (quotesNeedingReminders.length > 0) {
+        console.log(`[Cron] Sent ${quotesNeedingReminders.length} quote reminder(s)`);
+      }
+      if (quotesToExpire.length === 0 && quotesNeedingReminders.length === 0) {
+        console.log("[Cron] No quotes to expire or remind");
+      }
+    } catch (error) {
+      console.error("[Cron] Quote expiry check failed:", error);
+    }
+  }, {
+    timezone: "Australia/Brisbane"
+  });
+  console.log("[Cron] Daily quote expiry check scheduled (8:00 AM AEST)");
+}
+function startPaymentReminderCheck() {
+  cron.schedule("0 9 * * *", async () => {
+    console.log("[Cron] Running daily payment reminder check");
+    const origin = ENV.siteUrl;
+    try {
+      const unpaidBookings = await getDirectDepositUnpaidBookings();
+      if (unpaidBookings.length === 0) {
+        console.log("[Cron] No unpaid direct deposit bookings to remind");
+        return;
+      }
+      const bankDetails = await getBankDetails();
+      for (const booking of unpaidBookings) {
+        try {
+          await sendDirectDepositPaymentReminderEmail({
+            referenceNumber: booking.referenceNumber,
+            clientName: booking.clientName,
+            clientEmail: booking.clientEmail,
+            serviceType: booking.serviceType,
+            pickupAddress: booking.pickupAddress,
+            dropoffAddress: booking.dropoffAddress,
+            pickupDate: booking.pickupDate,
+            totalPrice: String(booking.totalPrice),
+            vehicleName: booking.vehicleName,
+            origin,
+            bankDetails
+          });
+          await updateLastPaymentReminderSentAt(booking.id);
+          console.log(`[Cron] Sent payment reminder for booking ${booking.referenceNumber}`);
+        } catch (err) {
+          console.error(`[Cron] Failed to send payment reminder for ${booking.referenceNumber}:`, err);
+        }
+      }
+      console.log(`[Cron] Sent ${unpaidBookings.length} payment reminder(s)`);
+    } catch (error) {
+      console.error("[Cron] Payment reminder check failed:", error);
+    }
+  }, {
+    timezone: "Australia/Brisbane"
+  });
+  console.log("[Cron] Daily payment reminder check scheduled (9:00 AM AEST)");
+}
 function initCronJobs() {
   startTollReviewReminder();
+  startQuoteExpiryCheck();
+  startPaymentReminderCheck();
   console.log("[Cron] All cron jobs initialized");
 }
 
@@ -5124,13 +6725,89 @@ async function startServer() {
         case "checkout.session.completed": {
           const session = event.data.object;
           const bookingId = session.metadata?.booking_id;
+          const bookingReference = session.metadata?.booking_reference;
+          const isQuotePayment = session.metadata?.is_quote_payment === "true";
           const paymentStatus = session.payment_status;
           if (bookingId && paymentStatus === "paid") {
+            if (isQuotePayment && bookingReference) {
+              try {
+                const existingBooking = await getBookingById(parseInt(bookingId));
+                if (existingBooking && (existingBooking.status === "quote" || existingBooking.status === "expired")) {
+                  await convertQuoteToBooking(bookingReference, "stripe_prepay");
+                  console.log(`[Webhook] Auto-converted quote ${bookingReference} to booking via Stripe payment`);
+                  const updatedBooking = await getBookingById(parseInt(bookingId));
+                  if (updatedBooking) {
+                    try {
+                      let webhookInvoicePdf = null;
+                      try {
+                        const [footerMsg, abnVal] = await Promise.all([
+                          getAppSetting("invoice_footer_message"),
+                          getAppSetting("invoice_abn")
+                        ]);
+                        const webhookInvNum = await ensureInvoiceNumber(updatedBooking.id).catch(() => null);
+                        webhookInvoicePdf = await generateInvoicePDF(updatedBooking, { footerMessage: footerMsg, abn: abnVal, invoiceNumber: webhookInvNum });
+                      } catch (pdfErr) {
+                        console.warn(`[Webhook] Failed to generate invoice PDF:`, pdfErr);
+                      }
+                      await sendBookingConfirmationEmail({
+                        referenceNumber: updatedBooking.referenceNumber,
+                        clientName: updatedBooking.clientName,
+                        clientEmail: updatedBooking.clientEmail,
+                        serviceType: updatedBooking.serviceType,
+                        pickupAddress: updatedBooking.pickupAddress,
+                        dropoffAddress: updatedBooking.dropoffAddress,
+                        pickupDate: updatedBooking.pickupDate,
+                        passengerCount: updatedBooking.passengerCount,
+                        vehicleName: updatedBooking.vehicleName,
+                        totalPrice: updatedBooking.totalPrice ?? "0",
+                        paymentMethod: "stripe_prepay",
+                        isPetFriendly: updatedBooking.isPetFriendly === 1,
+                        numberOfPets: updatedBooking.numberOfPets,
+                        petDescription: updatedBooking.petDescription,
+                        publicHolidayName: updatedBooking.publicHolidayName,
+                        publicHolidaySurcharge: updatedBooking.publicHolidaySurcharge,
+                        routePreference: updatedBooking.routePreference ?? void 0,
+                        invoicePdf: webhookInvoicePdf
+                      });
+                      await sendAdminNewBookingNotification({
+                        referenceNumber: updatedBooking.referenceNumber,
+                        clientName: updatedBooking.clientName,
+                        clientEmail: updatedBooking.clientEmail,
+                        clientPhone: updatedBooking.clientPhone ?? "",
+                        serviceType: updatedBooking.serviceType,
+                        pickupAddress: updatedBooking.pickupAddress,
+                        dropoffAddress: updatedBooking.dropoffAddress,
+                        pickupDate: updatedBooking.pickupDate,
+                        passengerCount: updatedBooking.passengerCount,
+                        vehicleName: updatedBooking.vehicleName,
+                        totalPrice: updatedBooking.totalPrice ?? "0",
+                        paymentMethod: "stripe_prepay"
+                      });
+                    } catch (emailErr) {
+                      console.warn(`[Webhook] Failed to send confirmation emails for quote conversion ${bookingReference}:`, emailErr);
+                    }
+                  }
+                }
+              } catch (convErr) {
+                console.error(`[Webhook] Failed to auto-convert quote ${bookingReference}:`, convErr);
+              }
+            }
             await updateBookingPaymentStatus(parseInt(bookingId), "paid");
             console.log(`[Webhook] Payment completed for booking ${bookingId}`);
             try {
               const booking = await getBookingById(parseInt(bookingId));
               if (booking) {
+                let receiptPdf = null;
+                try {
+                  const [footerMsg, abnVal] = await Promise.all([
+                    getAppSetting("invoice_footer_message"),
+                    getAppSetting("invoice_abn")
+                  ]);
+                  const receiptInvNum = await ensureInvoiceNumber(booking.id).catch(() => null);
+                  receiptPdf = await generateInvoicePDF(booking, { footerMessage: footerMsg, abn: abnVal, invoiceNumber: receiptInvNum });
+                } catch (pdfErr) {
+                  console.warn(`[Webhook] Failed to generate invoice PDF for receipt:`, pdfErr);
+                }
                 await sendPaymentReceiptEmail({
                   referenceNumber: booking.referenceNumber,
                   clientName: booking.clientName,
@@ -5148,7 +6825,8 @@ async function startServer() {
                   petDescription: booking.petDescription,
                   publicHolidayName: booking.publicHolidayName,
                   publicHolidaySurcharge: booking.publicHolidaySurcharge,
-                  routePreference: booking.routePreference ?? void 0
+                  routePreference: booking.routePreference ?? void 0,
+                  invoicePdf: receiptPdf
                 });
               }
             } catch (emailErr) {
