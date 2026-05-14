@@ -318,6 +318,9 @@ function TestimonialsSection() {
           <h2 className="font-heading text-3xl md:text-4xl tracking-tight text-offwhite">
             What Our Clients Say
           </h2>
+          <p className="text-muted-foreground italic text-sm md:text-base max-w-lg mx-auto">
+            "If we did something wrong, tell us. If we did everything right — tell others."
+          </p>
           {combinedStats.count > 0 && (
             <div className="flex items-center justify-center gap-3">
               <StarRating rating={Math.round(combinedStats.average)} size="w-5 h-5" />

@@ -791,3 +791,6 @@
 - [x] Fix confirmation page showing "Payment Required" card after successful Stripe payment
 - [x] Fix confirmation page showing "Unpaid" payment status after successful Stripe payment
 - [x] Added "Payment Processing" state with spinner when returning from Stripe before webhook confirms
+
+## Reviews Section Slogan
+- [x] Add slogan "If we did something wrong, tell us, if we did everything right - tell others" to reviews section
