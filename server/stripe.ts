@@ -115,7 +115,26 @@ export function constructWebhookEvent(
   const stripe = getStripe();
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
   if (!webhookSecret) {
+    console.error("[Stripe Webhook] STRIPE_WEBHOOK_SECRET is not configured in environment");
     throw new Error("STRIPE_WEBHOOK_SECRET is not configured");
   }
-  return stripe.webhooks.constructEvent(payload, signature, webhookSecret);
+  console.log(`[Stripe Webhook] Verifying signature. Secret starts with: ${webhookSecret.substring(0, 10)}...`);
+  console.log(`[Stripe Webhook] Signature header: ${signature ? String(signature).substring(0, 50) + "..." : "MISSING"}`);
+  console.log(`[Stripe Webhook] Payload length: ${payload.length} bytes`);
+  try {
+    const event = stripe.webhooks.constructEvent(payload, signature, webhookSecret);
+    console.log(`[Stripe Webhook] Signature verified successfully. Event: ${event.type} (${event.id})`);
+    return event;
+  } catch (err: any) {
+    console.error(`[Stripe Webhook] Signature verification FAILED: ${err.message}`);
+    // Log additional debug info
+    const payloadStr = payload.toString("utf8");
+    try {
+      const parsed = JSON.parse(payloadStr);
+      console.error(`[Stripe Webhook] Payload object type: ${parsed.object}, event type: ${parsed.type}`);
+    } catch {
+      console.error(`[Stripe Webhook] Could not parse payload as JSON`);
+    }
+    throw err;
+  }
 }

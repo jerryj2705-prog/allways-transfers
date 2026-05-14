@@ -1357,7 +1357,12 @@ async function createQuote(data) {
 async function convertQuoteToBooking(referenceNumber, paymentMethod) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  await db.update(bookings).set({ status: "pending", paymentMethod, termsAccepted: true, updatedAt: /* @__PURE__ */ new Date() }).where(and(eq(bookings.referenceNumber, referenceNumber), eq(bookings.status, "quote")));
+  try {
+    await db.update(bookings).set({ status: "pending", paymentMethod, termsAccepted: 1, updatedAt: /* @__PURE__ */ new Date() }).where(and(eq(bookings.referenceNumber, referenceNumber), eq(bookings.status, "quote")));
+  } catch (updateErr) {
+    console.error("[convertQuoteToBooking] UPDATE failed:", updateErr?.cause?.sqlMessage || updateErr?.message || updateErr);
+    throw updateErr;
+  }
   const result = await db.select().from(bookings).where(eq(bookings.referenceNumber, referenceNumber)).limit(1);
   return result[0];
 }
@@ -2723,9 +2728,27 @@ function constructWebhookEvent(payload, signature) {
   const stripe = getStripe();
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
   if (!webhookSecret) {
+    console.error("[Stripe Webhook] STRIPE_WEBHOOK_SECRET is not configured in environment");
     throw new Error("STRIPE_WEBHOOK_SECRET is not configured");
   }
-  return stripe.webhooks.constructEvent(payload, signature, webhookSecret);
+  console.log(`[Stripe Webhook] Verifying signature. Secret starts with: ${webhookSecret.substring(0, 10)}...`);
+  console.log(`[Stripe Webhook] Signature header: ${signature ? String(signature).substring(0, 50) + "..." : "MISSING"}`);
+  console.log(`[Stripe Webhook] Payload length: ${payload.length} bytes`);
+  try {
+    const event = stripe.webhooks.constructEvent(payload, signature, webhookSecret);
+    console.log(`[Stripe Webhook] Signature verified successfully. Event: ${event.type} (${event.id})`);
+    return event;
+  } catch (err) {
+    console.error(`[Stripe Webhook] Signature verification FAILED: ${err.message}`);
+    const payloadStr = payload.toString("utf8");
+    try {
+      const parsed = JSON.parse(payloadStr);
+      console.error(`[Stripe Webhook] Payload object type: ${parsed.object}, event type: ${parsed.type}`);
+    } catch {
+      console.error(`[Stripe Webhook] Could not parse payload as JSON`);
+    }
+    throw err;
+  }
 }
 
 // server/email.ts
@@ -6729,6 +6752,8 @@ async function startServer() {
   const app = express2();
   const server = createServer(app);
   app.post("/api/stripe/webhook", express2.raw({ type: "application/json" }), async (req, res) => {
+    console.log(`[Webhook] Incoming webhook request. Content-Type: ${req.headers["content-type"]}, Body type: ${typeof req.body}, Body is Buffer: ${Buffer.isBuffer(req.body)}, Body length: ${req.body?.length || 0}`);
+    console.log(`[Webhook] Headers: stripe-signature=${req.headers["stripe-signature"] ? "present" : "MISSING"}, webhook-id=${req.headers["webhook-id"] ? "present" : "absent"}, webhook-signature=${req.headers["webhook-signature"] ? "present" : "absent"}`);
     const signature = req.headers["stripe-signature"];
     try {
       const event = constructWebhookEvent(req.body, signature);
@@ -6744,6 +6769,10 @@ async function startServer() {
           const bookingReference = session.metadata?.booking_reference;
           const isQuotePayment = session.metadata?.is_quote_payment === "true";
           const paymentStatus = session.payment_status;
+          console.log(`[Webhook] checkout.session.completed details:`);
+          console.log(`[Webhook]   bookingId=${bookingId}, bookingReference=${bookingReference}`);
+          console.log(`[Webhook]   isQuotePayment=${isQuotePayment}, paymentStatus=${paymentStatus}`);
+          console.log(`[Webhook]   session.id=${session.id}, session.metadata=${JSON.stringify(session.metadata)}`);
           if (bookingId && paymentStatus === "paid") {
             if (isQuotePayment && bookingReference) {
               try {
@@ -6808,8 +6837,9 @@ async function startServer() {
                 console.error(`[Webhook] Failed to auto-convert quote ${bookingReference}:`, convErr);
               }
             }
+            console.log(`[Webhook] Calling updateBookingPaymentStatus(${bookingId}, "paid")...`);
             await updateBookingPaymentStatus(parseInt(bookingId), "paid");
-            console.log(`[Webhook] Payment completed for booking ${bookingId}`);
+            console.log(`[Webhook] Payment status updated to PAID for booking ${bookingId}`);
             try {
               const booking = await getBookingById(parseInt(bookingId));
               if (booking) {

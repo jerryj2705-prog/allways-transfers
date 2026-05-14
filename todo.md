@@ -850,8 +850,17 @@
 - [x] Display invoice number (INV-XXXX) on each booking card in My Bookings page
 
 ## Invoice Overlapping Text Bug
-- [ ] Fix BOOKING REF and STATUS columns overlapping on invoice when reference number is long
+- [x] Fix BOOKING REF and STATUS columns overlapping on invoice when reference number is long
 
 ## Missing Email Notifications on Hostinger
-- [ ] Investigate why emails are not being sent from Hostinger deployment
-- [ ] Ensure RESEND_API_KEY and RESEND_FROM_EMAIL are configured on Hostinger
+- [x] Investigate why emails are not being sent from Hostinger deployment (missing RESEND_API_KEY and RESEND_FROM_EMAIL env vars)
+- [x] Ensure RESEND_API_KEY and RESEND_FROM_EMAIL are configured on Hostinger (user added them)
+
+## Email Still Not Sending on Hostinger
+- [ ] Debug why emails are not being sent after adding RESEND env vars
+- [ ] Check if quote is being saved to Hostinger's local MySQL bookings table
+
+## Stripe Payment Not Updating Booking Status
+- [ ] Fix: After paying by card via Stripe checkout, booking shows "Pay Driver by Cash" and "Unpaid" instead of card/paid
+- [ ] Investigate if Stripe webhook is configured and working on Hostinger
+- [ ] Investigate if quote-to-booking conversion sets payment method correctly when using Stripe

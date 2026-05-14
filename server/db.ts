@@ -325,9 +325,14 @@ export async function convertQuoteToBooking(referenceNumber: string, paymentMeth
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  await db.update(bookings)
-    .set({ status: "pending", paymentMethod, termsAccepted: true, updatedAt: new Date() })
-    .where(and(eq(bookings.referenceNumber, referenceNumber), eq(bookings.status, "quote")));
+  try {
+    await db.update(bookings)
+      .set({ status: "pending", paymentMethod, termsAccepted: 1, updatedAt: new Date() })
+      .where(and(eq(bookings.referenceNumber, referenceNumber), eq(bookings.status, "quote")));
+  } catch (updateErr: any) {
+    console.error('[convertQuoteToBooking] UPDATE failed:', updateErr?.cause?.sqlMessage || updateErr?.message || updateErr);
+    throw updateErr;
+  }
 
   const result = await db.select().from(bookings).where(eq(bookings.referenceNumber, referenceNumber)).limit(1);
   return result[0];

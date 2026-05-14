@@ -38,6 +38,8 @@ async function startServer() {
 
   // Stripe webhook must be registered BEFORE express.json() for raw body access
   app.post("/api/stripe/webhook", express.raw({ type: "application/json" }), async (req, res) => {
+    console.log(`[Webhook] Incoming webhook request. Content-Type: ${req.headers["content-type"]}, Body type: ${typeof req.body}, Body is Buffer: ${Buffer.isBuffer(req.body)}, Body length: ${req.body?.length || 0}`);
+    console.log(`[Webhook] Headers: stripe-signature=${req.headers["stripe-signature"] ? "present" : "MISSING"}, webhook-id=${req.headers["webhook-id"] ? "present" : "absent"}, webhook-signature=${req.headers["webhook-signature"] ? "present" : "absent"}`);
     const signature = req.headers["stripe-signature"] as string;
     try {
       const event = constructWebhookEvent(req.body, signature);
@@ -57,6 +59,11 @@ async function startServer() {
           const bookingReference = session.metadata?.booking_reference;
           const isQuotePayment = session.metadata?.is_quote_payment === "true";
           const paymentStatus = session.payment_status;
+
+          console.log(`[Webhook] checkout.session.completed details:`);
+          console.log(`[Webhook]   bookingId=${bookingId}, bookingReference=${bookingReference}`);
+          console.log(`[Webhook]   isQuotePayment=${isQuotePayment}, paymentStatus=${paymentStatus}`);
+          console.log(`[Webhook]   session.id=${session.id}, session.metadata=${JSON.stringify(session.metadata)}`);
 
           if (bookingId && paymentStatus === "paid") {
             // If this is a quote payment from email, auto-convert quote to booking first
@@ -129,8 +136,9 @@ async function startServer() {
               }
             }
 
+            console.log(`[Webhook] Calling updateBookingPaymentStatus(${bookingId}, "paid")...`);
             await updateBookingPaymentStatus(parseInt(bookingId), "paid");
-            console.log(`[Webhook] Payment completed for booking ${bookingId}`);
+            console.log(`[Webhook] Payment status updated to PAID for booking ${bookingId}`);
 
             // Send payment receipt email
             try {
