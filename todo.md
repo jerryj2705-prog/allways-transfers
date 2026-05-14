@@ -620,7 +620,7 @@
 - [x] Update pricing engine calculation for new fuel levy formula
 - [x] Update admin pricing UI to show new fuel levy settings
 - [x] Update booking form and all price breakdown displays (already uses fuelLevySurcharge from pricing engine)
-- [ ] Fix: Booking confirmation emails not being sent to clients
+- [x] Fix: Booking confirmation emails not being sent to clients (RESEND_API_KEY and RESEND_FROM_EMAIL env vars configured correctly)
 - [x] Remove all "From $..." base price text from service cards (misleading)
 - [x] Rename airport toll labels from "entry/exit" to "access" in price breakdowns
 - [x] Add "Get a Quote" button to service cards on Home and Service Detail pages
