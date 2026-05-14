@@ -83,6 +83,7 @@ import { createCheckoutSession, createQuoteCheckoutSession } from "./stripe";
 import { notifyOwner } from "./_core/notification";
 import { sendBookingConfirmationEmail, sendCancellationConfirmationEmail, sendAdminNewBookingNotification, sendAdminCancellationNotification, sendPasswordResetEmail, sendQuoteEmail, sendQuoteReminderEmail, sendPaymentReceiptEmail } from "./email";
 import { storagePut } from "./storage";
+import { generateInvoicePDF } from "./invoice";
 import crypto from "crypto";
 import { lookupSuburb, estimateDistance, isOutOfArea, getAllSuburbNames, getAllLocationsWithType, calculateDistance, classifyLGA } from "@shared/suburbs";
 
@@ -819,6 +820,21 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
       .input(z.object({ referenceNumber: z.string() }))
       .query(async ({ input }) => {
         return getBookingByReference(input.referenceNumber);
+      }),
+
+    // Download invoice PDF for a booking
+    downloadInvoice: publicProcedure
+      .input(z.object({ referenceNumber: z.string() }))
+      .mutation(async ({ input }) => {
+        const booking = await getBookingByReference(input.referenceNumber);
+        if (!booking) throw new Error("Booking not found");
+        // Only allow invoices for actual bookings (not quotes)
+        if (booking.status === "quote") throw new Error("Invoices are not available for quotes");
+        const pdfBuffer = await generateInvoicePDF(booking);
+        return {
+          data: pdfBuffer.toString("base64"),
+          filename: `Invoice-${booking.referenceNumber}.pdf`,
+        };
       }),
 
     // Admin routes

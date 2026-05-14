@@ -1,8 +1,8 @@
 import cron from "node-cron";
 import { notifyOwner } from "./_core/notification";
 import { ENV } from "./_core/env";
-import { getQuotesNeedingReminders, getQuotesToExpire, expireQuote, updateLastReminderSentAt, getVehicleById } from "./db";
-import { sendQuoteReminderEmail, sendQuoteExpiredEmail } from "./email";
+import { getQuotesNeedingReminders, getQuotesToExpire, expireQuote, updateLastReminderSentAt, getVehicleById, getDirectDepositUnpaidBookings, updateLastPaymentReminderSentAt, getBankDetails } from "./db";
+import { sendQuoteReminderEmail, sendQuoteExpiredEmail, sendDirectDepositPaymentReminderEmail } from "./email";
 
 /**
  * Quarterly Toll Price Review Reminder
@@ -136,10 +136,65 @@ function startQuoteExpiryCheck() {
 }
 
 /**
+ * Direct Deposit Payment Reminder
+ * Runs every day at 9:00 AM AEST.
+ * Sends payment reminders for direct deposit bookings that are unpaid after 24 hours.
+ * Only sends one reminder per day per booking (tracked via lastPaymentReminderSentAt).
+ */
+function startPaymentReminderCheck() {
+  cron.schedule("0 9 * * *", async () => {
+    console.log("[Cron] Running daily payment reminder check");
+    const origin = ENV.siteUrl;
+
+    try {
+      const unpaidBookings = await getDirectDepositUnpaidBookings();
+      if (unpaidBookings.length === 0) {
+        console.log("[Cron] No unpaid direct deposit bookings to remind");
+        return;
+      }
+
+      // Fetch bank details once for all reminders
+      const bankDetails = await getBankDetails();
+
+      for (const booking of unpaidBookings) {
+        try {
+          await sendDirectDepositPaymentReminderEmail({
+            referenceNumber: booking.referenceNumber,
+            clientName: booking.clientName,
+            clientEmail: booking.clientEmail,
+            serviceType: booking.serviceType,
+            pickupAddress: booking.pickupAddress,
+            dropoffAddress: booking.dropoffAddress,
+            pickupDate: booking.pickupDate,
+            totalPrice: String(booking.totalPrice),
+            vehicleName: booking.vehicleName,
+            origin,
+            bankDetails,
+          });
+
+          await updateLastPaymentReminderSentAt(booking.id);
+          console.log(`[Cron] Sent payment reminder for booking ${booking.referenceNumber}`);
+        } catch (err) {
+          console.error(`[Cron] Failed to send payment reminder for ${booking.referenceNumber}:`, err);
+        }
+      }
+      console.log(`[Cron] Sent ${unpaidBookings.length} payment reminder(s)`);
+    } catch (error) {
+      console.error("[Cron] Payment reminder check failed:", error);
+    }
+  }, {
+    timezone: "Australia/Brisbane",
+  });
+
+  console.log("[Cron] Daily payment reminder check scheduled (9:00 AM AEST)");
+}
+
+/**
  * Initialize all cron jobs
  */
 export function initCronJobs() {
   startTollReviewReminder();
   startQuoteExpiryCheck();
+  startPaymentReminderCheck();
   console.log("[Cron] All cron jobs initialized");
 }

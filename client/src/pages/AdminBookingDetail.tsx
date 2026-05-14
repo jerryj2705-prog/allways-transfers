@@ -17,7 +17,7 @@ import { useLocation, useParams } from "wouter";
 import { toast } from "sonner";
 import {
   ChevronLeft, MapPin, Calendar, Users, Car, Truck, Phone, Mail, User,
-  Clock, Baby, Dog, Pencil, Package, Navigation,
+  Clock, Baby, Dog, Pencil, Package, Navigation, FileDown, Loader2,
 } from "lucide-react";
 import { SERVICE_TYPES, BOOKING_STATUSES, PAYMENT_METHODS } from "@shared/types";
 import type { ServiceType, BookingStatus, PaymentMethod } from "@shared/types";
@@ -96,6 +96,30 @@ export default function AdminBookingDetail() {
     },
     onError: (err) => {
       toast.error(err.message || "Failed to update payment status");
+    },
+  });
+
+  const invoiceMutation = trpc.bookings.downloadInvoice.useMutation({
+    onSuccess: (result) => {
+      const byteCharacters = atob(result.data);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = result.filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success("Invoice downloaded");
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to generate invoice");
     },
   });
 
@@ -250,6 +274,18 @@ export default function AdminBookingDetail() {
               >
                 <Pencil className="w-3.5 h-3.5" />
                 Edit Details
+              </Button>
+            )}
+            {booking.status !== "quote" && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="bg-transparent gap-1.5"
+                onClick={() => invoiceMutation.mutate({ referenceNumber: booking.referenceNumber })}
+                disabled={invoiceMutation.isPending}
+              >
+                {invoiceMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileDown className="w-3.5 h-3.5" />}
+                Invoice
               </Button>
             )}
           </div>

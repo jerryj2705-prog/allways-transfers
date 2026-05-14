@@ -102,6 +102,8 @@ export const bookings = mysqlTable("bookings", {
   status: mysqlEnum("status", ["quote", "pending", "confirmed", "completed", "cancelled", "expired"]).default("pending").notNull(),
   // Quote reminder tracking
   lastReminderSentAt: bigint("lastReminderSentAt", { mode: "number" }),
+  // Payment reminder tracking (direct deposit)
+  lastPaymentReminderSentAt: bigint("lastPaymentReminderSentAt", { mode: "number" }),
   // Notes
   specialRequests: text("specialRequests"),
   adminNotes: text("adminNotes"),

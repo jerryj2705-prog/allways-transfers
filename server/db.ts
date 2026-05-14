@@ -1514,6 +1514,50 @@ export async function setBankDetails(details: BankDetails): Promise<void> {
 }
 
 
+// ─── Direct Deposit Payment Reminder Queries ───
+
+/**
+ * Get direct deposit bookings that are unpaid and were created more than 24 hours ago.
+ * Returns bookings where:
+ * - paymentMethod is 'direct_deposit'
+ * - paymentStatus is 'unpaid'
+ * - status is 'pending' or 'confirmed' (active bookings only)
+ * - createdAt is more than 24 hours ago
+ * - lastPaymentReminderSentAt is null OR was sent more than 23 hours ago
+ */
+export async function getDirectDepositUnpaidBookings(): Promise<Booking[]> {
+  const db = await getDb();
+  if (!db) return [];
+
+  const now = Date.now();
+  const twentyFourHoursAgoDate = new Date(now - 24 * 60 * 60 * 1000);
+  const twentyThreeHoursAgo = now - 23 * 60 * 60 * 1000;
+
+  const result = await db.select().from(bookings).where(
+    and(
+      eq(bookings.paymentMethod, "direct_deposit"),
+      eq(bookings.paymentStatus, "unpaid"),
+      or(eq(bookings.status, "pending"), eq(bookings.status, "confirmed")),
+      sql`${bookings.createdAt} < ${twentyFourHoursAgoDate}`,
+      or(
+        isNull(bookings.lastPaymentReminderSentAt),
+        sql`${bookings.lastPaymentReminderSentAt} < ${twentyThreeHoursAgo}`,
+      ),
+    )
+  );
+
+  return result;
+}
+
+/**
+ * Update the lastPaymentReminderSentAt timestamp for a booking.
+ */
+export async function updateLastPaymentReminderSentAt(id: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(bookings).set({ lastPaymentReminderSentAt: Date.now() }).where(eq(bookings.id, id));
+}
+
 // Payment proof upload
 export async function updatePaymentProof(
   bookingId: number,

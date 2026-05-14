@@ -722,3 +722,17 @@
 ## Bug Fixes
 - [x] Fix: Calendar drag/resize triggers navigation to booking detail page - suppress click after drag/resize
 - [x] Fix: Calendar resize handle not visible/prominent enough
+
+## Payment Reminder for Direct Deposit
+- [x] Backend: cron job to check for direct deposit bookings unpaid after 24 hours
+- [x] Backend: send payment reminder email with bank details and upload proof link
+- [x] Backend: track lastPaymentReminderSentAt to avoid duplicate reminders (send once daily)
+- [x] Email template: professional payment reminder with bank details and booking reference
+
+## Booking Invoice PDF
+- [x] Backend: invoice PDF generation endpoint using PDFKit or similar
+- [x] Include: business name/logo, booking reference, client details, service details, price breakdown, payment status
+- [x] Frontend: download invoice button on My Bookings page
+- [x] Frontend: download invoice button on admin booking detail page
+- [x] Frontend: download invoice button on booking confirmation page
+- [x] Write tests for both features (10 tests passing)

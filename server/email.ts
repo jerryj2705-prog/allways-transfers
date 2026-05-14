@@ -1604,3 +1604,144 @@ export async function sendQuoteExpiredEmail(data: QuoteExpiredEmailData): Promis
   });
   return success;
 }
+
+// ─── Direct Deposit Payment Reminder Email ───
+
+export interface PaymentReminderEmailData {
+  referenceNumber: string;
+  clientName: string;
+  clientEmail: string;
+  serviceType: string;
+  pickupAddress: string;
+  dropoffAddress: string | null;
+  pickupDate: number;
+  totalPrice: string;
+  vehicleName: string;
+  origin: string;
+  bankDetails: {
+    bankName: string;
+    bsb: string;
+    accountNumber: string;
+    accountName: string;
+    referenceInstructions?: string;
+  } | null;
+}
+
+export async function sendDirectDepositPaymentReminderEmail(data: PaymentReminderEmailData): Promise<boolean> {
+  if (process.env.VITEST || process.env.NODE_ENV === "test") {
+    console.log(`[Email] Skipping payment reminder in test environment for ${data.referenceNumber}`);
+    return true;
+  }
+
+  const confirmationUrl = `${data.origin}/confirmation/${data.referenceNumber}`;
+
+  const bodyContent = `
+    <h1 style="margin:0 0 8px;font-size:24px;color:#d4a843;font-weight:700;">Payment Reminder</h1>
+    <p style="margin:0 0 24px;font-size:15px;color:#a3a3a3;">Hi ${data.clientName}, this is a friendly reminder that payment for your booking is still outstanding.</p>
+
+    <!-- Reference Number -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+      <tr>
+        <td style="background-color:#262626;border-radius:8px;padding:16px;text-align:center;">
+          <p style="margin:0 0 4px;font-size:12px;color:#a3a3a3;text-transform:uppercase;letter-spacing:1px;">Booking Reference</p>
+          <p style="margin:0;font-size:22px;font-weight:700;color:#d4a843;letter-spacing:2px;">${data.referenceNumber}</p>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Booking Summary -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+      <tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Service</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${formatServiceType(data.serviceType)}</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Date &amp; Time</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${formatDate(data.pickupDate)} at ${formatTime(data.pickupDate)} (AEST)</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Pickup</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${data.pickupAddress}</span>
+        </td>
+      </tr>
+      ${data.dropoffAddress ? `<tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Drop-off</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${data.dropoffAddress}</span>
+        </td>
+      </tr>` : ""}
+      <tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Vehicle</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${data.vehicleName}</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:12px 0 0;">
+          <span style="color:#a3a3a3;font-size:13px;">Amount Due</span><br/>
+          <span style="color:#ef4444;font-size:22px;font-weight:700;">$${data.totalPrice} AUD</span>
+        </td>
+      </tr>
+    </table>
+
+    ${data.bankDetails ? `
+    <!-- Bank Transfer Details -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+      <tr>
+        <td style="background-color:#1a2318;border:1px solid #16a34a40;border-radius:8px;padding:16px;">
+          <p style="margin:0 0 10px;font-size:14px;color:#4ade80;font-weight:600;">Bank Transfer Details</p>
+          <p style="margin:0 0 12px;font-size:13px;color:#a3a3a3;">Please transfer the total amount to the following account using your booking reference as the payment description.</p>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#262626;border-radius:6px;">
+            <tr><td style="padding:8px 14px;border-bottom:1px solid #333;"><span style="color:#a3a3a3;font-size:12px;">Bank</span><br/><span style="color:#e5e5e5;font-size:14px;font-weight:600;">${data.bankDetails.bankName}</span></td></tr>
+            <tr><td style="padding:8px 14px;border-bottom:1px solid #333;"><span style="color:#a3a3a3;font-size:12px;">BSB</span><br/><span style="color:#e5e5e5;font-size:14px;font-weight:600;font-family:monospace;">${data.bankDetails.bsb}</span></td></tr>
+            <tr><td style="padding:8px 14px;border-bottom:1px solid #333;"><span style="color:#a3a3a3;font-size:12px;">Account Number</span><br/><span style="color:#e5e5e5;font-size:14px;font-weight:600;font-family:monospace;">${data.bankDetails.accountNumber}</span></td></tr>
+            <tr><td style="padding:8px 14px;border-bottom:1px solid #333;"><span style="color:#a3a3a3;font-size:12px;">Account Name</span><br/><span style="color:#e5e5e5;font-size:14px;font-weight:600;">${data.bankDetails.accountName}</span></td></tr>
+            <tr><td style="padding:8px 14px;"><span style="color:#a3a3a3;font-size:12px;">Payment Reference</span><br/><span style="color:#d4a843;font-size:14px;font-weight:700;font-family:monospace;">${data.referenceNumber}</span></td></tr>
+          </table>
+          ${data.bankDetails.referenceInstructions ? `<p style="margin:10px 0 0;font-size:12px;color:#a3a3a3;font-style:italic;">${data.bankDetails.referenceInstructions}</p>` : ""}
+        </td>
+      </tr>
+    </table>
+    ` : ""}
+
+    <!-- Upload Proof CTA -->
+    <p style="margin:0 0 12px;font-size:14px;color:#a3a3a3;text-align:center;">Once you have completed the transfer, please upload a screenshot or photo of your payment confirmation:</p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+      <tr>
+        <td align="center" style="padding:16px 0;">
+          <a href="${confirmationUrl}" style="display:inline-block;background-color:#d4a843;color:#0a0a0a;text-decoration:none;padding:14px 40px;border-radius:8px;font-weight:700;font-size:16px;">Upload Payment Proof</a>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Note -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td style="background-color:#262626;border-radius:8px;padding:16px;">
+          <p style="margin:0 0 4px;font-size:13px;color:#a3a3a3;">
+            If you have already made the payment, please disregard this reminder. If you have any questions, please contact us at
+            <a href="mailto:bookings@allwaystransfers.com.au" style="color:#d4a843;text-decoration:underline;">bookings@allwaystransfers.com.au</a>
+            or call <strong style="color:#e5e5e5;">0466 544 068</strong>.
+          </p>
+        </td>
+      </tr>
+    </table>
+  `;
+
+  const adminEmail = ENV.adminEmail || "admin@allwaystransfers.com.au";
+  const { success } = await sendAndLog({
+    emailType: "payment_reminder",
+    from: `All Ways Transfers <${ENV.resendFromEmail}>`,
+    to: [data.clientEmail],
+    bcc: [adminEmail],
+    subject: `Payment Reminder — ${data.referenceNumber}`,
+    html: wrapInTemplate(bodyContent),
+    bookingReference: data.referenceNumber,
+  });
+  return success;
+}

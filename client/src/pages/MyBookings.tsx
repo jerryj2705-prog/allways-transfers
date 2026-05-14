@@ -28,7 +28,7 @@ import {
   Plane, Clock, MapPin, Star, CalendarDays, Users,
   ArrowRight, Loader2, LogIn, ChevronRight, Car,
   XCircle, AlertTriangle, ShieldAlert, CheckCircle2,
-  Pencil, MessageSquarePlus, Receipt, Upload
+  Pencil, MessageSquarePlus, Receipt, Upload, FileDown
 } from "lucide-react";
 import { SERVICE_TYPES, BOOKING_STATUSES, PAYMENT_METHODS } from "@shared/types";
 import type { ServiceType, BookingStatus, PaymentMethod } from "@shared/types";
@@ -154,6 +154,35 @@ export default function MyBookings() {
   const handleConfirmCancelQuote = () => {
     if (!cancelQuoteRef) return;
     cancelQuoteMutation.mutate({ referenceNumber: cancelQuoteRef });
+  };
+
+  const invoiceMutation = trpc.bookings.downloadInvoice.useMutation({
+    onSuccess: (result) => {
+      // Decode base64 and trigger download
+      const byteCharacters = atob(result.data);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = result.filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success("Invoice downloaded");
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to generate invoice");
+    },
+  });
+
+  const handleDownloadInvoice = (referenceNumber: string) => {
+    invoiceMutation.mutate({ referenceNumber });
   };
 
   const cancelMutation = trpc.bookings.cancel.useMutation({
@@ -481,6 +510,20 @@ export default function MyBookings() {
                     >
                       <Receipt className="w-3 h-3 mr-1" />
                       View Receipt
+                    </Button>
+                  )}
+                  {booking.status !== "quote" && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-zinc-400 border-zinc-500/30 hover:bg-zinc-500/10 hover:text-zinc-300 h-7 text-xs"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDownloadInvoice(booking.referenceNumber);
+                      }}
+                    >
+                      <FileDown className="w-3 h-3 mr-1" />
+                      Invoice
                     </Button>
                   )}
                 </div>

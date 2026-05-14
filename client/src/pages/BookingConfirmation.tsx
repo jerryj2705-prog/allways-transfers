@@ -2,7 +2,7 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useLocation, useParams } from "wouter";
-import { CheckCircle, XCircle, Copy, Home, Calendar, MapPin, Users, Car, CreditCard, Wallet, Banknote, Baby, Dog, AlertTriangle, Loader2, Receipt, Package, Navigation, Upload, Image, FileText } from "lucide-react";
+import { CheckCircle, XCircle, Copy, Home, Calendar, MapPin, Users, Car, CreditCard, Wallet, Banknote, Baby, Dog, AlertTriangle, Loader2, Receipt, Package, Navigation, Upload, Image, FileText, FileDown } from "lucide-react";
 import { toast } from "sonner";
 import { SERVICE_TYPES, PAYMENT_METHODS } from "@shared/types";
 import type { ServiceType, PaymentMethod } from "@shared/types";
@@ -33,6 +33,30 @@ export default function BookingConfirmation() {
       // Payment confirmed, no need to keep polling
     }
   }, [booking?.paymentStatus, paymentResult]);
+
+  const invoiceMutation = trpc.bookings.downloadInvoice.useMutation({
+    onSuccess: (result) => {
+      const byteCharacters = atob(result.data);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = result.filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success("Invoice downloaded");
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to generate invoice");
+    },
+  });
 
   const retryPayment = trpc.bookings.retryPayment.useMutation({
     onSuccess: (data) => {
@@ -596,6 +620,23 @@ export default function BookingConfirmation() {
             <Home className="w-4 h-4" />
             Return Home
           </Button>
+          {booking.status !== "quote" && (
+            <Button
+              variant="outline"
+              onClick={() => {
+                invoiceMutation.mutate({ referenceNumber: booking.referenceNumber });
+              }}
+              disabled={invoiceMutation.isPending}
+              className="gap-2 bg-background"
+            >
+              {invoiceMutation.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <FileDown className="w-4 h-4" />
+              )}
+              {invoiceMutation.isPending ? "Generating..." : "Download Invoice"}
+            </Button>
+          )}
           <Button
             variant="outline"
             onClick={() => setLocation("/book")}
