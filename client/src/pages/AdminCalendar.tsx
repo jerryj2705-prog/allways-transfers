@@ -663,6 +663,7 @@ function DayTimelineView({
   const [resizeState, setResizeState] = useState<ResizeState | null>(null);
   const [resizeConfirm, setResizeConfirm] = useState<ResizeConfirm | null>(null);
   const resizeRef = useRef<ResizeState | null>(null);
+  const justInteractedRef = useRef(false);
 
   const adminModify = trpc.bookings.adminModify.useMutation({
     onSuccess: () => {
@@ -792,6 +793,8 @@ function DayTimelineView({
 
       setDragState(null);
       dragRef.current = null;
+      justInteractedRef.current = true;
+      setTimeout(() => { justInteractedRef.current = false; }, 300);
     };
 
     document.addEventListener("mousemove", handleMove);
@@ -872,6 +875,8 @@ function DayTimelineView({
 
       setResizeState(null);
       resizeRef.current = null;
+      justInteractedRef.current = true;
+      setTimeout(() => { justInteractedRef.current = false; }, 300);
     };
 
     document.addEventListener("mousemove", handleMove);
@@ -986,7 +991,7 @@ function DayTimelineView({
                     return (
                       <div
                         key={booking.id}
-                        onClick={() => { if (!isDragging && !isResizing) onBookingClick(booking.id); }}
+                        onClick={() => { if (!isDragging && !isResizing && !justInteractedRef.current) onBookingClick(booking.id); }}
                         className={`absolute z-10 rounded-r-md border-l-[3px] group
                           ${colors.block} ${colors.blockBorder}
                           ${isOverlapping && !isDragging && !isResizing ? "ring-1 ring-red-500/50" : ""}
@@ -1052,10 +1057,10 @@ function DayTimelineView({
                         <div
                           onMouseDown={(e) => handleResizeStart(e, booking)}
                           onTouchStart={(e) => handleResizeStart(e, booking)}
-                          className="absolute bottom-0 left-0 w-full h-2 cursor-ns-resize z-10 flex items-center justify-center"
+                          className="absolute bottom-0 left-0 w-full h-3 cursor-ns-resize z-20 flex items-center justify-center hover:bg-black/10 transition-colors rounded-b-md"
                           title="Drag to extend/shorten duration"
                         >
-                          <div className="w-8 h-1 rounded-full bg-muted-foreground/20 group-hover:bg-[#d4a843]/60 transition-colors" />
+                          <div className="w-10 h-1.5 rounded-full bg-muted-foreground/40 group-hover:bg-[#d4a843] transition-colors shadow-sm" />
                         </div>
                       </div>
                     );

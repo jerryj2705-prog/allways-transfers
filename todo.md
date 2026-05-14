@@ -718,3 +718,7 @@
 - [x] Frontend: display payment proof image/PDF on admin booking detail page with click-to-view
 - [x] Admin notification when payment proof is uploaded (via notifyOwner)
 - [x] Write tests for payment proof upload flow (9 tests)
+
+## Bug Fixes
+- [x] Fix: Calendar drag/resize triggers navigation to booking detail page - suppress click after drag/resize
+- [x] Fix: Calendar resize handle not visible/prominent enough
