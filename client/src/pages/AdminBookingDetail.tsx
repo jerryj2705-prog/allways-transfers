@@ -58,6 +58,7 @@ export default function AdminBookingDetail() {
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [pendingPaymentStatus, setPendingPaymentStatus] = useState<"unpaid" | "paid" | "refunded">("paid");
   const [paymentNote, setPaymentNote] = useState("");
+  const [sendReceipt, setSendReceipt] = useState(false);
   const [convertDialogOpen, setConvertDialogOpen] = useState(false);
   const [convertPaymentMethod, setConvertPaymentMethod] = useState<"stripe_prepay" | "square_postpay" | "cash_postpay">("cash_postpay");
 
@@ -614,6 +615,25 @@ export default function AdminBookingDetail() {
                     <span className="text-xs text-right max-w-[200px]">{booking.paymentNote}</span>
                   </div>
                 )}
+                {/* Quick Mark as Paid button for direct deposit unpaid bookings */}
+                {booking.paymentMethod === "direct_deposit" && booking.paymentStatus === "unpaid" && (
+                  <div className="border-t border-border/50 pt-3">
+                    <Button
+                      size="sm"
+                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white border-0 gap-2"
+                      disabled={updatePaymentStatus.isPending}
+                      onClick={() => {
+                        setPendingPaymentStatus("paid");
+                        setPaymentNote("Bank transfer received");
+                        setSendReceipt(true);
+                        setPaymentDialogOpen(true);
+                      }}
+                    >
+                      <Mail className="h-4 w-4" />
+                      Mark as Paid & Send Receipt
+                    </Button>
+                  </div>
+                )}
                 <div className="border-t border-border/50 pt-3 space-y-2">
                   <p className="text-xs text-muted-foreground">Update Payment Status</p>
                   <div className="flex gap-2">
@@ -622,7 +642,7 @@ export default function AdminBookingDetail() {
                       variant={booking.paymentStatus === "unpaid" ? "default" : "outline"}
                       className={`flex-1 text-xs ${booking.paymentStatus === "unpaid" ? "bg-amber-600 hover:bg-amber-700 text-white border-0" : "bg-transparent"}`}
                       disabled={booking.paymentStatus === "unpaid" || updatePaymentStatus.isPending}
-                      onClick={() => { setPendingPaymentStatus("unpaid"); setPaymentNote(""); setPaymentDialogOpen(true); }}
+                      onClick={() => { setPendingPaymentStatus("unpaid"); setPaymentNote(""); setSendReceipt(false); setPaymentDialogOpen(true); }}
                     >
                       Unpaid
                     </Button>
@@ -631,7 +651,7 @@ export default function AdminBookingDetail() {
                       variant={booking.paymentStatus === "paid" ? "default" : "outline"}
                       className={`flex-1 text-xs ${booking.paymentStatus === "paid" ? "bg-emerald-600 hover:bg-emerald-700 text-white border-0" : "bg-transparent"}`}
                       disabled={booking.paymentStatus === "paid" || updatePaymentStatus.isPending}
-                      onClick={() => { setPendingPaymentStatus("paid"); setPaymentNote(""); setPaymentDialogOpen(true); }}
+                      onClick={() => { setPendingPaymentStatus("paid"); setPaymentNote(""); setSendReceipt(false); setPaymentDialogOpen(true); }}
                     >
                       Paid
                     </Button>
@@ -640,7 +660,7 @@ export default function AdminBookingDetail() {
                       variant={booking.paymentStatus === "refunded" ? "default" : "outline"}
                       className={`flex-1 text-xs ${booking.paymentStatus === "refunded" ? "bg-blue-600 hover:bg-blue-700 text-white border-0" : "bg-transparent"}`}
                       disabled={booking.paymentStatus === "refunded" || updatePaymentStatus.isPending}
-                      onClick={() => { setPendingPaymentStatus("refunded"); setPaymentNote(""); setPaymentDialogOpen(true); }}
+                      onClick={() => { setPendingPaymentStatus("refunded"); setPaymentNote(""); setSendReceipt(false); setPaymentDialogOpen(true); }}
                     >
                       Refunded
                     </Button>
@@ -843,6 +863,21 @@ export default function AdminBookingDetail() {
                 rows={2}
               />
             </div>
+            {pendingPaymentStatus === "paid" && (
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                <input
+                  type="checkbox"
+                  id="sendReceipt"
+                  checked={sendReceipt}
+                  onChange={(e) => setSendReceipt(e.target.checked)}
+                  className="h-4 w-4 rounded border-border accent-emerald-600"
+                />
+                <label htmlFor="sendReceipt" className="text-sm cursor-pointer">
+                  <span className="font-medium">Send payment receipt email</span>
+                  <span className="block text-xs text-muted-foreground">Client will receive a payment confirmation email</span>
+                </label>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setPaymentDialogOpen(false)} className="bg-transparent">
@@ -854,6 +889,7 @@ export default function AdminBookingDetail() {
                   id: bookingId,
                   paymentStatus: pendingPaymentStatus,
                   paymentNote: paymentNote || undefined,
+                  sendReceipt: sendReceipt,
                 });
                 setPaymentDialogOpen(false);
               }}

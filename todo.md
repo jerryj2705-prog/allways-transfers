@@ -700,3 +700,10 @@
 - [x] Show bank details on review step when direct deposit is selected
 - [x] Show bank details in booking confirmation email for direct deposit payments
 - [x] Filter out direct_deposit from payment methods if bank details not configured by admin
+
+## Admin Mark Direct Deposit as Paid
+- [x] Backend: admin procedure to mark direct deposit booking as paid (update paymentStatus)
+- [x] Backend: send payment receipt email to client when marked as paid
+- [x] Frontend: "Mark as Paid" button on admin booking detail page for direct deposit bookings
+- [x] Frontend: confirmation dialog before marking as paid (with send receipt checkbox)
+- [x] Write tests for mark-as-paid flow

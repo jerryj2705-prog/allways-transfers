@@ -79,7 +79,7 @@ import {
 import { makeRequest, type PlaceDetailsResult } from "./_core/map";
 import { createCheckoutSession, createQuoteCheckoutSession } from "./stripe";
 import { notifyOwner } from "./_core/notification";
-import { sendBookingConfirmationEmail, sendCancellationConfirmationEmail, sendAdminNewBookingNotification, sendAdminCancellationNotification, sendPasswordResetEmail, sendQuoteEmail, sendQuoteReminderEmail } from "./email";
+import { sendBookingConfirmationEmail, sendCancellationConfirmationEmail, sendAdminNewBookingNotification, sendAdminCancellationNotification, sendPasswordResetEmail, sendQuoteEmail, sendQuoteReminderEmail, sendPaymentReceiptEmail } from "./email";
 import crypto from "crypto";
 import { lookupSuburb, estimateDistance, isOutOfArea, getAllSuburbNames, getAllLocationsWithType, calculateDistance, classifyLGA } from "@shared/suburbs";
 
@@ -857,12 +857,37 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
           id: z.number(),
           paymentStatus: z.enum(["unpaid", "paid", "refunded"]),
           paymentNote: z.string().optional(),
+          sendReceipt: z.boolean().optional(),
         })
       )
       .mutation(async ({ input }) => {
         const booking = await getBookingById(input.id);
         if (!booking) throw new Error("Booking not found");
-        return updateBookingPaymentStatus(input.id, input.paymentStatus, input.paymentNote);
+        const result = await updateBookingPaymentStatus(input.id, input.paymentStatus, input.paymentNote);
+
+        // Send payment receipt email when marking as paid and sendReceipt is true
+        if (input.paymentStatus === "paid" && input.sendReceipt) {
+          try {
+            await sendPaymentReceiptEmail({
+              referenceNumber: booking.referenceNumber,
+              clientName: booking.clientName,
+              clientEmail: booking.clientEmail,
+              serviceType: booking.serviceType,
+              pickupAddress: booking.pickupAddress,
+              dropoffAddress: booking.dropoffAddress ?? null,
+              pickupDate: typeof booking.pickupDate === 'number' ? booking.pickupDate : new Date(booking.pickupDate).getTime(),
+              passengerCount: booking.passengerCount,
+              vehicleName: booking.vehicleName,
+              totalPrice: booking.totalPrice,
+              paymentMethod: booking.paymentMethod,
+            });
+            console.log(`[Payment] Receipt email sent to ${booking.clientEmail} for ${booking.referenceNumber}`);
+          } catch (emailError) {
+            console.warn(`[Payment] Failed to send receipt email for ${booking.referenceNumber}:`, emailError);
+          }
+        }
+
+        return result;
       }),
 
     stats: adminProcedure.query(async () => {
