@@ -848,3 +848,10 @@
 
 ## Invoice Numbers on My Bookings
 - [x] Display invoice number (INV-XXXX) on each booking card in My Bookings page
+
+## Invoice Overlapping Text Bug
+- [ ] Fix BOOKING REF and STATUS columns overlapping on invoice when reference number is long
+
+## Missing Email Notifications on Hostinger
+- [ ] Investigate why emails are not being sent from Hostinger deployment
+- [ ] Ensure RESEND_API_KEY and RESEND_FROM_EMAIL are configured on Hostinger

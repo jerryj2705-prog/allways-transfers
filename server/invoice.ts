@@ -162,17 +162,18 @@ export async function generateInvoicePDF(booking: Booking, options?: InvoiceOpti
       doc.text(invoiceNum || booking.referenceNumber, L, y + 10);
 
       // Show booking reference separately if we have a distinct invoice number
+      // Use wider spacing to prevent overlap with long reference numbers
       if (invoiceNum) {
         doc.fontSize(7).fillColor(MUTED_TEXT).font("Helvetica");
-        doc.text("BOOKING REF", L + 80, y);
-        doc.fontSize(9).fillColor("#333333").font("Helvetica-Bold");
-        doc.text(booking.referenceNumber, L + 80, y + 10);
+        doc.text("BOOKING REF", L + 90, y);
+        doc.fontSize(8).fillColor("#333333").font("Helvetica-Bold");
+        doc.text(booking.referenceNumber, L + 90, y + 10, { width: 140 });
       }
 
       doc.fontSize(7).fillColor(MUTED_TEXT).font("Helvetica");
-      doc.text("STATUS", L + 140, y);
+      doc.text("STATUS", L + 240, y);
       doc.fontSize(9).fillColor("#333333").font("Helvetica-Bold");
-      doc.text(booking.status.charAt(0).toUpperCase() + booking.status.slice(1), L + 140, y + 10);
+      doc.text(booking.status.charAt(0).toUpperCase() + booking.status.slice(1), L + 240, y + 10);
 
       doc.fontSize(7).fillColor(MUTED_TEXT).font("Helvetica");
       doc.text("PICKUP", midX, y);
