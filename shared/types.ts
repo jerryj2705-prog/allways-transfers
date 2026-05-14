@@ -65,6 +65,11 @@ export const PAYMENT_METHODS = {
     description: "Pay the driver in cash on the day. Please ensure the correct amount is prepared, as the driver is not required to carry change.",
     surcharge: 0,
   },
+  direct_deposit: {
+    label: "Direct Deposit (Bank Transfer)",
+    description: "Transfer funds directly to our bank account prior to your trip. Bank details will be provided upon selection.",
+    surcharge: 0,
+  },
 } as const;
 
 export type PaymentMethod = keyof typeof PAYMENT_METHODS;

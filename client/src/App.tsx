@@ -24,6 +24,7 @@ import ResetPassword from "./pages/ResetPassword";
 import Receipt from "./pages/Receipt";
 import AdminLandmarks from "./pages/AdminLandmarks";
 import AdminEmailLogs from "./pages/AdminEmailLogs";
+import AdminBankDetails from "./pages/AdminBankDetails";
 
 function Router() {
   return (
@@ -49,6 +50,7 @@ function Router() {
       <Route path="/admin/reviews" component={AdminReviews} />
       <Route path="/admin/landmarks" component={AdminLandmarks} />
       <Route path="/admin/email-logs" component={AdminEmailLogs} />
+      <Route path="/admin/bank-details" component={AdminBankDetails} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>

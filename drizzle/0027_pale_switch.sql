@@ -1,0 +1,1 @@
+ALTER TABLE `bookings` MODIFY COLUMN `paymentMethod` enum('stripe_prepay','square_postpay','cash_postpay','direct_deposit') NOT NULL DEFAULT 'cash_postpay';

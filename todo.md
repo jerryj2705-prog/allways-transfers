@@ -680,3 +680,23 @@
 
 ## Quote Disclaimer on Booking Form
 - [x] Add professional time slot disclaimer to the quote summary page before client submits the form
+
+## Direct Deposit Payment Method
+- [x] Create bank_details settings table (using appSettings key-value store)
+- [x] Add direct_deposit to payment method enum in bookings table
+- [x] Backend: admin CRUD procedures for bank details
+- [x] Backend: public procedure to fetch bank details for client display
+- [x] Frontend: admin settings page to configure bank details
+- [x] Frontend: direct deposit option in booking form payment step
+- [x] Frontend: display bank details when client selects direct deposit
+- [x] Update booking confirmation email to include bank details for direct deposit payments
+- [x] Write tests for bank details CRUD and direct deposit payment flow
+
+## Quote Email Payment Options
+- [x] Add bank transfer details (from admin settings) directly in quote email
+- [x] Add Stripe "Pay Now" link in quote email that creates checkout session and auto-converts quote on payment
+- [x] Add "Book Now" link in quote email for pay-later options
+- [x] Auto-convert quote to booking when Stripe payment completes via webhook
+- [x] Show bank details on review step when direct deposit is selected
+- [x] Show bank details in booking confirmation email for direct deposit payments
+- [x] Filter out direct_deposit from payment methods if bank details not configured by admin

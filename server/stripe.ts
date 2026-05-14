@@ -58,6 +58,56 @@ export async function createCheckoutSession(params: {
   return { url: session.url!, sessionId: session.id };
 }
 
+/**
+ * Create a checkout session for a quote - used in quote emails.
+ * Longer expiry (24h) and includes quote-specific metadata for auto-conversion.
+ */
+export async function createQuoteCheckoutSession(params: {
+  bookingReference: string;
+  bookingId: number;
+  amount: number;
+  customerEmail: string;
+  customerName: string;
+  serviceDescription: string;
+  origin: string;
+}): Promise<{ url: string; sessionId: string }> {
+  const stripe = getStripe();
+
+  const session = await stripe.checkout.sessions.create({
+    payment_method_types: ["card"],
+    mode: "payment",
+    customer_email: params.customerEmail,
+    client_reference_id: params.bookingId.toString(),
+    metadata: {
+      booking_id: params.bookingId.toString(),
+      booking_reference: params.bookingReference,
+      customer_name: params.customerName,
+      customer_email: params.customerEmail,
+      is_quote_payment: "true",
+    },
+    line_items: [
+      {
+        price_data: {
+          currency: "aud",
+          product_data: {
+            name: `All Ways Transfers - ${params.serviceDescription}`,
+            description: `Booking Reference: ${params.bookingReference}`,
+          },
+          unit_amount: Math.round(params.amount * 100),
+        },
+        quantity: 1,
+      },
+    ],
+    allow_promotion_codes: true,
+    // Quote checkout expires 24 hours from now
+    expires_at: Math.floor(Date.now() / 1000) + 86400,
+    success_url: `${params.origin}/confirmation/${params.bookingReference}?payment=success`,
+    cancel_url: `${params.origin}/booking/${params.bookingReference}`,
+  });
+
+  return { url: session.url!, sessionId: session.id };
+}
+
 export function constructWebhookEvent(
   payload: Buffer,
   signature: string,

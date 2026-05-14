@@ -1485,3 +1485,30 @@ export async function adminConvertQuoteToBooking(id: number, paymentMethod: stri
   const result = await db.select().from(bookings).where(eq(bookings.id, id)).limit(1);
   return result[0];
 }
+
+// ─── Bank Details (Direct Deposit) ───
+
+export interface BankDetails {
+  bankName: string;
+  bsb: string;
+  accountNumber: string;
+  accountName: string;
+  referenceInstructions: string;
+  isEnabled: boolean;
+}
+
+const BANK_DETAILS_KEY = "bank_details";
+
+export async function getBankDetails(): Promise<BankDetails | null> {
+  const raw = await getAppSetting(BANK_DETAILS_KEY);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as BankDetails;
+  } catch {
+    return null;
+  }
+}
+
+export async function setBankDetails(details: BankDetails): Promise<void> {
+  await setAppSetting(BANK_DETAILS_KEY, JSON.stringify(details));
+}

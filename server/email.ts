@@ -118,6 +118,7 @@ function formatPaymentMethod(method: string): string {
     stripe_prepay: "Pre-pay by Credit Card",
     square_postpay: "Pay Driver by Card",
     cash_postpay: "Pay Driver by Cash",
+    direct_deposit: "Direct Bank Transfer",
   };
   return labels[method] ?? method;
 }
@@ -214,6 +215,13 @@ export interface BookingEmailData {
   roadTollSurcharge?: number;
   roadTollDetails?: { road: string; amount: number }[];
   origin: string;
+  bankDetails?: {
+    bankName: string;
+    bsb: string;
+    accountNumber: string;
+    accountName: string;
+    referenceInstructions?: string;
+  } | null;
 }
 
 function buildAdditionalStopsHtml(data: BookingEmailData): string {
@@ -433,6 +441,26 @@ export async function sendBookingConfirmationEmail(data: BookingEmailData): Prom
       </tr>
     </table>
 
+    ${data.paymentMethod === "direct_deposit" && data.bankDetails ? `
+    <!-- Bank Transfer Details -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+      <tr>
+        <td style="background-color:#1a2318;border:1px solid #16a34a40;border-radius:8px;padding:16px;">
+          <p style="margin:0 0 10px;font-size:14px;color:#4ade80;font-weight:600;">Bank Transfer Details</p>
+          <p style="margin:0 0 12px;font-size:13px;color:#a3a3a3;">Please transfer the total amount to the following account using your booking reference as the payment description.</p>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#262626;border-radius:6px;">
+            <tr><td style="padding:8px 14px;border-bottom:1px solid #333;"><span style="color:#a3a3a3;font-size:12px;">Bank</span><br/><span style="color:#e5e5e5;font-size:14px;font-weight:600;">${data.bankDetails.bankName}</span></td></tr>
+            <tr><td style="padding:8px 14px;border-bottom:1px solid #333;"><span style="color:#a3a3a3;font-size:12px;">BSB</span><br/><span style="color:#e5e5e5;font-size:14px;font-weight:600;font-family:monospace;">${data.bankDetails.bsb}</span></td></tr>
+            <tr><td style="padding:8px 14px;border-bottom:1px solid #333;"><span style="color:#a3a3a3;font-size:12px;">Account Number</span><br/><span style="color:#e5e5e5;font-size:14px;font-weight:600;font-family:monospace;">${data.bankDetails.accountNumber}</span></td></tr>
+            <tr><td style="padding:8px 14px;border-bottom:1px solid #333;"><span style="color:#a3a3a3;font-size:12px;">Account Name</span><br/><span style="color:#e5e5e5;font-size:14px;font-weight:600;">${data.bankDetails.accountName}</span></td></tr>
+            <tr><td style="padding:8px 14px;"><span style="color:#a3a3a3;font-size:12px;">Payment Reference</span><br/><span style="color:#d4a843;font-size:14px;font-weight:700;font-family:monospace;">${data.referenceNumber}</span></td></tr>
+          </table>
+          ${data.bankDetails.referenceInstructions ? `<p style="margin:10px 0 0;font-size:12px;color:#a3a3a3;font-style:italic;">${data.bankDetails.referenceInstructions}</p>` : ""}
+        </td>
+      </tr>
+    </table>
+    ` : ""}
+
     <!-- My Bookings CTA -->
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:16px;">
       <tr>
@@ -486,6 +514,14 @@ export interface QuoteEmailData {
   roadTollSurcharge?: number;
   roadTollDetails?: { road: string; amount: number }[];
   origin: string;
+  stripePaymentUrl?: string;
+  bankDetails?: {
+    bankName: string;
+    bsb: string;
+    accountNumber: string;
+    accountName: string;
+    referenceInstructions?: string;
+  } | null;
 }
 
 export async function sendQuoteEmail(data: QuoteEmailData): Promise<boolean> {
@@ -575,20 +611,101 @@ export async function sendQuoteEmail(data: QuoteEmailData): Promise<boolean> {
       </tr>
     </table>
 
-    <p style="margin:0 0 16px;font-size:14px;color:#a3a3a3;text-align:center;">This quote expires 2 days before your pickup date. Ready to book?</p>
+    <p style="margin:0 0 16px;font-size:14px;color:#a3a3a3;text-align:center;">This quote expires 2 days before your pickup date. Ready to proceed?</p>
 
-    <!-- Book Now CTA -->
+    <!-- Payment Options Header -->
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:16px;">
       <tr>
-        <td align="center" style="padding:16px 0;">
-          <a href="${bookNowUrl}" style="display:inline-block;background-color:#d4a843;color:#0a0a0a;text-decoration:none;padding:14px 40px;border-radius:8px;font-weight:700;font-size:16px;">Book Now</a>
+        <td style="padding:12px 0;text-align:center;">
+          <p style="margin:0;font-size:16px;color:#e5e5e5;font-weight:600;">Choose How to Proceed</p>
+        </td>
+      </tr>
+    </table>
+
+    ${data.stripePaymentUrl ? `
+    <!-- Option 1: Pay Now with Card -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:12px;">
+      <tr>
+        <td style="background-color:#1a2332;border:1px solid #2563eb40;border-radius:8px;padding:16px;">
+          <p style="margin:0 0 8px;font-size:14px;color:#60a5fa;font-weight:600;">Option 1: Pay Now by Card</p>
+          <p style="margin:0 0 12px;font-size:13px;color:#a3a3a3;">Secure payment via Stripe. Your booking will be confirmed instantly upon payment.</p>
+          <table role="presentation" cellpadding="0" cellspacing="0">
+            <tr>
+              <td align="center">
+                <a href="${data.stripePaymentUrl}" style="display:inline-block;background-color:#2563eb;color:#ffffff;text-decoration:none;padding:12px 32px;border-radius:6px;font-weight:700;font-size:14px;">Pay $${data.totalPrice} Now</a>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+    ` : ""}
+
+    ${data.bankDetails ? `
+    <!-- Option: Bank Transfer -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:12px;">
+      <tr>
+        <td style="background-color:#1a2318;border:1px solid #16a34a40;border-radius:8px;padding:16px;">
+          <p style="margin:0 0 8px;font-size:14px;color:#4ade80;font-weight:600;">${data.stripePaymentUrl ? "Option 2" : "Option 1"}: Pay by Bank Transfer</p>
+          <p style="margin:0 0 12px;font-size:13px;color:#a3a3a3;">Transfer the quoted amount to the following account. Please use your booking reference as the payment description.</p>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#262626;border-radius:6px;">
+            <tr>
+              <td style="padding:10px 14px;border-bottom:1px solid #333;">
+                <span style="color:#a3a3a3;font-size:12px;">Bank</span><br/>
+                <span style="color:#e5e5e5;font-size:14px;font-weight:600;">${data.bankDetails.bankName}</span>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:10px 14px;border-bottom:1px solid #333;">
+                <span style="color:#a3a3a3;font-size:12px;">BSB</span><br/>
+                <span style="color:#e5e5e5;font-size:14px;font-weight:600;font-family:monospace;">${data.bankDetails.bsb}</span>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:10px 14px;border-bottom:1px solid #333;">
+                <span style="color:#a3a3a3;font-size:12px;">Account Number</span><br/>
+                <span style="color:#e5e5e5;font-size:14px;font-weight:600;font-family:monospace;">${data.bankDetails.accountNumber}</span>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:10px 14px;border-bottom:1px solid #333;">
+                <span style="color:#a3a3a3;font-size:12px;">Account Name</span><br/>
+                <span style="color:#e5e5e5;font-size:14px;font-weight:600;">${data.bankDetails.accountName}</span>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:10px 14px;">
+                <span style="color:#a3a3a3;font-size:12px;">Payment Reference</span><br/>
+                <span style="color:#d4a843;font-size:14px;font-weight:700;font-family:monospace;">${data.referenceNumber}</span>
+              </td>
+            </tr>
+          </table>
+          ${data.bankDetails.referenceInstructions ? `<p style="margin:10px 0 0;font-size:12px;color:#a3a3a3;font-style:italic;">${data.bankDetails.referenceInstructions}</p>` : ""}
+          <p style="margin:10px 0 0;font-size:12px;color:#4ade80;">Once your transfer is received, your booking will be confirmed and you will receive a confirmation email.</p>
+        </td>
+      </tr>
+    </table>
+    ` : ""}
+
+    <!-- Option: Book Now (Pay Later) -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:16px;">
+      <tr>
+        <td style="background-color:#262626;border:1px solid #d4a84340;border-radius:8px;padding:16px;">
+          <p style="margin:0 0 8px;font-size:14px;color:#d4a843;font-weight:600;">${data.stripePaymentUrl && data.bankDetails ? "Option 3" : data.stripePaymentUrl || data.bankDetails ? "Option 2" : ""}: Book Now &amp; Pay Later</p>
+          <p style="margin:0 0 12px;font-size:13px;color:#a3a3a3;">Confirm your booking now and choose to pay by cash or card on the day of your transfer.</p>
+          <table role="presentation" cellpadding="0" cellspacing="0">
+            <tr>
+              <td align="center">
+                <a href="${bookNowUrl}" style="display:inline-block;background-color:#d4a843;color:#0a0a0a;text-decoration:none;padding:12px 32px;border-radius:6px;font-weight:700;font-size:14px;">Book Now</a>
+              </td>
+            </tr>
+          </table>
         </td>
       </tr>
     </table>
 
     <p style="margin:0;font-size:13px;color:#737373;text-align:center;">
-      Click the button above to confirm your booking using quote reference <strong style="color:#d4a843;">${data.referenceNumber}</strong>.
-      Final price may vary based on actual distance and conditions.
+      Quote reference: <strong style="color:#d4a843;">${data.referenceNumber}</strong>. Final price may vary based on actual distance and conditions.
     </p>
   `;
 

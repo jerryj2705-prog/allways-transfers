@@ -16,7 +16,7 @@ import { useLocation } from "wouter";
 import {
   Search, LayoutDashboard, Clock, CheckCircle, XCircle, AlertCircle,
   ChevronLeft, ChevronRight, LogOut, Home, DollarSign, MessageSquare, CalendarDays, Star,
-  Download, X, Banknote, CreditCard, RotateCcw, MapPin, Trash2, Navigation, FileText, Mail,
+  Download, X, Banknote, CreditCard, RotateCcw, MapPin, Trash2, Navigation, FileText, Mail, Building2,
 } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -293,6 +293,15 @@ export default function AdminDashboard() {
             >
               <Mail className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Email Logs</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setLocation("/admin/bank-details")}
+              className="gap-1 bg-background"
+            >
+              <Building2 className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Bank Details</span>
             </Button>
             <span className="text-sm text-muted-foreground hidden sm:inline">{user.name}</span>
             <Button variant="outline" size="sm" onClick={logout} className="gap-1 bg-background">

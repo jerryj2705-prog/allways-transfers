@@ -8,8 +8,8 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { constructWebhookEvent } from "../stripe";
-import { getBookingById, getBookingByStripeSession, updateBookingPaymentStatus } from "../db";
-import { sendPaymentReceiptEmail } from "../email";
+import { getBookingById, getBookingByStripeSession, updateBookingPaymentStatus, convertQuoteToBooking, getBookingByReference } from "../db";
+import { sendPaymentReceiptEmail, sendBookingConfirmationEmail, sendAdminNewBookingNotification } from "../email";
 import { initCronJobs } from "../cron";
 
 function isPortAvailable(port: number): Promise<boolean> {
@@ -53,8 +53,67 @@ async function startServer() {
         case "checkout.session.completed": {
           const session = event.data.object as any;
           const bookingId = session.metadata?.booking_id;
+          const bookingReference = session.metadata?.booking_reference;
+          const isQuotePayment = session.metadata?.is_quote_payment === "true";
           const paymentStatus = session.payment_status;
+
           if (bookingId && paymentStatus === "paid") {
+            // If this is a quote payment from email, auto-convert quote to booking first
+            if (isQuotePayment && bookingReference) {
+              try {
+                const existingBooking = await getBookingById(parseInt(bookingId));
+                if (existingBooking && (existingBooking.status === "quote" || existingBooking.status === "expired")) {
+                  await convertQuoteToBooking(bookingReference, "stripe_prepay");
+                  console.log(`[Webhook] Auto-converted quote ${bookingReference} to booking via Stripe payment`);
+
+                  // Send booking confirmation email to client
+                  const updatedBooking = await getBookingById(parseInt(bookingId));
+                  if (updatedBooking) {
+                    try {
+                      await sendBookingConfirmationEmail({
+                        referenceNumber: updatedBooking.referenceNumber,
+                        clientName: updatedBooking.clientName,
+                        clientEmail: updatedBooking.clientEmail,
+                        serviceType: updatedBooking.serviceType,
+                        pickupAddress: updatedBooking.pickupAddress,
+                        dropoffAddress: updatedBooking.dropoffAddress,
+                        pickupDate: updatedBooking.pickupDate,
+                        passengerCount: updatedBooking.passengerCount,
+                        vehicleName: updatedBooking.vehicleName,
+                        totalPrice: updatedBooking.totalPrice ?? "0",
+                        paymentMethod: "stripe_prepay",
+                        isPetFriendly: updatedBooking.isPetFriendly === 1,
+                        numberOfPets: updatedBooking.numberOfPets,
+                        petDescription: updatedBooking.petDescription,
+                        publicHolidayName: updatedBooking.publicHolidayName,
+                        publicHolidaySurcharge: updatedBooking.publicHolidaySurcharge,
+                        routePreference: updatedBooking.routePreference ?? undefined,
+                      });
+                      // Notify admin of new booking from quote
+                      await sendAdminNewBookingNotification({
+                        referenceNumber: updatedBooking.referenceNumber,
+                        clientName: updatedBooking.clientName,
+                        clientEmail: updatedBooking.clientEmail,
+                        clientPhone: updatedBooking.clientPhone ?? "",
+                        serviceType: updatedBooking.serviceType,
+                        pickupAddress: updatedBooking.pickupAddress,
+                        dropoffAddress: updatedBooking.dropoffAddress,
+                        pickupDate: updatedBooking.pickupDate,
+                        passengerCount: updatedBooking.passengerCount,
+                        vehicleName: updatedBooking.vehicleName,
+                        totalPrice: updatedBooking.totalPrice ?? "0",
+                        paymentMethod: "stripe_prepay",
+                      });
+                    } catch (emailErr) {
+                      console.warn(`[Webhook] Failed to send confirmation emails for quote conversion ${bookingReference}:`, emailErr);
+                    }
+                  }
+                }
+              } catch (convErr) {
+                console.error(`[Webhook] Failed to auto-convert quote ${bookingReference}:`, convErr);
+              }
+            }
+
             await updateBookingPaymentStatus(parseInt(bookingId), "paid");
             console.log(`[Webhook] Payment completed for booking ${bookingId}`);
 

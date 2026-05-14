@@ -72,9 +72,12 @@ import {
   adminConvertQuoteToBooking,
   listEmailLogs,
   getEmailLogStats,
+  getBankDetails,
+  setBankDetails,
+  type BankDetails,
 } from "./db";
 import { makeRequest, type PlaceDetailsResult } from "./_core/map";
-import { createCheckoutSession } from "./stripe";
+import { createCheckoutSession, createQuoteCheckoutSession } from "./stripe";
 import { notifyOwner } from "./_core/notification";
 import { sendBookingConfirmationEmail, sendCancellationConfirmationEmail, sendAdminNewBookingNotification, sendAdminCancellationNotification, sendPasswordResetEmail, sendQuoteEmail, sendQuoteReminderEmail } from "./email";
 import crypto from "crypto";
@@ -340,9 +343,10 @@ export const appRouter = router({
           roadTollDetails: z.array(z.object({ road: z.string(), amount: z.number() })).default([]),
           specialRequests: z.string().optional(),
           termsAccepted: z.boolean(),
-          paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay"]),
-          origin: z.string().optional(),
+paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direct_deposit"]),
+           origin: z.string().optional(),
         })
+
       )
       .mutation(async ({ input }) => {
         if (!input.termsAccepted) {
@@ -443,6 +447,12 @@ export const appRouter = router({
           }
         }
 
+        // Fetch bank details if payment is direct deposit
+        let bankDetailsForEmail: BankDetails | null = null;
+        if (input.paymentMethod === "direct_deposit") {
+          try { bankDetailsForEmail = await getBankDetails(); } catch (e) { /* ignore */ }
+        }
+
         // Send booking confirmation email
         if (input.origin) {
           try {
@@ -482,6 +492,7 @@ export const appRouter = router({
               roadTollSurcharge: input.roadTollSurcharge ?? 0,
               roadTollDetails: input.roadTollDetails ?? [],
               origin: input.origin,
+              bankDetails: bankDetailsForEmail,
             });
           } catch (emailError) {
             console.warn("[Booking] Failed to send confirmation email:", emailError);
@@ -626,9 +637,34 @@ export const appRouter = router({
           termsAccepted: 0,
         });
 
-        // Send quote email to client
+        // Send quote email to client with payment options
         if (input.origin) {
           try {
+            // Generate Stripe checkout URL for quote
+            let stripePaymentUrl: string | undefined;
+            try {
+              const { url } = await createQuoteCheckoutSession({
+                bookingReference: quote.referenceNumber,
+                bookingId: quote.id,
+                amount: input.totalPrice,
+                customerEmail: input.clientEmail,
+                customerName: input.clientName,
+                serviceDescription: input.serviceType.replace(/_/g, " "),
+                origin: input.origin,
+              });
+              stripePaymentUrl = url;
+            } catch (stripeErr) {
+              console.warn("[Quote] Failed to create Stripe checkout for quote email:", stripeErr);
+            }
+
+            // Fetch bank details for direct deposit option
+            let bankDetailsData: BankDetails | null = null;
+            try {
+              bankDetailsData = await getBankDetails();
+            } catch (bankErr) {
+              console.warn("[Quote] Failed to fetch bank details:", bankErr);
+            }
+
             await sendQuoteEmail({
               referenceNumber: quote.referenceNumber,
               clientName: input.clientName,
@@ -652,6 +688,8 @@ export const appRouter = router({
               roadTollSurcharge: input.roadTollSurcharge ?? 0,
               roadTollDetails: input.roadTollDetails ?? [],
               origin: input.origin,
+              stripePaymentUrl,
+              bankDetails: bankDetailsData,
             });
           } catch (emailError) {
             console.warn("[Quote] Failed to send quote email:", emailError);
@@ -675,9 +713,10 @@ export const appRouter = router({
       .input(
         z.object({
           referenceNumber: z.string(),
-          paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay"]),
-          origin: z.string().optional(),
-        })
+paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direct_deposit"]),
+           origin: z.string().optional(),
+         })
+
       )
       .mutation(async ({ input }) => {
         const booking = await convertQuoteToBooking(input.referenceNumber, input.paymentMethod);
@@ -704,6 +743,12 @@ export const appRouter = router({
           } catch (e) {
             console.warn("Failed to create Stripe checkout session:", e);
           }
+        }
+
+        // Fetch bank details if direct deposit
+        let convertBankDetails: BankDetails | null = null;
+        if (input.paymentMethod === "direct_deposit") {
+          try { convertBankDetails = await getBankDetails(); } catch (e) { /* ignore */ }
         }
 
         // Send booking confirmation email
@@ -735,6 +780,7 @@ export const appRouter = router({
               paymentStatus: "unpaid",
               specialRequests: booking.specialRequests ?? null,
               origin: input.origin,
+              bankDetails: convertBankDetails,
             });
           } catch (emailError) {
             console.warn("[Booking] Failed to send confirmation email:", emailError);
@@ -1161,13 +1207,19 @@ export const appRouter = router({
     adminConvertQuote: adminProcedure
       .input(z.object({
         bookingId: z.number(),
-        paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay"]),
+        paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direct_deposit"]),
         origin: z.string().optional(),
       }))
       .mutation(async ({ input }) => {
         const booking = await adminConvertQuoteToBooking(input.bookingId, input.paymentMethod);
         if (!booking || (booking.status !== "pending")) {
           throw new Error("Quote not found or already converted");
+        }
+
+        // Fetch bank details if direct deposit
+        let adminConvertBankDetails: BankDetails | null = null;
+        if (input.paymentMethod === "direct_deposit") {
+          try { adminConvertBankDetails = await getBankDetails(); } catch (e) { /* ignore */ }
         }
 
         // Send booking confirmation email
@@ -1199,6 +1251,7 @@ export const appRouter = router({
               paymentStatus: "unpaid",
               specialRequests: booking.specialRequests ?? null,
               origin: input.origin,
+              bankDetails: adminConvertBankDetails,
             });
           } catch (emailError) {
             console.warn("[Admin] Failed to send confirmation email for converted quote:", emailError);
@@ -1248,6 +1301,36 @@ export const appRouter = router({
     stats: adminProcedure.query(async () => {
       return getEmailLogStats();
     }),
+  }),
+
+  // ─── Bank Details (Direct Deposit) ───
+  bankDetails: router({
+    // Public: get bank details for display to clients (only if enabled)
+    get: publicProcedure.query(async () => {
+      const details = await getBankDetails();
+      if (!details || !details.isEnabled) return null;
+      return details;
+    }),
+
+    // Admin: get bank details (including disabled state)
+    adminGet: adminProcedure.query(async () => {
+      return await getBankDetails();
+    }),
+
+    // Admin: save bank details
+    save: adminProcedure
+      .input(z.object({
+        bankName: z.string().min(1, "Bank name is required"),
+        bsb: z.string().min(1, "BSB is required"),
+        accountNumber: z.string().min(1, "Account number is required"),
+        accountName: z.string().min(1, "Account name is required"),
+        referenceInstructions: z.string().default("Please use your booking reference number as the payment reference."),
+        isEnabled: z.boolean().default(true),
+      }))
+      .mutation(async ({ input }) => {
+        await setBankDetails(input);
+        return { success: true };
+      }),
   }),
 
   pricing: router({

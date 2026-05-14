@@ -91,7 +91,7 @@ export const bookings = mysqlTable("bookings", {
   basePrice: decimal("basePrice", { precision: 10, scale: 2 }).notNull(),
   totalPrice: decimal("totalPrice", { precision: 10, scale: 2 }).notNull(),
   // Payment
-  paymentMethod: mysqlEnum("paymentMethod", ["stripe_prepay", "square_postpay", "cash_postpay"]).notNull().default("cash_postpay"),
+  paymentMethod: mysqlEnum("paymentMethod", ["stripe_prepay", "square_postpay", "cash_postpay", "direct_deposit"]).notNull().default("cash_postpay"),
   paymentStatus: mysqlEnum("paymentStatus", ["unpaid", "paid", "refunded"]).notNull().default("unpaid"),
   stripeSessionId: varchar("stripeSessionId", { length: 255 }),
   paymentNote: text("paymentNote"),

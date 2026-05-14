@@ -15,6 +15,7 @@ import {
   Plane, Clock, MapPin, Star, ArrowLeft, ArrowRight, Check,
   Users, Briefcase, Truck, ChevronLeft, CreditCard, Banknote, Wallet,
   AlertTriangle, Search, MapPinned, Baby, Dog, Plus, Minus, CalendarIcon, Info, Package, Navigation, Landmark, Mail, FileText,
+  Building2,
 } from "lucide-react";
 import { SERVICE_TYPES, SUV_CAPACITY, PAYMENT_METHODS } from "@shared/types";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
@@ -45,6 +46,7 @@ const PAYMENT_ICONS: Record<PaymentMethod, React.ElementType> = {
   stripe_prepay: CreditCard,
   square_postpay: Wallet,
   cash_postpay: Banknote,
+  direct_deposit: Building2,
 };
 
 const STEPS = [
@@ -291,6 +293,9 @@ export default function BookingForm() {
 
   // Fetch pricing settings for base prices on service cards
   const { data: pricingSettings } = trpc.pricing.getAll.useQuery();
+
+  // Fetch bank details for direct deposit display
+  const { data: bankDetails } = trpc.bankDetails.get.useQuery();
 
   const getBasePrice = (key: string) => {
     const setting = pricingSettings?.find(s => s.settingKey === key);
@@ -1784,50 +1789,87 @@ export default function BookingForm() {
               <p className="text-muted-foreground">Choose how you would like to pay for your transfer.</p>
             </div>
             <div className="space-y-4">
-              {(Object.entries(PAYMENT_METHODS) as [PaymentMethod, typeof PAYMENT_METHODS[PaymentMethod]][]).map(
+              {(Object.entries(PAYMENT_METHODS) as [PaymentMethod, typeof PAYMENT_METHODS[PaymentMethod]][]).filter(
+                ([key]) => key !== "direct_deposit" || !!bankDetails
+              ).map(
                 ([key, method]) => {
                   const Icon = PAYMENT_ICONS[key];
                   const selected = paymentMethod === key;
 
                   return (
-                    <Card
-                      key={key}
-                      className={`cursor-pointer transition-all duration-200 ${
-                        selected
-                          ? "ring-2 ring-primary shadow-lg"
-                          : "hover:shadow-md border-border/50"
-                      }`}
-                      onClick={() => setPaymentMethod(key)}
-                    >
-                      <CardContent className="p-6">
-                        <div className="flex items-start gap-4">
-                          <div className={`w-12 h-12 rounded-lg flex items-center justify-center shrink-0 ${
-                            selected ? "gold-gradient" : "bg-muted"
-                          }`}>
-                            <Icon className={`w-6 h-6 ${selected ? "text-gold-foreground" : "text-muted-foreground"}`} />
-                          </div>
-                          <div className="flex-1 space-y-1">
-                            <div className="flex items-center justify-between">
-                              <h3 className="font-heading text-lg font-semibold">{method.label}</h3>
-                              {method.surcharge > 0 && (
-                                <span className="text-sm text-amber-400 font-medium">+{(method.surcharge * 100).toFixed(0)}% surcharge</span>
+                    <div key={key}>
+                      <Card
+                        className={`cursor-pointer transition-all duration-200 ${
+                          selected
+                            ? "ring-2 ring-primary shadow-lg"
+                            : "hover:shadow-md border-border/50"
+                        }`}
+                        onClick={() => setPaymentMethod(key)}
+                      >
+                        <CardContent className="p-6">
+                          <div className="flex items-start gap-4">
+                            <div className={`w-12 h-12 rounded-lg flex items-center justify-center shrink-0 ${
+                              selected ? "gold-gradient" : "bg-muted"
+                            }`}>
+                              <Icon className={`w-6 h-6 ${selected ? "text-gold-foreground" : "text-muted-foreground"}`} />
+                            </div>
+                            <div className="flex-1 space-y-1">
+                              <div className="flex items-center justify-between">
+                                <h3 className="font-heading text-lg font-semibold">{method.label}</h3>
+                                {method.surcharge > 0 && (
+                                  <span className="text-sm text-amber-400 font-medium">+{(method.surcharge * 100).toFixed(0)}% surcharge</span>
+                                )}
+                              </div>
+                              <p className="text-sm text-muted-foreground">{method.description}</p>
+                              {key === "stripe_prepay" && selected && (
+                                <p className="text-xs text-primary mt-1">
+                                  You will be redirected to a secure Stripe checkout page after confirming your booking.
+                                </p>
                               )}
                             </div>
-                            <p className="text-sm text-muted-foreground">{method.description}</p>
-                            {key === "stripe_prepay" && selected && (
-                              <p className="text-xs text-primary mt-1">
-                                You will be redirected to a secure Stripe checkout page after confirming your booking.
-                              </p>
+                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 mt-1 ${
+                              selected ? "border-primary bg-primary" : "border-muted-foreground/30"
+                            }`}>
+                              {selected && <Check className="w-3 h-3 text-primary-foreground" />}
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                      {/* Show bank details when direct deposit is selected */}
+                      {key === "direct_deposit" && selected && bankDetails && (
+                        <Card className="mt-3 border-amber-500/30 bg-amber-500/5">
+                          <CardContent className="p-5">
+                            <div className="flex items-center gap-2 text-amber-400 font-semibold mb-4">
+                              <Building2 className="w-5 h-5" />
+                              Bank Transfer Details
+                            </div>
+                            <div className="grid grid-cols-2 gap-4 text-sm">
+                              <div>
+                                <span className="text-muted-foreground block text-xs mb-0.5">Bank</span>
+                                <span className="text-foreground font-medium">{bankDetails.bankName}</span>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground block text-xs mb-0.5">BSB</span>
+                                <span className="text-foreground font-medium font-mono">{bankDetails.bsb}</span>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground block text-xs mb-0.5">Account Number</span>
+                                <span className="text-foreground font-medium font-mono">{bankDetails.accountNumber}</span>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground block text-xs mb-0.5">Account Name</span>
+                                <span className="text-foreground font-medium">{bankDetails.accountName}</span>
+                              </div>
+                            </div>
+                            {bankDetails.referenceInstructions && (
+                              <div className="mt-4 text-sm text-amber-200/70 bg-amber-500/10 rounded-md p-3 border border-amber-500/20">
+                                {bankDetails.referenceInstructions}
+                              </div>
                             )}
-                          </div>
-                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 mt-1 ${
-                            selected ? "border-primary bg-primary" : "border-muted-foreground/30"
-                          }`}>
-                            {selected && <Check className="w-3 h-3 text-primary-foreground" />}
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
+                          </CardContent>
+                        </Card>
+                      )}
+                    </div>
                   );
                 }
               )}
@@ -2073,6 +2115,38 @@ export default function BookingForm() {
                   )}
                   {paymentMethod === "stripe_prepay" && (
                     <p className="text-xs text-primary">You will be redirected to Stripe for secure payment</p>
+                  )}
+                  {paymentMethod === "direct_deposit" && bankDetails && (
+                    <div className="mt-3 rounded-lg border border-amber-500/20 bg-amber-500/5 p-4 space-y-3">
+                      <div className="flex items-center gap-2 text-amber-400 font-semibold text-sm">
+                        <Building2 className="w-4 h-4" />
+                        Bank Transfer Details
+                      </div>
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div>
+                          <span className="text-muted-foreground block text-xs">Bank</span>
+                          <span className="font-medium">{bankDetails.bankName}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground block text-xs">BSB</span>
+                          <span className="font-medium font-mono">{bankDetails.bsb}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground block text-xs">Account Number</span>
+                          <span className="font-medium font-mono">{bankDetails.accountNumber}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground block text-xs">Account Name</span>
+                          <span className="font-medium">{bankDetails.accountName}</span>
+                        </div>
+                      </div>
+                      {bankDetails.referenceInstructions && (
+                        <p className="text-xs text-amber-200/70">{bankDetails.referenceInstructions}</p>
+                      )}
+                    </div>
+                  )}
+                  {paymentMethod === "direct_deposit" && !bankDetails && (
+                    <p className="text-xs text-muted-foreground">Bank transfer details will be provided in your confirmation email</p>
                   )}
                 </div>
 
