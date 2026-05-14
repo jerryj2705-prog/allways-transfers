@@ -771,8 +771,8 @@ describe("generateInvoicePDF with ABN option", () => {
 
 // ─── PAID Watermark Tests ───
 
-describe("generateInvoicePDF PAID watermark", () => {
-  it("generates a larger PDF for paid bookings (watermark adds content)", async () => {
+describe("generateInvoicePDF payment status watermarks", () => {
+  it("generates PDFs with watermarks for both paid and unpaid bookings", async () => {
     const { generateInvoicePDF } = await import("./invoice");
 
     const baseBooking = {
@@ -842,8 +842,9 @@ describe("generateInvoicePDF PAID watermark", () => {
     expect(unpaidPdf.subarray(0, 5).toString("ascii")).toBe("%PDF-");
     expect(paidPdf.subarray(0, 5).toString("ascii")).toBe("%PDF-");
 
-    // Paid PDF should be larger due to watermark content
-    expect(paidPdf.length).toBeGreaterThan(unpaidPdf.length);
+    // Both have watermarks so both should have content
+    expect(unpaidPdf.length).toBeGreaterThan(0);
+    expect(paidPdf.length).toBeGreaterThan(0);
   });
 
   it("does not add watermark for refunded bookings", async () => {

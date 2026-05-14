@@ -768,4 +768,9 @@
 - [x] Add admin invoice preview (sample PDF download) on Invoice Settings page
 - [x] Add PAID watermark to invoice PDF when payment status is 'paid'
 - [x] Write tests for the attachment flow (32 tests passing)
-- [ ] Push latest version to GitHub
+- [x] Push latest version to GitHub (allways-transfers repo)
+
+## Invoice Watermarks
+- [x] Add "AWAITING PAYMENT" watermark (red/pink rose-600) for unpaid invoices
+- [x] Keep "PAID" watermark green for paid invoices
+- [x] Update tests for both watermark states (32 tests passing)
