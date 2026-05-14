@@ -736,3 +736,8 @@
 - [x] Frontend: download invoice button on admin booking detail page
 - [x] Frontend: download invoice button on booking confirmation page
 - [x] Write tests for both features (10 tests passing)
+
+## Invoice PDF Logo
+- [x] Download light-background logo from Dropbox (Logo_Web-1200px.png)
+- [x] Upload to CDN and update invoice.ts to use the proper light-bg logo
+- [x] Test invoice PDF generation with logo

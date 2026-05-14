@@ -1,6 +1,37 @@
 import PDFDocument from "pdfkit";
 import type { Booking } from "../drizzle/schema";
 import { getBankDetails } from "./db";
+import https from "https";
+import http from "http";
+
+const LOGO_URL = "https://files.manuscdn.com/user_upload_by_module/session_file/310519663486426022/jlnrNxKOAAbakZcE.png";
+
+// Cache the logo buffer so we only download once
+let cachedLogoBuffer: Buffer | null = null;
+
+async function fetchLogoBuffer(): Promise<Buffer | null> {
+  if (cachedLogoBuffer) return cachedLogoBuffer;
+  try {
+    const buffer = await new Promise<Buffer>((resolve, reject) => {
+      const client = LOGO_URL.startsWith("https") ? https : http;
+      client.get(LOGO_URL, (res) => {
+        if (res.statusCode !== 200) {
+          reject(new Error(`Failed to fetch logo: ${res.statusCode}`));
+          return;
+        }
+        const chunks: Buffer[] = [];
+        res.on("data", (chunk: Buffer) => chunks.push(chunk));
+        res.on("end", () => resolve(Buffer.concat(chunks)));
+        res.on("error", reject);
+      }).on("error", reject);
+    });
+    cachedLogoBuffer = buffer;
+    return buffer;
+  } catch (err) {
+    console.error("[Invoice] Failed to fetch logo:", err);
+    return null;
+  }
+}
 
 // ─── Helpers ───
 
@@ -83,22 +114,45 @@ export async function generateInvoicePDF(booking: Booking): Promise<Buffer> {
       let y = doc.page.margins.top;
 
       // ─── Header ───
-      doc.rect(0, 0, doc.page.width, 120).fill(DARK_BG);
+      // Logo (left side)
+      const logoBuffer = await fetchLogoBuffer();
+      if (logoBuffer) {
+        // Logo is 1200x1200 (square aspect ratio)
+        const logoHeight = 80;
+        const logoWidth = 80;
+        doc.image(logoBuffer, 50, 25, { width: logoWidth, height: logoHeight });
+      } else {
+        // Fallback: text-only if logo fetch fails
+        doc.fontSize(22).fillColor(DARK_BG).font("Helvetica-Bold");
+        doc.text("ALL WAYS TRANSFERS", 50, 40, { width: pageWidth * 0.5 });
+      }
 
-      // Business name
-      doc.fontSize(24).fillColor(GOLD).font("Helvetica-Bold");
-      doc.text("ALL WAYS TRANSFERS", 50, 35, { width: pageWidth });
+      // Business name and contact (next to logo)
+      const textStartX = logoBuffer ? 140 : 50;
+      doc.fontSize(16).fillColor(DARK_BG).font("Helvetica-Bold");
+      doc.text("All Ways Transfers", textStartX, 30);
+      doc.fontSize(8).fillColor(MUTED_TEXT).font("Helvetica");
+      doc.text("Phone: 0466 544 068  |  Email: bookings@allwaystransfers.com.au", textStartX, 50);
+      doc.text("ABN: 18 715 944 056  |  Queensland, Australia", textStartX, 62);
 
-      // Contact info
+      // Invoice title (right side)
+      doc.fontSize(18).fillColor(GOLD).font("Helvetica-Bold");
+      doc.text("TAX INVOICE", doc.page.width - 210, 30, { width: 160, align: "right" });
+
+      // Invoice date under title on right
       doc.fontSize(9).fillColor(MUTED_TEXT).font("Helvetica");
-      doc.text("Phone: 0466 544 068  |  Email: bookings@allwaystransfers.com.au", 50, 65, { width: pageWidth });
-      doc.text("ABN: 18 715 944 056  |  Queensland, Australia", 50, 80, { width: pageWidth });
+      const headerDate = new Date().toLocaleDateString("en-AU", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+        timeZone: "Australia/Brisbane",
+      });
+      doc.text(headerDate, doc.page.width - 210, 52, { width: 160, align: "right" });
 
-      // Invoice title
-      doc.fontSize(14).fillColor(GOLD).font("Helvetica-Bold");
-      doc.text("TAX INVOICE", doc.page.width - 200, 35, { width: 150, align: "right" });
-
-      y = 140;
+      // Header divider line
+      y = 115;
+      doc.moveTo(50, y).lineTo(doc.page.width - 50, y).strokeColor(GOLD).lineWidth(2).stroke();
+      y = 130;
 
       // ─── Reference & Date Section ───
       const leftCol = 50;
