@@ -802,4 +802,9 @@
 - [x] Update downloadInvoice and webhook handlers to assign invoice numbers
 - [x] Update invoice PDF to display INV-XXXX alongside booking reference
 - [x] Write tests (37 tests passing)
-- [ ] Push to GitHub
+- [x] Push to GitHub (allways-transfers repo)
+
+## Admin Dashboard Nav Fix
+- [x] Restructured header: compact logo, nav buttons fill remaining width with flex-wrap
+- [x] All 8 nav buttons now visible (Calendar, Pricing, Enquiries, Reviews, Landmarks, Email Logs, Bank Details, Invoice)
+- [x] Buttons use smaller text-xs and h-8 sizing, always show labels (not hidden on sm)
