@@ -879,3 +879,19 @@
 - [x] Changed invoice meta section from 2-column to 4-column layout (STATUS, BOOKING REF, PICKUP, SERVICE)
 - [x] Fixed col2X variable name conflict (renamed to svcColX in Client+Service section)
 - [x] Rebuilt dist and pushed to GitHub for Hostinger deployment
+
+## Luggage Count & Strollers on Booking Form, Invoice, Confirmation & Notifications
+- [x] Add luggageCount and strollerCount columns to bookings table
+- [x] Add luggage and stroller inputs to booking form (step with passengers)
+- [x] Wire luggage/stroller fields through tRPC routers (create, createQuote, convertQuote)
+- [x] Add luggage/strollers to booking confirmation page
+- [x] Add luggage/strollers to invoice PDF (Service section)
+- [x] Add luggage/strollers to all email templates (booking, quote, admin notification)
+- [x] Add luggage/strollers to admin owner notification
+- [x] Add luggage/strollers to booking review step in form
+- [x] Make luggage/strollers editable in admin dashboard booking detail
+- [x] Make payment method editable in admin dashboard booking detail
+- [x] Add payment method display to booking confirmation page (already existed)
+- [x] Add payment method display to all email templates (already existed)
+- [x] Update tests for luggage/stroller fields (verified: 189 passed, 2 pre-existing failures unrelated to our changes)
+- [x] Add clickable "Please rate your experience with us" link to invoice PDF leading to review section

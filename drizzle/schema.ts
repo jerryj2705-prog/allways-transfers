@@ -60,6 +60,9 @@ export const bookings = mysqlTable("bookings", {
   pickupDate: bigint("pickupDate", { mode: "number" }).notNull(),
   // Passengers
   passengerCount: int("passengerCount").notNull().default(1),
+  // Luggage
+  luggageCount: int("luggageCount").notNull().default(0),
+  strollerCount: int("strollerCount").notNull().default(0),
   // Vehicle
   vehicleId: int("vehicleId").notNull(),
   vehicleName: varchar("vehicleName", { length: 200 }).notNull(),

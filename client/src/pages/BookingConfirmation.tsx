@@ -289,6 +289,12 @@ export default function BookingConfirmation() {
                 <p className="text-muted-foreground">Passengers</p>
                 <p className="font-medium flex items-center gap-1"><Users className="w-3 h-3" />{booking.passengerCount}</p>
               </div>
+              {(booking.luggageCount ?? 0) > 0 && (
+                <div>
+                  <p className="text-muted-foreground">Luggage</p>
+                  <p className="font-medium flex items-center gap-1"><Package className="w-3 h-3" />{booking.luggageCount}{(booking.strollerCount ?? 0) > 0 ? ` (incl. ${booking.strollerCount} stroller${booking.strollerCount !== 1 ? "s" : ""})` : ""}</p>
+                </div>
+              )}
               <div className="col-span-2">
                 <p className="text-muted-foreground flex items-center gap-1"><MapPin className="w-3 h-3" /> Pickup</p>
                 <p className="font-medium">{booking.pickupAddress}</p>

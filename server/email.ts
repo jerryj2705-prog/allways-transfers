@@ -189,6 +189,8 @@ export interface BookingEmailData {
   dropoffAddress: string | null;
   pickupDate: number;
   passengerCount: number;
+  luggageCount: number;
+  strollerCount: number;
   vehicleName: string;
   rearFacingSeats?: number;
   forwardFacingSeats?: number;
@@ -361,6 +363,12 @@ export async function sendBookingConfirmationEmail(data: BookingEmailData & { in
           <span style="color:#e5e5e5;font-size:15px;">${data.passengerCount}</span>
         </td>
       </tr>
+      ${data.luggageCount > 0 ? `<tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Luggage</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${data.luggageCount}${data.strollerCount > 0 ? ` (incl. ${data.strollerCount} stroller${data.strollerCount !== 1 ? "s" : ""})` : ""}</span>
+        </td>
+      </tr>` : ""}
       <tr>
         <td style="padding:8px 0;border-bottom:1px solid #333;">
           <span style="color:#a3a3a3;font-size:13px;">Vehicle</span><br/>
@@ -511,6 +519,8 @@ export interface QuoteEmailData {
   dropoffAddress: string | null;
   pickupDate: number;
   passengerCount: number;
+  luggageCount: number;
+  strollerCount: number;
   vehicleName: string;
   totalPrice: string;
   specialRequests?: string | null;
@@ -590,6 +600,12 @@ export async function sendQuoteEmail(data: QuoteEmailData): Promise<boolean> {
           <span style="color:#e5e5e5;font-size:15px;">${data.passengerCount}</span>
         </td>
       </tr>
+      ${data.luggageCount > 0 ? `<tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Luggage</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${data.luggageCount}${data.strollerCount > 0 ? ` (incl. ${data.strollerCount} stroller${data.strollerCount !== 1 ? "s" : ""})` : ""}</span>
+        </td>
+      </tr>` : ""}
       <tr>
         <td style="padding:8px 0;border-bottom:1px solid #333;">
           <span style="color:#a3a3a3;font-size:13px;">Vehicle</span><br/>
@@ -951,6 +967,12 @@ export async function sendAdminNewBookingNotification(data: BookingEmailData): P
           <span style="color:#e5e5e5;font-size:15px;">${data.passengerCount}</span>
         </td>
       </tr>
+      ${data.luggageCount > 0 ? `<tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Luggage</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${data.luggageCount}${data.strollerCount > 0 ? ` (incl. ${data.strollerCount} stroller${data.strollerCount !== 1 ? "s" : ""})` : ""}</span>
+        </td>
+      </tr>` : ""}
       <tr>
         <td style="padding:8px 0;border-bottom:1px solid #333;">
           <span style="color:#a3a3a3;font-size:13px;">Vehicle</span><br/>
@@ -1256,6 +1278,8 @@ export interface PaymentReceiptEmailData {
   dropoffAddress: string | null;
   pickupDate: number;
   passengerCount: number;
+  luggageCount?: number;
+  strollerCount?: number;
   vehicleName: string;
   totalPrice: string;
   paymentMethod: string;
@@ -1361,6 +1385,12 @@ export async function sendPaymentReceiptEmail(data: PaymentReceiptEmailData & { 
           <span style="color:#e5e5e5;font-size:15px;">${data.passengerCount}</span>
         </td>
       </tr>
+      ${(data.luggageCount ?? 0) > 0 ? `<tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Luggage</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${data.luggageCount}${(data.strollerCount ?? 0) > 0 ? ` (incl. ${data.strollerCount} stroller${data.strollerCount !== 1 ? "s" : ""})` : ""}</span>
+        </td>
+      </tr>` : ""}
       ${data.isPetFriendly && data.numberOfPets ? `<tr>
         <td style="padding:8px 0;border-bottom:1px solid #333;">
           <span style="color:#a3a3a3;font-size:13px;">Pets</span><br/>

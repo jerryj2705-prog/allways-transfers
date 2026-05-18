@@ -242,6 +242,14 @@ export async function generateInvoicePDF(booking: Booking, options?: InvoiceOpti
       serviceRows.push(["Vehicle", booking.vehicleName]);
       serviceRows.push(["Pax", String(booking.passengerCount)]);
 
+      // Luggage
+      if (booking.luggageCount > 0) {
+        const luggageText = booking.strollerCount > 0
+          ? `${booking.luggageCount} (incl. ${booking.strollerCount} stroller${booking.strollerCount !== 1 ? "s" : ""})`
+          : String(booking.luggageCount);
+        serviceRows.push(["Luggage", luggageText]);
+      }
+
       // Child seats (compact)
       const childSeats: string[] = [];
       if (booking.rearFacingSeats > 0) childSeats.push(`${booking.rearFacingSeats}× Rear`);
@@ -370,8 +378,14 @@ export async function generateInvoicePDF(booking: Booking, options?: InvoiceOpti
       doc.text(`All Ways Transfers | ABN ${abnValue} | Queensland, Australia | 0466 544 068 | bookings@allwaystransfers.com.au`, L, footerY + 6, {
         width: pageWidth, align: "center", lineBreak: false,
       });
+      // Review link
+      const reviewUrl = "https://allwaystransfers.com.au/#testimonials";
+      doc.fontSize(7).fillColor(GOLD).font("Helvetica-Bold");
+      doc.text("\u2B50 Please rate your experience with us", L, footerY + 17, {
+        width: pageWidth, align: "center", lineBreak: false, link: reviewUrl, underline: true,
+      });
       doc.fontSize(6).fillColor("#CCCCCC").font("Helvetica");
-      doc.text(`Generated ${new Date().toLocaleString("en-AU", { timeZone: "Australia/Brisbane", dateStyle: "medium", timeStyle: "short" })} (AEST)`, L, footerY + 16, {
+      doc.text(`Generated ${new Date().toLocaleString("en-AU", { timeZone: "Australia/Brisbane", dateStyle: "medium", timeStyle: "short" })} (AEST)`, L, footerY + 28, {
         width: pageWidth, align: "center", lineBreak: false,
       });
 

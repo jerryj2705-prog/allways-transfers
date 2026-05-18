@@ -67,6 +67,9 @@ export default function AdminBookingDetail() {
   const [editDropoffAddress, setEditDropoffAddress] = useState("");
   const [editPickupDate, setEditPickupDate] = useState("");
   const [editPassengerCount, setEditPassengerCount] = useState(1);
+  const [editLuggageCount, setEditLuggageCount] = useState(0);
+  const [editStrollerCount, setEditStrollerCount] = useState(0);
+  const [editPaymentMethod, setEditPaymentMethod] = useState<string>("cash_postpay");
   const [editSpecialRequests, setEditSpecialRequests] = useState("");
 
   const utils = trpc.useUtils();
@@ -155,6 +158,9 @@ export default function AdminBookingDetail() {
       setEditDropoffAddress(booking.dropoffAddress ?? "");
       setEditPickupDate(toLocalDateTimeValue(booking.pickupDate));
       setEditPassengerCount(booking.passengerCount);
+      setEditLuggageCount(booking.luggageCount ?? 0);
+      setEditStrollerCount(booking.strollerCount ?? 0);
+      setEditPaymentMethod(booking.paymentMethod ?? "cash_postpay");
       setEditSpecialRequests(booking.specialRequests ?? "");
     }
   }, [booking, editOpen]);
@@ -222,6 +228,9 @@ export default function AdminBookingDetail() {
       dropoffAddress: editDropoffAddress.trim() || null,
       pickupDate: pickupTimestamp,
       passengerCount: editPassengerCount,
+      luggageCount: editLuggageCount,
+      strollerCount: editStrollerCount,
+      paymentMethod: editPaymentMethod as any,
       specialRequests: editSpecialRequests.trim() || null,
     });
   };
@@ -383,6 +392,15 @@ export default function AdminBookingDetail() {
                       <p className="font-medium">{booking.passengerCount}</p>
                     </div>
                   </div>
+                  {(booking.luggageCount ?? 0) > 0 && (
+                    <div className="flex items-start gap-3">
+                      <Package className="w-4 h-4 text-muted-foreground mt-0.5" />
+                      <div>
+                        <p className="text-muted-foreground">Luggage</p>
+                        <p className="font-medium">{booking.luggageCount}{(booking.strollerCount ?? 0) > 0 ? ` (incl. ${booking.strollerCount} stroller${booking.strollerCount !== 1 ? "s" : ""})` : ""}</p>
+                      </div>
+                    </div>
+                  )}
                   <div className="flex items-start gap-3">
                     <Car className="w-4 h-4 text-muted-foreground mt-0.5" />
                     <div>
@@ -867,11 +885,58 @@ export default function AdminBookingDetail() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {[1, 2, 3, 4, 5, 6, 7].map((n) => (
+                  {[0, 1, 2, 3, 4, 5, 6, 7].map((n) => (
                     <SelectItem key={n} value={n.toString()}>
                       {n} {n === 1 ? "passenger" : "passengers"}
                     </SelectItem>
                   ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-luggage">Luggage Items</Label>
+                <Input
+                  id="edit-luggage"
+                  type="number"
+                  min={0}
+                  max={20}
+                  value={editLuggageCount}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value, 10) || 0;
+                    setEditLuggageCount(val);
+                    if (editStrollerCount > val) setEditStrollerCount(val);
+                  }}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-strollers">Of which, Strollers</Label>
+                <Input
+                  id="edit-strollers"
+                  type="number"
+                  min={0}
+                  max={editLuggageCount}
+                  value={editStrollerCount}
+                  onChange={(e) => setEditStrollerCount(Math.min(editLuggageCount, parseInt(e.target.value, 10) || 0))}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-payment-method">Payment Method</Label>
+              <Select
+                value={editPaymentMethod}
+                onValueChange={(v) => setEditPaymentMethod(v)}
+              >
+                <SelectTrigger id="edit-payment-method">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="stripe_prepay">Card (Stripe Pre-Pay)</SelectItem>
+                  <SelectItem value="square_postpay">Card (Square Post-Pay)</SelectItem>
+                  <SelectItem value="cash_postpay">Cash (Pay Driver)</SelectItem>
+                  <SelectItem value="direct_deposit">Direct Deposit</SelectItem>
                 </SelectContent>
               </Select>
             </div>

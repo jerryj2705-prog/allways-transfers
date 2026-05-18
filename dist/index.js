@@ -92,6 +92,9 @@ var init_schema = __esm({
       pickupDate: bigint("pickupDate", { mode: "number" }).notNull(),
       // Passengers
       passengerCount: int("passengerCount").notNull().default(1),
+      // Luggage
+      luggageCount: int("luggageCount").notNull().default(0),
+      strollerCount: int("strollerCount").notNull().default(0),
       // Vehicle
       vehicleId: int("vehicleId").notNull(),
       vehicleName: varchar("vehicleName", { length: 200 }).notNull(),
@@ -1449,6 +1452,9 @@ async function updateBookingDetails(id, data) {
   if (data.dropoffAddress !== void 0) updateData.dropoffAddress = data.dropoffAddress;
   if (data.pickupDate !== void 0) updateData.pickupDate = data.pickupDate;
   if (data.passengerCount !== void 0) updateData.passengerCount = data.passengerCount;
+  if (data.luggageCount !== void 0) updateData.luggageCount = data.luggageCount;
+  if (data.strollerCount !== void 0) updateData.strollerCount = data.strollerCount;
+  if (data.paymentMethod !== void 0) updateData.paymentMethod = data.paymentMethod;
   if (data.specialRequests !== void 0) updateData.specialRequests = data.specialRequests;
   if (data.estimatedDuration !== void 0) updateData.estimatedDuration = data.estimatedDuration;
   if (Object.keys(updateData).length === 0) throw new Error("No fields to update");
@@ -3026,6 +3032,12 @@ async function sendBookingConfirmationEmail(data) {
           <span style="color:#e5e5e5;font-size:15px;">${data.passengerCount}</span>
         </td>
       </tr>
+      ${data.luggageCount > 0 ? `<tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Luggage</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${data.luggageCount}${data.strollerCount > 0 ? ` (incl. ${data.strollerCount} stroller${data.strollerCount !== 1 ? "s" : ""})` : ""}</span>
+        </td>
+      </tr>` : ""}
       <tr>
         <td style="padding:8px 0;border-bottom:1px solid #333;">
           <span style="color:#a3a3a3;font-size:13px;">Vehicle</span><br/>
@@ -3215,6 +3227,12 @@ async function sendQuoteEmail(data) {
           <span style="color:#e5e5e5;font-size:15px;">${data.passengerCount}</span>
         </td>
       </tr>
+      ${data.luggageCount > 0 ? `<tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Luggage</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${data.luggageCount}${data.strollerCount > 0 ? ` (incl. ${data.strollerCount} stroller${data.strollerCount !== 1 ? "s" : ""})` : ""}</span>
+        </td>
+      </tr>` : ""}
       <tr>
         <td style="padding:8px 0;border-bottom:1px solid #333;">
           <span style="color:#a3a3a3;font-size:13px;">Vehicle</span><br/>
@@ -3543,6 +3561,12 @@ async function sendAdminNewBookingNotification(data) {
           <span style="color:#e5e5e5;font-size:15px;">${data.passengerCount}</span>
         </td>
       </tr>
+      ${data.luggageCount > 0 ? `<tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Luggage</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${data.luggageCount}${data.strollerCount > 0 ? ` (incl. ${data.strollerCount} stroller${data.strollerCount !== 1 ? "s" : ""})` : ""}</span>
+        </td>
+      </tr>` : ""}
       <tr>
         <td style="padding:8px 0;border-bottom:1px solid #333;">
           <span style="color:#a3a3a3;font-size:13px;">Vehicle</span><br/>
@@ -3907,6 +3931,12 @@ async function sendPaymentReceiptEmail(data) {
           <span style="color:#e5e5e5;font-size:15px;">${data.passengerCount}</span>
         </td>
       </tr>
+      ${(data.luggageCount ?? 0) > 0 ? `<tr>
+        <td style="padding:8px 0;border-bottom:1px solid #333;">
+          <span style="color:#a3a3a3;font-size:13px;">Luggage</span><br/>
+          <span style="color:#e5e5e5;font-size:15px;">${data.luggageCount}${(data.strollerCount ?? 0) > 0 ? ` (incl. ${data.strollerCount} stroller${data.strollerCount !== 1 ? "s" : ""})` : ""}</span>
+        </td>
+      </tr>` : ""}
       ${data.isPetFriendly && data.numberOfPets ? `<tr>
         <td style="padding:8px 0;border-bottom:1px solid #333;">
           <span style="color:#a3a3a3;font-size:13px;">Pets</span><br/>
@@ -4467,6 +4497,10 @@ async function generateInvoicePDF(booking, options) {
       }
       serviceRows.push(["Vehicle", booking.vehicleName]);
       serviceRows.push(["Pax", String(booking.passengerCount)]);
+      if (booking.luggageCount > 0) {
+        const luggageText = booking.strollerCount > 0 ? `${booking.luggageCount} (incl. ${booking.strollerCount} stroller${booking.strollerCount !== 1 ? "s" : ""})` : String(booking.luggageCount);
+        serviceRows.push(["Luggage", luggageText]);
+      }
       const childSeats = [];
       if (booking.rearFacingSeats > 0) childSeats.push(`${booking.rearFacingSeats}\xD7 Rear`);
       if (booking.forwardFacingSeats > 0) childSeats.push(`${booking.forwardFacingSeats}\xD7 Fwd`);
@@ -4568,8 +4602,17 @@ async function generateInvoicePDF(booking, options) {
         align: "center",
         lineBreak: false
       });
+      const reviewUrl = "https://allwaystransfers.com.au/#testimonials";
+      doc.fontSize(7).fillColor(GOLD).font("Helvetica-Bold");
+      doc.text("\u2B50 Please rate your experience with us", L, footerY + 17, {
+        width: pageWidth,
+        align: "center",
+        lineBreak: false,
+        link: reviewUrl,
+        underline: true
+      });
       doc.fontSize(6).fillColor("#CCCCCC").font("Helvetica");
-      doc.text(`Generated ${(/* @__PURE__ */ new Date()).toLocaleString("en-AU", { timeZone: "Australia/Brisbane", dateStyle: "medium", timeStyle: "short" })} (AEST)`, L, footerY + 16, {
+      doc.text(`Generated ${(/* @__PURE__ */ new Date()).toLocaleString("en-AU", { timeZone: "Australia/Brisbane", dateStyle: "medium", timeStyle: "short" })} (AEST)`, L, footerY + 28, {
         width: pageWidth,
         align: "center",
         lineBreak: false
@@ -4773,6 +4816,8 @@ var appRouter = router({
         dropoffAddress: z2.string().optional(),
         pickupDate: z2.number().min(1, "Pickup date is required"),
         passengerCount: z2.number().min(0).max(7),
+        luggageCount: z2.number().min(0).max(20).default(0),
+        strollerCount: z2.number().min(0).max(10).default(0),
         vehicleId: z2.number(),
         vehicleName: z2.string(),
         needsSupportVan: z2.boolean().default(false),
@@ -4835,6 +4880,8 @@ var appRouter = router({
         dropoffAddress: input.dropoffAddress ?? null,
         pickupDate: input.pickupDate,
         passengerCount: input.passengerCount,
+        luggageCount: input.luggageCount,
+        strollerCount: input.strollerCount,
         vehicleId: input.vehicleId,
         vehicleName: input.vehicleName,
         needsSupportVan: input.needsSupportVan ? 1 : 0,
@@ -4880,6 +4927,7 @@ Service: ${input.serviceType.replace(/_/g, " ")}
 Pickup: ${input.pickupAddress}
 Date: ${new Date(input.pickupDate).toLocaleString("en-AU", { timeZone: "Australia/Brisbane" })}
 Passengers: ${input.passengerCount}
+Luggage: ${input.luggageCount}${input.strollerCount > 0 ? ` (incl. ${input.strollerCount} stroller${input.strollerCount !== 1 ? "s" : ""})` : ""}
 Total: $${input.totalPrice.toFixed(2)}${input.needsSupportVan ? "\n+ Support Van required" : ""}`
         });
       } catch (e) {
@@ -4944,6 +4992,8 @@ Total: $${input.totalPrice.toFixed(2)}${input.needsSupportVan ? "\n+ Support Van
             dropoffAddress: input.dropoffAddress ?? null,
             pickupDate: input.pickupDate,
             passengerCount: input.passengerCount,
+            luggageCount: input.luggageCount,
+            strollerCount: input.strollerCount,
             vehicleName: input.vehicleName,
             rearFacingSeats: input.rearFacingSeats,
             forwardFacingSeats: input.forwardFacingSeats,
@@ -4987,6 +5037,8 @@ Total: $${input.totalPrice.toFixed(2)}${input.needsSupportVan ? "\n+ Support Van
             dropoffAddress: input.dropoffAddress ?? null,
             pickupDate: input.pickupDate,
             passengerCount: input.passengerCount,
+            luggageCount: input.luggageCount,
+            strollerCount: input.strollerCount,
             vehicleName: input.vehicleName,
             rearFacingSeats: input.rearFacingSeats,
             forwardFacingSeats: input.forwardFacingSeats,
@@ -5031,6 +5083,8 @@ Total: $${input.totalPrice.toFixed(2)}${input.needsSupportVan ? "\n+ Support Van
         dropoffAddress: z2.string().optional(),
         pickupDate: z2.number().min(1),
         passengerCount: z2.number().min(0).max(7),
+        luggageCount: z2.number().min(0).max(20).default(0),
+        strollerCount: z2.number().min(0).max(10).default(0),
         vehicleId: z2.number(),
         vehicleName: z2.string(),
         needsSupportVan: z2.boolean().default(false),
@@ -5076,6 +5130,8 @@ Total: $${input.totalPrice.toFixed(2)}${input.needsSupportVan ? "\n+ Support Van
           dropoffAddress: input.dropoffAddress ?? null,
           pickupDate: input.pickupDate,
           passengerCount: input.passengerCount,
+          luggageCount: input.luggageCount,
+          strollerCount: input.strollerCount,
           vehicleId: input.vehicleId,
           vehicleName: input.vehicleName,
           needsSupportVan: input.needsSupportVan ? 1 : 0,
@@ -5151,6 +5207,8 @@ Total: $${input.totalPrice.toFixed(2)}${input.needsSupportVan ? "\n+ Support Van
             dropoffAddress: input.dropoffAddress ?? null,
             pickupDate: input.pickupDate,
             passengerCount: input.passengerCount,
+            luggageCount: input.luggageCount,
+            strollerCount: input.strollerCount,
             vehicleName: input.vehicleName,
             totalPrice: input.totalPrice.toFixed(2),
             specialRequests: input.specialRequests ?? null,
@@ -5178,6 +5236,8 @@ Total: $${input.totalPrice.toFixed(2)}${input.needsSupportVan ? "\n+ Support Van
 Service: ${input.serviceType.replace(/_/g, " ")}
 Pickup: ${input.pickupAddress}
 Date: ${new Date(input.pickupDate).toLocaleString("en-AU", { timeZone: "Australia/Brisbane" })}
+Passengers: ${input.passengerCount}
+Luggage: ${input.luggageCount}${input.strollerCount > 0 ? ` (incl. ${input.strollerCount} stroller${input.strollerCount !== 1 ? "s" : ""})` : ""}
 Total: $${input.totalPrice.toFixed(2)}`
           });
         } catch (e) {
@@ -5250,6 +5310,8 @@ Total: $${input.totalPrice.toFixed(2)}`
             dropoffAddress: booking.dropoffAddress ?? null,
             pickupDate: typeof booking.pickupDate === "number" ? booking.pickupDate : new Date(booking.pickupDate).getTime(),
             passengerCount: booking.passengerCount,
+            luggageCount: booking.luggageCount ?? 0,
+            strollerCount: booking.strollerCount ?? 0,
             vehicleName: booking.vehicleName,
             rearFacingSeats: booking.rearFacingSeats ?? 0,
             forwardFacingSeats: booking.forwardFacingSeats ?? 0,
@@ -5283,6 +5345,8 @@ Total: $${input.totalPrice.toFixed(2)}`
             dropoffAddress: booking.dropoffAddress ?? null,
             pickupDate: typeof booking.pickupDate === "number" ? booking.pickupDate : new Date(booking.pickupDate).getTime(),
             passengerCount: booking.passengerCount,
+            luggageCount: booking.luggageCount ?? 0,
+            strollerCount: booking.strollerCount ?? 0,
             vehicleName: booking.vehicleName,
             totalPrice: booking.totalPrice,
             paymentMethod: input.paymentMethod,
@@ -5405,6 +5469,9 @@ Total: $${input.totalPrice.toFixed(2)}`
       dropoffAddress: z2.string().nullable().optional(),
       pickupDate: z2.number().optional(),
       passengerCount: z2.number().min(0).max(7).optional(),
+      luggageCount: z2.number().min(0).max(20).optional(),
+      strollerCount: z2.number().min(0).max(10).optional(),
+      paymentMethod: z2.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direct_deposit"]).optional(),
       specialRequests: z2.string().nullable().optional(),
       estimatedDuration: z2.number().min(15).max(1440).optional()
     })).mutation(async ({ input }) => {
@@ -5425,8 +5492,17 @@ Total: $${input.totalPrice.toFixed(2)}`
         const newDate = new Date(input.pickupDate).toLocaleString("en-AU", { timeZone: "Australia/Brisbane" });
         changes.push(`Date/Time: ${oldDate} \u2192 ${newDate}`);
       }
-      if (input.passengerCount && input.passengerCount !== booking.passengerCount) {
+      if (input.passengerCount !== void 0 && input.passengerCount !== booking.passengerCount) {
         changes.push(`Passengers: ${booking.passengerCount} \u2192 ${input.passengerCount}`);
+      }
+      if (input.luggageCount !== void 0 && input.luggageCount !== booking.luggageCount) {
+        changes.push(`Luggage: ${booking.luggageCount} \u2192 ${input.luggageCount}`);
+      }
+      if (input.strollerCount !== void 0 && input.strollerCount !== booking.strollerCount) {
+        changes.push(`Strollers: ${booking.strollerCount} \u2192 ${input.strollerCount}`);
+      }
+      if (input.paymentMethod && input.paymentMethod !== booking.paymentMethod) {
+        changes.push(`Payment Method: ${booking.paymentMethod} \u2192 ${input.paymentMethod}`);
       }
       if (input.specialRequests !== void 0 && input.specialRequests !== booking.specialRequests) {
         changes.push(`Special requests updated`);
@@ -5443,6 +5519,9 @@ Total: $${input.totalPrice.toFixed(2)}`
         dropoffAddress: input.dropoffAddress ?? void 0,
         pickupDate: input.pickupDate,
         passengerCount: input.passengerCount,
+        luggageCount: input.luggageCount,
+        strollerCount: input.strollerCount,
+        paymentMethod: input.paymentMethod,
         specialRequests: input.specialRequests,
         estimatedDuration: input.estimatedDuration
       });

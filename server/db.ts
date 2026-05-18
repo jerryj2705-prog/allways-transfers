@@ -449,6 +449,9 @@ export async function updateBookingDetails(id: number, data: {
   dropoffAddress?: string;
   pickupDate?: number;
   passengerCount?: number;
+  luggageCount?: number;
+  strollerCount?: number;
+  paymentMethod?: string;
   specialRequests?: string | null;
   estimatedDuration?: number;
 }) {
@@ -459,6 +462,9 @@ export async function updateBookingDetails(id: number, data: {
   if (data.dropoffAddress !== undefined) updateData.dropoffAddress = data.dropoffAddress;
   if (data.pickupDate !== undefined) updateData.pickupDate = data.pickupDate;
   if (data.passengerCount !== undefined) updateData.passengerCount = data.passengerCount;
+  if (data.luggageCount !== undefined) updateData.luggageCount = data.luggageCount;
+  if (data.strollerCount !== undefined) updateData.strollerCount = data.strollerCount;
+  if (data.paymentMethod !== undefined) updateData.paymentMethod = data.paymentMethod;
   if (data.specialRequests !== undefined) updateData.specialRequests = data.specialRequests;
   if (data.estimatedDuration !== undefined) updateData.estimatedDuration = data.estimatedDuration;
   if (Object.keys(updateData).length === 0) throw new Error("No fields to update");

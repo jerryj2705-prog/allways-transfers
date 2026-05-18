@@ -238,6 +238,8 @@ export default function BookingForm() {
   const [pickupTime, setPickupTime] = useState("");
   const [timeOpen, setTimeOpen] = useState(false);
   const [passengerCount, setPassengerCount] = useState(1);
+  const [luggageCount, setLuggageCount] = useState(0);
+  const [strollerCount, setStrollerCount] = useState(0);
   const [vehicleSelection, setVehicleSelection] = useState<"suv" | "van" | "both">(isVanStandaloneUrl ? "van" : "suv");
   const needsSupportVan = vehicleSelection === "both";
   const [rearFacingSeats, setRearFacingSeats] = useState(0);
@@ -457,6 +459,8 @@ export default function BookingForm() {
       const mins = pDate.getMinutes().toString().padStart(2, "0");
       setPickupTime(`${hrs}:${mins}`);
       setPassengerCount(quoteData.passengerCount);
+      setLuggageCount(quoteData.luggageCount ?? 0);
+      setStrollerCount(quoteData.strollerCount ?? 0);
       if (quoteData.vehicleName?.toLowerCase().includes("van")) {
         setVehicleSelection("van");
       } else if (quoteData.needsSupportVan) {
@@ -540,6 +544,8 @@ export default function BookingForm() {
       dropoffAddress: dropoffAddress ? `${dropoffAddress} (${dropoffSuburb})` : undefined,
       pickupDate: dateTime,
       passengerCount,
+      luggageCount,
+      strollerCount,
       vehicleId: primaryVehicle.id,
       vehicleName: primaryVehicle.name,
       needsSupportVan,
@@ -599,6 +605,8 @@ export default function BookingForm() {
       dropoffAddress: dropoffAddress ? `${dropoffAddress} (${dropoffSuburb})` : undefined,
       pickupDate: dateTime,
       passengerCount,
+      luggageCount,
+      strollerCount,
       vehicleId: primaryVehicle.id,
       vehicleName: primaryVehicle.name,
       needsSupportVan,
@@ -1058,6 +1066,75 @@ export default function BookingForm() {
                 </div>
                 <p className="text-xs text-muted-foreground">{passengerNote}</p>
               </div>
+
+              {/* Luggage Count */}
+              <div className="space-y-2">
+                <Label htmlFor="luggage" className="text-sm font-medium">Number of Luggage Items</Label>
+                <div className="flex items-center gap-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => {
+                      const newLuggage = Math.max(0, luggageCount - 1);
+                      setLuggageCount(newLuggage);
+                      if (strollerCount > newLuggage) setStrollerCount(newLuggage);
+                    }}
+                    className="bg-background"
+                    disabled={luggageCount <= 0}
+                  >
+                    -
+                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Package className="w-5 h-5 text-primary" />
+                    <span className="text-xl font-heading font-bold w-8 text-center">{luggageCount}</span>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setLuggageCount(Math.min(20, luggageCount + 1))}
+                    className="bg-background"
+                  >
+                    +
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">Total luggage items including suitcases, bags, strollers, etc.</p>
+              </div>
+
+              {/* Stroller Count (sub-count of luggage) */}
+              {luggageCount > 0 && (
+                <div className="space-y-2 ml-6 border-l-2 border-primary/20 pl-4">
+                  <Label htmlFor="strollers" className="text-sm font-medium">Of which, strollers</Label>
+                  <div className="flex items-center gap-4">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setStrollerCount(Math.max(0, strollerCount - 1))}
+                      className="bg-background"
+                      disabled={strollerCount <= 0}
+                    >
+                      -
+                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Baby className="w-5 h-5 text-primary" />
+                      <span className="text-xl font-heading font-bold w-8 text-center">{strollerCount}</span>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setStrollerCount(Math.min(luggageCount, strollerCount + 1))}
+                      className="bg-background"
+                      disabled={strollerCount >= luggageCount}
+                    >
+                      +
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">How many of the luggage items are strollers/prams</p>
+                </div>
+              )}
 
               {/* Additional Pickup Points */}
               <div className="space-y-3">
@@ -1928,6 +2005,12 @@ export default function BookingForm() {
                       <p className="text-muted-foreground">Passengers</p>
                       <p className="font-medium">{passengerCount}</p>
                     </div>
+                    {luggageCount > 0 && (
+                      <div>
+                        <p className="text-muted-foreground">Luggage</p>
+                        <p className="font-medium">{luggageCount}{strollerCount > 0 ? ` (incl. ${strollerCount} stroller${strollerCount !== 1 ? "s" : ""})` : ""}</p>
+                      </div>
+                    )}
                     {serviceType === "hourly_hire" && hireHours > 0 && (
                       <div>
                         <p className="text-muted-foreground">Hours</p>
