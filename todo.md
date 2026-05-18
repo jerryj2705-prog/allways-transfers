@@ -861,6 +861,21 @@
 - [ ] Check if quote is being saved to Hostinger's local MySQL bookings table
 
 ## Stripe Payment Not Updating Booking Status
-- [ ] Fix: After paying by card via Stripe checkout, booking shows "Pay Driver by Cash" and "Unpaid" instead of card/paid
-- [ ] Investigate if Stripe webhook is configured and working on Hostinger
-- [ ] Investigate if quote-to-booking conversion sets payment method correctly when using Stripe
+- [x] Fix: After paying by card via Stripe checkout, booking shows "Pay Driver by Cash" and "Unpaid" instead of card/paid
+- [x] Investigate if Stripe webhook is configured and working on Hostinger
+- [x] Investigate if quote-to-booking conversion sets payment method correctly when using Stripe
+
+## Stripe Webhook on Hostinger
+- [x] Set up Stripe Event Destination (webhook) at allwaystransfers.com.au/api/stripe/webhook
+- [x] Configure STRIPE_WEBHOOK_SECRET on Hostinger
+- [x] Verify webhook endpoint responds correctly (400 without signature = correct)
+- [x] Push webhook handler code to GitHub main branch for Hostinger deployment
+
+## DNS Fix - allwaystransfers.com.au
+- [x] Removed Stripe hosted-checkout ALIAS record that was overriding root domain
+- [x] Added missing A record (@ → 89.116.192.162) to restore site access
+
+## Invoice PDF Layout Fix - STATUS/PICKUP Overlap
+- [x] Changed invoice meta section from 2-column to 4-column layout (STATUS, BOOKING REF, PICKUP, SERVICE)
+- [x] Fixed col2X variable name conflict (renamed to svcColX in Client+Service section)
+- [x] Rebuilt dist and pushed to GitHub for Hostinger deployment
