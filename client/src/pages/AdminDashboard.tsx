@@ -573,7 +573,7 @@ export default function AdminDashboard() {
                           })}
                         </TableCell>
                         <TableCell className="hidden lg:table-cell text-sm">
-                          {booking.passengerCount}
+                          {booking.passengerCount}{(booking.babyCount ?? 0) > 0 ? <span className="text-muted-foreground"> ({booking.babyCount}B)</span> : ""}
                         </TableCell>
                         <TableCell className="hidden lg:table-cell text-sm">
                           {booking.luggageCount > 0 ? (

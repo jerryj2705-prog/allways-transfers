@@ -903,11 +903,11 @@
 
 ## Babies/Toddlers Sub-count for Passengers
 - [x] Add babyCount column to bookings table
-- [ ] Add baby/toddler input to booking form (after passengers)
-- [ ] Wire babyCount through tRPC routers (create, createQuote, convertQuote, adminModify)
-- [ ] Add babies/toddlers to admin dashboard booking detail Trip Details card
-- [ ] Add babies/toddlers to admin dashboard list (Passengers column)
-- [ ] Add babies/toddlers to invoice PDF
-- [ ] Add babies/toddlers to booking confirmation page
-- [ ] Add babies/toddlers to all email templates
+- [x] Add baby/toddler input to booking form (after passengers)
+- [x] Wire babyCount through tRPC routers (create, createQuote, convertQuote, adminModify)
+- [x] Add babies/toddlers to admin dashboard booking detail Trip Details card
+- [x] Add babies/toddlers to admin dashboard list (Passengers column)
+- [x] Add babies/toddlers to invoice PDF
+- [x] Add babies/toddlers to booking confirmation page
+- [x] Add babies/toddlers to all email templates
 - [ ] Always show luggage in Trip Details card (even when 0)
