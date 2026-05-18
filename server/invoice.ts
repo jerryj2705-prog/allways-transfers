@@ -151,34 +151,37 @@ export async function generateInvoicePDF(booking: Booking, options?: InvoiceOpti
       doc.moveTo(L, y).lineTo(R, y).strokeColor(GOLD).lineWidth(1.5).stroke();
       y += 10;
 
-      // ─── Invoice Meta (2-column compact) ───
-      const midX = L + pageWidth / 2 + 10;
+      // ─── Invoice Meta (4-column layout) ───
+      const colWidth = pageWidth / 4;
+      const col1X = L;
+      const col2X = L + colWidth;
+      const col3X = L + colWidth * 2;
+      const col4X = L + colWidth * 3;
 
       // Invoice number (INV-XXXX) or fallback to booking reference
       const invoiceNum = opts.invoiceNumber || (booking as any).invoiceNumber || null;
       doc.fontSize(7).fillColor(MUTED_TEXT).font("Helvetica");
-      doc.text("INVOICE #", L, y);
+      doc.text("INVOICE #", col1X, y);
       doc.fontSize(10).fillColor(GOLD).font("Helvetica-Bold");
-      doc.text(invoiceNum || booking.referenceNumber, L, y + 10);
+      doc.text(invoiceNum || booking.referenceNumber, col1X, y + 10, { width: colWidth - 5 });
 
       // Show booking reference separately if we have a distinct invoice number
-      // Use wider spacing to prevent overlap with long reference numbers
       if (invoiceNum) {
         doc.fontSize(7).fillColor(MUTED_TEXT).font("Helvetica");
-        doc.text("BOOKING REF", L + 90, y);
+        doc.text("BOOKING REF", col2X, y);
         doc.fontSize(8).fillColor("#333333").font("Helvetica-Bold");
-        doc.text(booking.referenceNumber, L + 90, y + 10, { width: 140 });
+        doc.text(booking.referenceNumber, col2X, y + 10, { width: colWidth - 5 });
       }
 
       doc.fontSize(7).fillColor(MUTED_TEXT).font("Helvetica");
-      doc.text("STATUS", L + 240, y);
+      doc.text("STATUS", col3X, y);
       doc.fontSize(9).fillColor("#333333").font("Helvetica-Bold");
-      doc.text(booking.status.charAt(0).toUpperCase() + booking.status.slice(1), L + 240, y + 10);
+      doc.text(booking.status.charAt(0).toUpperCase() + booking.status.slice(1), col3X, y + 10, { width: colWidth - 5 });
 
       doc.fontSize(7).fillColor(MUTED_TEXT).font("Helvetica");
-      doc.text("PICKUP", midX, y);
+      doc.text("PICKUP", col4X, y);
       doc.fontSize(9).fillColor("#333333").font("Helvetica");
-      doc.text(`${formatDate(booking.pickupDate)} at ${formatTime(booking.pickupDate)}`, midX, y + 10);
+      doc.text(`${formatDate(booking.pickupDate)} at ${formatTime(booking.pickupDate)}`, col4X, y + 10, { width: colWidth - 5 });
 
       y += 28;
 
@@ -188,7 +191,7 @@ export async function generateInvoicePDF(booking: Booking, options?: InvoiceOpti
 
       // ─── Client + Service in 2 columns ───
       const col1W = pageWidth * 0.38;
-      const col2X = L + col1W + 15;
+      const svcColX = L + col1W + 15;
       const col2W = pageWidth - col1W - 15;
 
       // Client column
@@ -211,7 +214,7 @@ export async function generateInvoicePDF(booking: Booking, options?: InvoiceOpti
 
       // Service column
       doc.fontSize(8).fillColor(GOLD).font("Helvetica-Bold");
-      doc.text("SERVICE", col2X, y);
+      doc.text("SERVICE", svcColX, y);
       let sy = y + 12;
 
       const serviceRows: [string, string][] = [
@@ -261,10 +264,10 @@ export async function generateInvoicePDF(booking: Booking, options?: InvoiceOpti
 
       for (const [label, value] of serviceRows) {
         doc.fontSize(7).fillColor(MUTED_TEXT).font("Helvetica");
-        doc.text(label, col2X, sy, { width: 55 });
+        doc.text(label, svcColX, sy, { width: 55 });
         doc.fontSize(8).fillColor("#333333").font("Helvetica");
         const h = doc.heightOfString(value, { width: col2W - 58 });
-        doc.text(value, col2X + 58, sy, { width: col2W - 58 });
+        doc.text(value, svcColX + 58, sy, { width: col2W - 58 });
         sy += Math.max(13, h + 4);
       }
 

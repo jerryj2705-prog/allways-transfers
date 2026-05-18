@@ -4396,31 +4396,35 @@ async function generateInvoicePDF(booking, options) {
       y += 56;
       doc.moveTo(L, y).lineTo(R, y).strokeColor(GOLD).lineWidth(1.5).stroke();
       y += 10;
-      const midX = L + pageWidth / 2 + 10;
+      const colWidth = pageWidth / 4;
+      const col1X = L;
+      const col2X = L + colWidth;
+      const col3X = L + colWidth * 2;
+      const col4X = L + colWidth * 3;
       const invoiceNum = opts.invoiceNumber || booking.invoiceNumber || null;
       doc.fontSize(7).fillColor(MUTED_TEXT).font("Helvetica");
-      doc.text("INVOICE #", L, y);
+      doc.text("INVOICE #", col1X, y);
       doc.fontSize(10).fillColor(GOLD).font("Helvetica-Bold");
-      doc.text(invoiceNum || booking.referenceNumber, L, y + 10);
+      doc.text(invoiceNum || booking.referenceNumber, col1X, y + 10, { width: colWidth - 5 });
       if (invoiceNum) {
         doc.fontSize(7).fillColor(MUTED_TEXT).font("Helvetica");
-        doc.text("BOOKING REF", L + 90, y);
+        doc.text("BOOKING REF", col2X, y);
         doc.fontSize(8).fillColor("#333333").font("Helvetica-Bold");
-        doc.text(booking.referenceNumber, L + 90, y + 10, { width: 140 });
+        doc.text(booking.referenceNumber, col2X, y + 10, { width: colWidth - 5 });
       }
       doc.fontSize(7).fillColor(MUTED_TEXT).font("Helvetica");
-      doc.text("STATUS", L + 240, y);
+      doc.text("STATUS", col3X, y);
       doc.fontSize(9).fillColor("#333333").font("Helvetica-Bold");
-      doc.text(booking.status.charAt(0).toUpperCase() + booking.status.slice(1), L + 240, y + 10);
+      doc.text(booking.status.charAt(0).toUpperCase() + booking.status.slice(1), col3X, y + 10, { width: colWidth - 5 });
       doc.fontSize(7).fillColor(MUTED_TEXT).font("Helvetica");
-      doc.text("PICKUP", midX, y);
+      doc.text("PICKUP", col4X, y);
       doc.fontSize(9).fillColor("#333333").font("Helvetica");
-      doc.text(`${formatDate2(booking.pickupDate)} at ${formatTime2(booking.pickupDate)}`, midX, y + 10);
+      doc.text(`${formatDate2(booking.pickupDate)} at ${formatTime2(booking.pickupDate)}`, col4X, y + 10, { width: colWidth - 5 });
       y += 28;
       doc.moveTo(L, y).lineTo(R, y).strokeColor("#E5E5E5").lineWidth(0.5).stroke();
       y += 8;
       const col1W = pageWidth * 0.38;
-      const col2X = L + col1W + 15;
+      const svcColX = L + col1W + 15;
       const col2W = pageWidth - col1W - 15;
       doc.fontSize(8).fillColor(GOLD).font("Helvetica-Bold");
       doc.text("CLIENT", L, y);
@@ -4438,7 +4442,7 @@ async function generateInvoicePDF(booking, options) {
         cy += 13;
       }
       doc.fontSize(8).fillColor(GOLD).font("Helvetica-Bold");
-      doc.text("SERVICE", col2X, y);
+      doc.text("SERVICE", svcColX, y);
       let sy = y + 12;
       const serviceRows = [
         ["Type", formatServiceType2(booking.serviceType)],
@@ -4479,10 +4483,10 @@ async function generateInvoicePDF(booking, options) {
       }
       for (const [label, value] of serviceRows) {
         doc.fontSize(7).fillColor(MUTED_TEXT).font("Helvetica");
-        doc.text(label, col2X, sy, { width: 55 });
+        doc.text(label, svcColX, sy, { width: 55 });
         doc.fontSize(8).fillColor("#333333").font("Helvetica");
         const h = doc.heightOfString(value, { width: col2W - 58 });
-        doc.text(value, col2X + 58, sy, { width: col2W - 58 });
+        doc.text(value, svcColX + 58, sy, { width: col2W - 58 });
         sy += Math.max(13, h + 4);
       }
       y = Math.max(cy, sy) + 4;
