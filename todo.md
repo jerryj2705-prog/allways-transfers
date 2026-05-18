@@ -911,3 +911,9 @@
 - [x] Add babies/toddlers to booking confirmation page
 - [x] Add babies/toddlers to all email templates
 - [ ] Always show luggage in Trip Details card (even when 0)
+
+## Invoice PDF & Review Bugs
+- [ ] Fix invoice PDF spanning 2 pages — compact layout to fit on 1 page
+- [ ] Fix "Rate us" button visual errors (+P prefix) — style as proper button immediately after thank-you message
+- [ ] Fix "Rate us" link pointing to home page — should link to allwaystransfers.com.au/#testimonials
+- [ ] Fix review permission — allow confirmed bookings (not just completed) to leave reviews

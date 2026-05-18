@@ -160,7 +160,7 @@ function TestimonialsSection() {
   const reviewableBookings = useMemo(() => {
     if (!myBookings) return [];
     const reviewedIds = new Set(approvedReviews?.map(r => r.bookingId) ?? []);
-    return myBookings.filter(b => b.status === "completed" && !reviewedIds.has(b.id));
+    return myBookings.filter(b => (b.status === "completed" || b.status === "confirmed") && !reviewedIds.has(b.id));
   }, [myBookings, approvedReviews]);
 
   const reviewMutation = trpc.reviews.submit.useMutation({
@@ -185,7 +185,7 @@ function TestimonialsSection() {
       return;
     }
     if (!reviewableBookings.length) {
-      toast.info("You need a completed booking before you can leave a review.");
+      toast.info("You need a confirmed or completed booking before you can leave a review.");
       return;
     }
     setSelectedBookingId(reviewableBookings[0].id);

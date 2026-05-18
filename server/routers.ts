@@ -1987,7 +1987,7 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
         const booking = await getBookingById(input.bookingId);
         if (!booking) throw new Error("Booking not found");
         if (booking.clientEmail !== ctx.user.email) throw new Error("You can only review your own bookings");
-        if (booking.status !== "completed") throw new Error("You can only review completed bookings");
+        if (booking.status !== "completed" && booking.status !== "confirmed") throw new Error("You need a confirmed or completed booking before you can leave a review");
 
         // Check if already reviewed
         const existing = await getReviewByBookingId(input.bookingId);

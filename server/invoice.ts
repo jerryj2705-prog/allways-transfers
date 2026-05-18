@@ -289,8 +289,8 @@ export async function generateInvoicePDF(booking: Booking, options?: InvoiceOpti
         doc.fontSize(7).fillColor(MUTED_TEXT).font("Helvetica");
         doc.text("Special Requests:", L, y);
         doc.fontSize(8).fillColor("#555").font("Helvetica-Oblique");
-        const reqH = doc.heightOfString(booking.specialRequests, { width: pageWidth });
-        doc.text(booking.specialRequests, L + 80, y, { width: pageWidth - 80 });
+        const reqH = doc.heightOfString(booking.specialRequests, { width: pageWidth - 90 });
+        doc.text(booking.specialRequests, L + 90, y, { width: pageWidth - 90 });
         y += Math.max(13, reqH + 4);
       }
 
@@ -360,7 +360,7 @@ export async function generateInvoicePDF(booking: Booking, options?: InvoiceOpti
         }
       }
 
-      // ─── Custom Footer Message ───
+      // ─── Custom Footer Message (thank-you box) ───
       if (footerMessage && footerMessage.trim()) {
         y += 4;
         const textWidth = pageWidth - 16;
@@ -374,21 +374,35 @@ export async function generateInvoicePDF(booking: Booking, options?: InvoiceOpti
         y += boxHeight + 6;
       }
 
-      // ─── Standard Footer (bottom of page) ───
-      const footerY = doc.page.height - 60;
-      doc.moveTo(L, footerY).lineTo(R, footerY).strokeColor("#E5E5E5").lineWidth(0.5).stroke();
+      // ─── "Rate Us" Button (immediately after thank-you message) ───
+      const reviewUrl = "https://allwaystransfers.com.au/#testimonials";
+      y += 4;
+      const btnText = "Please rate your experience with us";
+      const btnWidth = 220;
+      const btnHeight = 22;
+      const btnX = L + (pageWidth - btnWidth) / 2;
+
+      // Gold button background
+      doc.roundedRect(btnX, y, btnWidth, btnHeight, 4).fill(GOLD);
+      // White text centred in button
+      doc.fontSize(8).fillColor("#FFFFFF").font("Helvetica-Bold");
+      doc.text(btnText, btnX, y + 6, {
+        width: btnWidth,
+        align: "center",
+        link: reviewUrl,
+      });
+      y += btnHeight + 12;
+
+      // ─── Standard Footer (positioned after content, not absolute bottom) ───
+      // Add a small gap then draw the footer line
+      y += 8;
+      doc.moveTo(L, y).lineTo(R, y).strokeColor("#E5E5E5").lineWidth(0.5).stroke();
       doc.fontSize(6.5).fillColor(MUTED_TEXT).font("Helvetica");
-      doc.text(`All Ways Transfers | ABN ${abnValue} | Queensland, Australia | 0466 544 068 | bookings@allwaystransfers.com.au`, L, footerY + 6, {
+      doc.text(`All Ways Transfers | ABN ${abnValue} | Queensland, Australia | 0466 544 068 | bookings@allwaystransfers.com.au`, L, y + 6, {
         width: pageWidth, align: "center", lineBreak: false,
       });
-      // Review link
-      const reviewUrl = "https://allwaystransfers.com.au/#testimonials";
-      doc.fontSize(7).fillColor(GOLD).font("Helvetica-Bold");
-      doc.text("\u2B50 Please rate your experience with us", L, footerY + 17, {
-        width: pageWidth, align: "center", lineBreak: false, link: reviewUrl, underline: true,
-      });
       doc.fontSize(6).fillColor("#CCCCCC").font("Helvetica");
-      doc.text(`Generated ${new Date().toLocaleString("en-AU", { timeZone: "Australia/Brisbane", dateStyle: "medium", timeStyle: "short" })} (AEST)`, L, footerY + 28, {
+      doc.text(`Generated ${new Date().toLocaleString("en-AU", { timeZone: "Australia/Brisbane", dateStyle: "medium", timeStyle: "short" })} (AEST)`, L, y + 17, {
         width: pageWidth, align: "center", lineBreak: false,
       });
 
@@ -402,8 +416,8 @@ export async function generateInvoicePDF(booking: Booking, options?: InvoiceOpti
         doc.switchToPage(pages.start);
         doc.save();
         const cx = doc.page.width / 2;
-        const cy = doc.page.height / 2;
-        doc.translate(cx, cy);
+        const wmCy = doc.page.height / 2;
+        doc.translate(cx, wmCy);
         doc.rotate(-35, { origin: [0, 0] });
         doc.fontSize(wmFontSize).fillColor(wmColor).fillOpacity(0.10).font("Helvetica-Bold");
         doc.text(wmText, -300, -40, { width: 600, align: "center" });

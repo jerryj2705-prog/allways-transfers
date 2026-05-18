@@ -4531,8 +4531,8 @@ async function generateInvoicePDF(booking, options) {
         doc.fontSize(7).fillColor(MUTED_TEXT).font("Helvetica");
         doc.text("Special Requests:", L, y);
         doc.fontSize(8).fillColor("#555").font("Helvetica-Oblique");
-        const reqH = doc.heightOfString(booking.specialRequests, { width: pageWidth });
-        doc.text(booking.specialRequests, L + 80, y, { width: pageWidth - 80 });
+        const reqH = doc.heightOfString(booking.specialRequests, { width: pageWidth - 90 });
+        doc.text(booking.specialRequests, L + 90, y, { width: pageWidth - 90 });
         y += Math.max(13, reqH + 4);
       }
       y += 4;
@@ -4597,25 +4597,30 @@ async function generateInvoicePDF(booking, options) {
         doc.text(footerMessage.trim(), L + 8, y + 6, { width: textWidth, align: "center" });
         y += boxHeight + 6;
       }
-      const footerY = doc.page.height - 60;
-      doc.moveTo(L, footerY).lineTo(R, footerY).strokeColor("#E5E5E5").lineWidth(0.5).stroke();
+      const reviewUrl = "https://allwaystransfers.com.au/#testimonials";
+      y += 4;
+      const btnText = "Please rate your experience with us";
+      const btnWidth = 220;
+      const btnHeight = 22;
+      const btnX = L + (pageWidth - btnWidth) / 2;
+      doc.roundedRect(btnX, y, btnWidth, btnHeight, 4).fill(GOLD);
+      doc.fontSize(8).fillColor("#FFFFFF").font("Helvetica-Bold");
+      doc.text(btnText, btnX, y + 6, {
+        width: btnWidth,
+        align: "center",
+        link: reviewUrl
+      });
+      y += btnHeight + 12;
+      y += 8;
+      doc.moveTo(L, y).lineTo(R, y).strokeColor("#E5E5E5").lineWidth(0.5).stroke();
       doc.fontSize(6.5).fillColor(MUTED_TEXT).font("Helvetica");
-      doc.text(`All Ways Transfers | ABN ${abnValue} | Queensland, Australia | 0466 544 068 | bookings@allwaystransfers.com.au`, L, footerY + 6, {
+      doc.text(`All Ways Transfers | ABN ${abnValue} | Queensland, Australia | 0466 544 068 | bookings@allwaystransfers.com.au`, L, y + 6, {
         width: pageWidth,
         align: "center",
         lineBreak: false
       });
-      const reviewUrl = "https://allwaystransfers.com.au/#testimonials";
-      doc.fontSize(7).fillColor(GOLD).font("Helvetica-Bold");
-      doc.text("\u2B50 Please rate your experience with us", L, footerY + 17, {
-        width: pageWidth,
-        align: "center",
-        lineBreak: false,
-        link: reviewUrl,
-        underline: true
-      });
       doc.fontSize(6).fillColor("#CCCCCC").font("Helvetica");
-      doc.text(`Generated ${(/* @__PURE__ */ new Date()).toLocaleString("en-AU", { timeZone: "Australia/Brisbane", dateStyle: "medium", timeStyle: "short" })} (AEST)`, L, footerY + 28, {
+      doc.text(`Generated ${(/* @__PURE__ */ new Date()).toLocaleString("en-AU", { timeZone: "Australia/Brisbane", dateStyle: "medium", timeStyle: "short" })} (AEST)`, L, y + 17, {
         width: pageWidth,
         align: "center",
         lineBreak: false
@@ -4628,8 +4633,8 @@ async function generateInvoicePDF(booking, options) {
         doc.switchToPage(pages.start);
         doc.save();
         const cx = doc.page.width / 2;
-        const cy2 = doc.page.height / 2;
-        doc.translate(cx, cy2);
+        const wmCy = doc.page.height / 2;
+        doc.translate(cx, wmCy);
         doc.rotate(-35, { origin: [0, 0] });
         doc.fontSize(wmFontSize).fillColor(wmColor).fillOpacity(0.1).font("Helvetica-Bold");
         doc.text(wmText, -300, -40, { width: 600, align: "center" });
@@ -6278,7 +6283,7 @@ View proof: ${url}`
       const booking = await getBookingById(input.bookingId);
       if (!booking) throw new Error("Booking not found");
       if (booking.clientEmail !== ctx.user.email) throw new Error("You can only review your own bookings");
-      if (booking.status !== "completed") throw new Error("You can only review completed bookings");
+      if (booking.status !== "completed" && booking.status !== "confirmed") throw new Error("You need a confirmed or completed booking before you can leave a review");
       const existing = await getReviewByBookingId(input.bookingId);
       if (existing) throw new Error("You have already reviewed this booking");
       const review = await createReview({
