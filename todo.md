@@ -900,3 +900,14 @@
 - [x] Fix: Confirmed booking shows in calendar/cards but not in admin bookings list table (missing columns on Hostinger DB)
 - [x] Fix: Clicking booking from calendar shows "Booking not found" (same root cause - migration not applied on Hostinger)
 - [x] Add luggage/strollers column to admin dashboard booking list table
+
+## Babies/Toddlers Sub-count for Passengers
+- [x] Add babyCount column to bookings table
+- [ ] Add baby/toddler input to booking form (after passengers)
+- [ ] Wire babyCount through tRPC routers (create, createQuote, convertQuote, adminModify)
+- [ ] Add babies/toddlers to admin dashboard booking detail Trip Details card
+- [ ] Add babies/toddlers to admin dashboard list (Passengers column)
+- [ ] Add babies/toddlers to invoice PDF
+- [ ] Add babies/toddlers to booking confirmation page
+- [ ] Add babies/toddlers to all email templates
+- [ ] Always show luggage in Trip Details card (even when 0)

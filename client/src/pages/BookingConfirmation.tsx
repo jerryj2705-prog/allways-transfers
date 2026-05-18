@@ -287,7 +287,7 @@ export default function BookingConfirmation() {
               </div>
               <div>
                 <p className="text-muted-foreground">Passengers</p>
-                <p className="font-medium flex items-center gap-1"><Users className="w-3 h-3" />{booking.passengerCount}</p>
+                <p className="font-medium flex items-center gap-1"><Users className="w-3 h-3" />{booking.passengerCount}{(booking.babyCount ?? 0) > 0 ? ` (incl. ${booking.babyCount} baby/toddler${booking.babyCount !== 1 ? "s" : ""})` : ""}</p>
               </div>
               {(booking.luggageCount ?? 0) > 0 && (
                 <div>

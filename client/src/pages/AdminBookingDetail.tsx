@@ -67,6 +67,7 @@ export default function AdminBookingDetail() {
   const [editDropoffAddress, setEditDropoffAddress] = useState("");
   const [editPickupDate, setEditPickupDate] = useState("");
   const [editPassengerCount, setEditPassengerCount] = useState(1);
+  const [editBabyCount, setEditBabyCount] = useState(0);
   const [editLuggageCount, setEditLuggageCount] = useState(0);
   const [editStrollerCount, setEditStrollerCount] = useState(0);
   const [editPaymentMethod, setEditPaymentMethod] = useState<string>("cash_postpay");
@@ -158,6 +159,7 @@ export default function AdminBookingDetail() {
       setEditDropoffAddress(booking.dropoffAddress ?? "");
       setEditPickupDate(toLocalDateTimeValue(booking.pickupDate));
       setEditPassengerCount(booking.passengerCount);
+      setEditBabyCount(booking.babyCount ?? 0);
       setEditLuggageCount(booking.luggageCount ?? 0);
       setEditStrollerCount(booking.strollerCount ?? 0);
       setEditPaymentMethod(booking.paymentMethod ?? "cash_postpay");
@@ -228,6 +230,7 @@ export default function AdminBookingDetail() {
       dropoffAddress: editDropoffAddress.trim() || null,
       pickupDate: pickupTimestamp,
       passengerCount: editPassengerCount,
+      babyCount: editBabyCount,
       luggageCount: editLuggageCount,
       strollerCount: editStrollerCount,
       paymentMethod: editPaymentMethod as any,
@@ -389,7 +392,7 @@ export default function AdminBookingDetail() {
                     <Users className="w-4 h-4 text-muted-foreground mt-0.5" />
                     <div>
                       <p className="text-muted-foreground">Passengers</p>
-                      <p className="font-medium">{booking.passengerCount}</p>
+                      <p className="font-medium">{booking.passengerCount}{(booking.babyCount ?? 0) > 0 ? ` (incl. ${booking.babyCount} baby/toddler${booking.babyCount !== 1 ? "s" : ""})` : ""}</p>
                     </div>
                   </div>
                   {(booking.luggageCount ?? 0) > 0 && (
@@ -892,6 +895,18 @@ export default function AdminBookingDetail() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-babies">Of which, Babies/Toddlers</Label>
+              <Input
+                id="edit-babies"
+                type="number"
+                min={0}
+                max={editPassengerCount}
+                value={editBabyCount}
+                onChange={(e) => setEditBabyCount(Math.min(editPassengerCount, parseInt(e.target.value, 10) || 0))}
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-4">

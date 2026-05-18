@@ -189,6 +189,7 @@ export interface BookingEmailData {
   dropoffAddress: string | null;
   pickupDate: number;
   passengerCount: number;
+  babyCount?: number;
   luggageCount: number;
   strollerCount: number;
   vehicleName: string;
@@ -360,7 +361,7 @@ export async function sendBookingConfirmationEmail(data: BookingEmailData & { in
       <tr>
         <td style="padding:8px 0;border-bottom:1px solid #333;">
           <span style="color:#a3a3a3;font-size:13px;">Passengers</span><br/>
-          <span style="color:#e5e5e5;font-size:15px;">${data.passengerCount}</span>
+          <span style="color:#e5e5e5;font-size:15px;">${data.passengerCount}${(data.babyCount ?? 0) > 0 ? ` (incl. ${data.babyCount} baby/toddler${data.babyCount !== 1 ? "s" : ""})` : ""}</span>
         </td>
       </tr>
       ${data.luggageCount > 0 ? `<tr>
@@ -519,6 +520,7 @@ export interface QuoteEmailData {
   dropoffAddress: string | null;
   pickupDate: number;
   passengerCount: number;
+  babyCount?: number;
   luggageCount: number;
   strollerCount: number;
   vehicleName: string;
@@ -597,7 +599,7 @@ export async function sendQuoteEmail(data: QuoteEmailData): Promise<boolean> {
       <tr>
         <td style="padding:8px 0;border-bottom:1px solid #333;">
           <span style="color:#a3a3a3;font-size:13px;">Passengers</span><br/>
-          <span style="color:#e5e5e5;font-size:15px;">${data.passengerCount}</span>
+          <span style="color:#e5e5e5;font-size:15px;">${data.passengerCount}${(data.babyCount ?? 0) > 0 ? ` (incl. ${data.babyCount} baby/toddler${data.babyCount !== 1 ? "s" : ""})` : ""}</span>
         </td>
       </tr>
       ${data.luggageCount > 0 ? `<tr>
@@ -964,7 +966,7 @@ export async function sendAdminNewBookingNotification(data: BookingEmailData): P
       <tr>
         <td style="padding:8px 0;border-bottom:1px solid #333;">
           <span style="color:#a3a3a3;font-size:13px;">Passengers</span><br/>
-          <span style="color:#e5e5e5;font-size:15px;">${data.passengerCount}</span>
+          <span style="color:#e5e5e5;font-size:15px;">${data.passengerCount}${(data.babyCount ?? 0) > 0 ? ` (incl. ${data.babyCount} baby/toddler${data.babyCount !== 1 ? "s" : ""})` : ""}</span>
         </td>
       </tr>
       ${data.luggageCount > 0 ? `<tr>
@@ -1278,6 +1280,7 @@ export interface PaymentReceiptEmailData {
   dropoffAddress: string | null;
   pickupDate: number;
   passengerCount: number;
+  babyCount?: number;
   luggageCount?: number;
   strollerCount?: number;
   vehicleName: string;
@@ -1382,7 +1385,7 @@ export async function sendPaymentReceiptEmail(data: PaymentReceiptEmailData & { 
       <tr>
         <td style="padding:8px 0;border-bottom:1px solid #333;">
           <span style="color:#a3a3a3;font-size:13px;">Passengers</span><br/>
-          <span style="color:#e5e5e5;font-size:15px;">${data.passengerCount}</span>
+          <span style="color:#e5e5e5;font-size:15px;">${data.passengerCount}${(data.babyCount ?? 0) > 0 ? ` (incl. ${data.babyCount} baby/toddler${data.babyCount !== 1 ? "s" : ""})` : ""}</span>
         </td>
       </tr>
       ${(data.luggageCount ?? 0) > 0 ? `<tr>

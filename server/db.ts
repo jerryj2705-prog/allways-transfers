@@ -449,6 +449,7 @@ export async function updateBookingDetails(id: number, data: {
   dropoffAddress?: string;
   pickupDate?: number;
   passengerCount?: number;
+  babyCount?: number;
   luggageCount?: number;
   strollerCount?: number;
   paymentMethod?: string;
@@ -462,6 +463,7 @@ export async function updateBookingDetails(id: number, data: {
   if (data.dropoffAddress !== undefined) updateData.dropoffAddress = data.dropoffAddress;
   if (data.pickupDate !== undefined) updateData.pickupDate = data.pickupDate;
   if (data.passengerCount !== undefined) updateData.passengerCount = data.passengerCount;
+  if (data.babyCount !== undefined) updateData.babyCount = data.babyCount;
   if (data.luggageCount !== undefined) updateData.luggageCount = data.luggageCount;
   if (data.strollerCount !== undefined) updateData.strollerCount = data.strollerCount;
   if (data.paymentMethod !== undefined) updateData.paymentMethod = data.paymentMethod;

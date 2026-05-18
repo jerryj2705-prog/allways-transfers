@@ -315,6 +315,7 @@ export const appRouter = router({
           dropoffAddress: z.string().optional(),
           pickupDate: z.number().min(1, "Pickup date is required"),
           passengerCount: z.number().min(0).max(7),
+          babyCount: z.number().min(0).max(7).default(0),
           luggageCount: z.number().min(0).max(20).default(0),
           strollerCount: z.number().min(0).max(10).default(0),
           vehicleId: z.number(),
@@ -385,6 +386,7 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
           dropoffAddress: input.dropoffAddress ?? null,
           pickupDate: input.pickupDate,
           passengerCount: input.passengerCount,
+          babyCount: input.babyCount,
           luggageCount: input.luggageCount,
           strollerCount: input.strollerCount,
           vehicleId: input.vehicleId,
@@ -429,7 +431,7 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
         try {
           await notifyOwner({
             title: `New Booking: ${booking.referenceNumber}`,
-            content: `New booking from ${input.clientName}\nService: ${input.serviceType.replace(/_/g, " ")}\nPickup: ${input.pickupAddress}\nDate: ${new Date(input.pickupDate).toLocaleString("en-AU", { timeZone: "Australia/Brisbane" })}\nPassengers: ${input.passengerCount}\nLuggage: ${input.luggageCount}${input.strollerCount > 0 ? ` (incl. ${input.strollerCount} stroller${input.strollerCount !== 1 ? "s" : ""})` : ""}\nTotal: $${input.totalPrice.toFixed(2)}${input.needsSupportVan ? "\n+ Support Van required" : ""}`,
+            content: `New booking from ${input.clientName}\nService: ${input.serviceType.replace(/_/g, " ")}\nPickup: ${input.pickupAddress}\nDate: ${new Date(input.pickupDate).toLocaleString("en-AU", { timeZone: "Australia/Brisbane" })}\nPassengers: ${input.passengerCount}${input.babyCount > 0 ? ` (incl. ${input.babyCount} baby/toddler${input.babyCount !== 1 ? "s" : ""})` : ""}\nLuggage: ${input.luggageCount}${input.strollerCount > 0 ? ` (incl. ${input.strollerCount} stroller${input.strollerCount !== 1 ? "s" : ""})` : ""}\nTotal: $${input.totalPrice.toFixed(2)}${input.needsSupportVan ? "\n+ Support Van required" : ""}`,
           });
         } catch (e) {
           console.warn("Failed to send owner notification:", e);
@@ -500,6 +502,7 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
               dropoffAddress: input.dropoffAddress ?? null,
               pickupDate: input.pickupDate,
               passengerCount: input.passengerCount,
+              babyCount: input.babyCount,
               luggageCount: input.luggageCount,
               strollerCount: input.strollerCount,
               vehicleName: input.vehicleName,
@@ -547,6 +550,7 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
               dropoffAddress: input.dropoffAddress ?? null,
               pickupDate: input.pickupDate,
               passengerCount: input.passengerCount,
+              babyCount: input.babyCount,
               luggageCount: input.luggageCount,
               strollerCount: input.strollerCount,
               vehicleName: input.vehicleName,
@@ -596,6 +600,7 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
           dropoffAddress: z.string().optional(),
           pickupDate: z.number().min(1),
           passengerCount: z.number().min(0).max(7),
+          babyCount: z.number().min(0).max(7).default(0),
           luggageCount: z.number().min(0).max(20).default(0),
           strollerCount: z.number().min(0).max(10).default(0),
           vehicleId: z.number(),
@@ -644,6 +649,7 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
           dropoffAddress: input.dropoffAddress ?? null,
           pickupDate: input.pickupDate,
           passengerCount: input.passengerCount,
+          babyCount: input.babyCount,
           luggageCount: input.luggageCount,
           strollerCount: input.strollerCount,
           vehicleId: input.vehicleId,
@@ -727,6 +733,7 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
               dropoffAddress: input.dropoffAddress ?? null,
               pickupDate: input.pickupDate,
               passengerCount: input.passengerCount,
+              babyCount: input.babyCount,
               luggageCount: input.luggageCount,
               strollerCount: input.strollerCount,
               vehicleName: input.vehicleName,
@@ -754,7 +761,7 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
           try {
             await notifyOwner({
               title: `New Quote: ${quote.referenceNumber}`,
-              content: `Quote request from ${input.clientName}\nService: ${input.serviceType.replace(/_/g, " ")}\nPickup: ${input.pickupAddress}\nDate: ${new Date(input.pickupDate).toLocaleString("en-AU", { timeZone: "Australia/Brisbane" })}\nPassengers: ${input.passengerCount}\nLuggage: ${input.luggageCount}${input.strollerCount > 0 ? ` (incl. ${input.strollerCount} stroller${input.strollerCount !== 1 ? "s" : ""})` : ""}\nTotal: $${input.totalPrice.toFixed(2)}`,
+              content: `Quote request from ${input.clientName}\nService: ${input.serviceType.replace(/_/g, " ")}\nPickup: ${input.pickupAddress}\nDate: ${new Date(input.pickupDate).toLocaleString("en-AU", { timeZone: "Australia/Brisbane" })}\nPassengers: ${input.passengerCount}${input.babyCount > 0 ? ` (incl. ${input.babyCount} baby/toddler${input.babyCount !== 1 ? "s" : ""})` : ""}\nLuggage: ${input.luggageCount}${input.strollerCount > 0 ? ` (incl. ${input.strollerCount} stroller${input.strollerCount !== 1 ? "s" : ""})` : ""}\nTotal: $${input.totalPrice.toFixed(2)}`,
             });
           } catch (e) {
             console.warn("Failed to send owner notification:", e);
@@ -838,6 +845,7 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
               dropoffAddress: booking.dropoffAddress ?? null,
               pickupDate: typeof booking.pickupDate === 'number' ? booking.pickupDate : new Date(booking.pickupDate).getTime(),
               passengerCount: booking.passengerCount,
+              babyCount: booking.babyCount ?? 0,
               luggageCount: booking.luggageCount ?? 0,
               strollerCount: booking.strollerCount ?? 0,
               vehicleName: booking.vehicleName,
@@ -875,6 +883,7 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
               dropoffAddress: booking.dropoffAddress ?? null,
               pickupDate: typeof booking.pickupDate === 'number' ? booking.pickupDate : new Date(booking.pickupDate).getTime(),
               passengerCount: booking.passengerCount,
+              babyCount: booking.babyCount ?? 0,
               luggageCount: booking.luggageCount ?? 0,
               strollerCount: booking.strollerCount ?? 0,
               vehicleName: booking.vehicleName,
@@ -998,6 +1007,7 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
               dropoffAddress: booking.dropoffAddress ?? null,
               pickupDate: typeof booking.pickupDate === 'number' ? booking.pickupDate : new Date(booking.pickupDate).getTime(),
               passengerCount: booking.passengerCount,
+              babyCount: booking.babyCount ?? 0,
               vehicleName: booking.vehicleName,
               totalPrice: booking.totalPrice,
               paymentMethod: booking.paymentMethod,
@@ -1033,6 +1043,7 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
         dropoffAddress: z.string().nullable().optional(),
         pickupDate: z.number().optional(),
         passengerCount: z.number().min(0).max(7).optional(),
+        babyCount: z.number().min(0).max(7).optional(),
         luggageCount: z.number().min(0).max(20).optional(),
         strollerCount: z.number().min(0).max(10).optional(),
         paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direct_deposit"]).optional(),
@@ -1063,6 +1074,9 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
         if (input.passengerCount !== undefined && input.passengerCount !== booking.passengerCount) {
           changes.push(`Passengers: ${booking.passengerCount} \u2192 ${input.passengerCount}`);
         }
+        if (input.babyCount !== undefined && input.babyCount !== (booking.babyCount ?? 0)) {
+          changes.push(`Babies/Toddlers: ${booking.babyCount ?? 0} \u2192 ${input.babyCount}`);
+        }
         if (input.luggageCount !== undefined && input.luggageCount !== booking.luggageCount) {
           changes.push(`Luggage: ${booking.luggageCount} \u2192 ${input.luggageCount}`);
         }
@@ -1089,6 +1103,7 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
           dropoffAddress: input.dropoffAddress ?? undefined,
           pickupDate: input.pickupDate,
           passengerCount: input.passengerCount,
+          babyCount: input.babyCount,
           luggageCount: input.luggageCount,
           strollerCount: input.strollerCount,
           paymentMethod: input.paymentMethod,
@@ -1416,6 +1431,7 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
               dropoffAddress: booking.dropoffAddress ?? null,
               pickupDate: typeof booking.pickupDate === 'number' ? booking.pickupDate : new Date(booking.pickupDate).getTime(),
               passengerCount: booking.passengerCount,
+              babyCount: booking.babyCount ?? 0,
               vehicleName: booking.vehicleName,
               rearFacingSeats: booking.rearFacingSeats ?? 0,
               forwardFacingSeats: booking.forwardFacingSeats ?? 0,
@@ -1451,6 +1467,7 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
               dropoffAddress: booking.dropoffAddress ?? null,
               pickupDate: typeof booking.pickupDate === 'number' ? booking.pickupDate : new Date(booking.pickupDate).getTime(),
               passengerCount: booking.passengerCount,
+              babyCount: booking.babyCount ?? 0,
               vehicleName: booking.vehicleName,
               totalPrice: booking.totalPrice,
               paymentMethod: input.paymentMethod,

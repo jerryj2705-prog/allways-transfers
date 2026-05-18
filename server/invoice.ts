@@ -240,7 +240,10 @@ export async function generateInvoicePDF(booking: Booking, options?: InvoiceOpti
       }
 
       serviceRows.push(["Vehicle", booking.vehicleName]);
-      serviceRows.push(["Pax", String(booking.passengerCount)]);
+      const paxText = (booking.babyCount ?? 0) > 0
+        ? `${booking.passengerCount} (incl. ${booking.babyCount} baby/toddler${booking.babyCount !== 1 ? "s" : ""})`
+        : String(booking.passengerCount);
+      serviceRows.push(["Pax", paxText]);
 
       // Luggage
       if (booking.luggageCount > 0) {

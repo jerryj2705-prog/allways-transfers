@@ -92,6 +92,7 @@ var init_schema = __esm({
       pickupDate: bigint("pickupDate", { mode: "number" }).notNull(),
       // Passengers
       passengerCount: int("passengerCount").notNull().default(1),
+      babyCount: int("babyCount").notNull().default(0),
       // Luggage
       luggageCount: int("luggageCount").notNull().default(0),
       strollerCount: int("strollerCount").notNull().default(0),
@@ -1452,6 +1453,7 @@ async function updateBookingDetails(id, data) {
   if (data.dropoffAddress !== void 0) updateData.dropoffAddress = data.dropoffAddress;
   if (data.pickupDate !== void 0) updateData.pickupDate = data.pickupDate;
   if (data.passengerCount !== void 0) updateData.passengerCount = data.passengerCount;
+  if (data.babyCount !== void 0) updateData.babyCount = data.babyCount;
   if (data.luggageCount !== void 0) updateData.luggageCount = data.luggageCount;
   if (data.strollerCount !== void 0) updateData.strollerCount = data.strollerCount;
   if (data.paymentMethod !== void 0) updateData.paymentMethod = data.paymentMethod;
@@ -3029,7 +3031,7 @@ async function sendBookingConfirmationEmail(data) {
       <tr>
         <td style="padding:8px 0;border-bottom:1px solid #333;">
           <span style="color:#a3a3a3;font-size:13px;">Passengers</span><br/>
-          <span style="color:#e5e5e5;font-size:15px;">${data.passengerCount}</span>
+          <span style="color:#e5e5e5;font-size:15px;">${data.passengerCount}${(data.babyCount ?? 0) > 0 ? ` (incl. ${data.babyCount} baby/toddler${data.babyCount !== 1 ? "s" : ""})` : ""}</span>
         </td>
       </tr>
       ${data.luggageCount > 0 ? `<tr>
@@ -3224,7 +3226,7 @@ async function sendQuoteEmail(data) {
       <tr>
         <td style="padding:8px 0;border-bottom:1px solid #333;">
           <span style="color:#a3a3a3;font-size:13px;">Passengers</span><br/>
-          <span style="color:#e5e5e5;font-size:15px;">${data.passengerCount}</span>
+          <span style="color:#e5e5e5;font-size:15px;">${data.passengerCount}${(data.babyCount ?? 0) > 0 ? ` (incl. ${data.babyCount} baby/toddler${data.babyCount !== 1 ? "s" : ""})` : ""}</span>
         </td>
       </tr>
       ${data.luggageCount > 0 ? `<tr>
@@ -3558,7 +3560,7 @@ async function sendAdminNewBookingNotification(data) {
       <tr>
         <td style="padding:8px 0;border-bottom:1px solid #333;">
           <span style="color:#a3a3a3;font-size:13px;">Passengers</span><br/>
-          <span style="color:#e5e5e5;font-size:15px;">${data.passengerCount}</span>
+          <span style="color:#e5e5e5;font-size:15px;">${data.passengerCount}${(data.babyCount ?? 0) > 0 ? ` (incl. ${data.babyCount} baby/toddler${data.babyCount !== 1 ? "s" : ""})` : ""}</span>
         </td>
       </tr>
       ${data.luggageCount > 0 ? `<tr>
@@ -3928,7 +3930,7 @@ async function sendPaymentReceiptEmail(data) {
       <tr>
         <td style="padding:8px 0;border-bottom:1px solid #333;">
           <span style="color:#a3a3a3;font-size:13px;">Passengers</span><br/>
-          <span style="color:#e5e5e5;font-size:15px;">${data.passengerCount}</span>
+          <span style="color:#e5e5e5;font-size:15px;">${data.passengerCount}${(data.babyCount ?? 0) > 0 ? ` (incl. ${data.babyCount} baby/toddler${data.babyCount !== 1 ? "s" : ""})` : ""}</span>
         </td>
       </tr>
       ${(data.luggageCount ?? 0) > 0 ? `<tr>
@@ -4496,7 +4498,8 @@ async function generateInvoicePDF(booking, options) {
         }
       }
       serviceRows.push(["Vehicle", booking.vehicleName]);
-      serviceRows.push(["Pax", String(booking.passengerCount)]);
+      const paxText = (booking.babyCount ?? 0) > 0 ? `${booking.passengerCount} (incl. ${booking.babyCount} baby/toddler${booking.babyCount !== 1 ? "s" : ""})` : String(booking.passengerCount);
+      serviceRows.push(["Pax", paxText]);
       if (booking.luggageCount > 0) {
         const luggageText = booking.strollerCount > 0 ? `${booking.luggageCount} (incl. ${booking.strollerCount} stroller${booking.strollerCount !== 1 ? "s" : ""})` : String(booking.luggageCount);
         serviceRows.push(["Luggage", luggageText]);
@@ -4816,6 +4819,7 @@ var appRouter = router({
         dropoffAddress: z2.string().optional(),
         pickupDate: z2.number().min(1, "Pickup date is required"),
         passengerCount: z2.number().min(0).max(7),
+        babyCount: z2.number().min(0).max(7).default(0),
         luggageCount: z2.number().min(0).max(20).default(0),
         strollerCount: z2.number().min(0).max(10).default(0),
         vehicleId: z2.number(),
@@ -4880,6 +4884,7 @@ var appRouter = router({
         dropoffAddress: input.dropoffAddress ?? null,
         pickupDate: input.pickupDate,
         passengerCount: input.passengerCount,
+        babyCount: input.babyCount,
         luggageCount: input.luggageCount,
         strollerCount: input.strollerCount,
         vehicleId: input.vehicleId,
@@ -4926,7 +4931,7 @@ var appRouter = router({
 Service: ${input.serviceType.replace(/_/g, " ")}
 Pickup: ${input.pickupAddress}
 Date: ${new Date(input.pickupDate).toLocaleString("en-AU", { timeZone: "Australia/Brisbane" })}
-Passengers: ${input.passengerCount}
+Passengers: ${input.passengerCount}${input.babyCount > 0 ? ` (incl. ${input.babyCount} baby/toddler${input.babyCount !== 1 ? "s" : ""})` : ""}
 Luggage: ${input.luggageCount}${input.strollerCount > 0 ? ` (incl. ${input.strollerCount} stroller${input.strollerCount !== 1 ? "s" : ""})` : ""}
 Total: $${input.totalPrice.toFixed(2)}${input.needsSupportVan ? "\n+ Support Van required" : ""}`
         });
@@ -4992,6 +4997,7 @@ Total: $${input.totalPrice.toFixed(2)}${input.needsSupportVan ? "\n+ Support Van
             dropoffAddress: input.dropoffAddress ?? null,
             pickupDate: input.pickupDate,
             passengerCount: input.passengerCount,
+            babyCount: input.babyCount,
             luggageCount: input.luggageCount,
             strollerCount: input.strollerCount,
             vehicleName: input.vehicleName,
@@ -5037,6 +5043,7 @@ Total: $${input.totalPrice.toFixed(2)}${input.needsSupportVan ? "\n+ Support Van
             dropoffAddress: input.dropoffAddress ?? null,
             pickupDate: input.pickupDate,
             passengerCount: input.passengerCount,
+            babyCount: input.babyCount,
             luggageCount: input.luggageCount,
             strollerCount: input.strollerCount,
             vehicleName: input.vehicleName,
@@ -5083,6 +5090,7 @@ Total: $${input.totalPrice.toFixed(2)}${input.needsSupportVan ? "\n+ Support Van
         dropoffAddress: z2.string().optional(),
         pickupDate: z2.number().min(1),
         passengerCount: z2.number().min(0).max(7),
+        babyCount: z2.number().min(0).max(7).default(0),
         luggageCount: z2.number().min(0).max(20).default(0),
         strollerCount: z2.number().min(0).max(10).default(0),
         vehicleId: z2.number(),
@@ -5130,6 +5138,7 @@ Total: $${input.totalPrice.toFixed(2)}${input.needsSupportVan ? "\n+ Support Van
           dropoffAddress: input.dropoffAddress ?? null,
           pickupDate: input.pickupDate,
           passengerCount: input.passengerCount,
+          babyCount: input.babyCount,
           luggageCount: input.luggageCount,
           strollerCount: input.strollerCount,
           vehicleId: input.vehicleId,
@@ -5207,6 +5216,7 @@ Total: $${input.totalPrice.toFixed(2)}${input.needsSupportVan ? "\n+ Support Van
             dropoffAddress: input.dropoffAddress ?? null,
             pickupDate: input.pickupDate,
             passengerCount: input.passengerCount,
+            babyCount: input.babyCount,
             luggageCount: input.luggageCount,
             strollerCount: input.strollerCount,
             vehicleName: input.vehicleName,
@@ -5236,7 +5246,7 @@ Total: $${input.totalPrice.toFixed(2)}${input.needsSupportVan ? "\n+ Support Van
 Service: ${input.serviceType.replace(/_/g, " ")}
 Pickup: ${input.pickupAddress}
 Date: ${new Date(input.pickupDate).toLocaleString("en-AU", { timeZone: "Australia/Brisbane" })}
-Passengers: ${input.passengerCount}
+Passengers: ${input.passengerCount}${input.babyCount > 0 ? ` (incl. ${input.babyCount} baby/toddler${input.babyCount !== 1 ? "s" : ""})` : ""}
 Luggage: ${input.luggageCount}${input.strollerCount > 0 ? ` (incl. ${input.strollerCount} stroller${input.strollerCount !== 1 ? "s" : ""})` : ""}
 Total: $${input.totalPrice.toFixed(2)}`
           });
@@ -5310,6 +5320,7 @@ Total: $${input.totalPrice.toFixed(2)}`
             dropoffAddress: booking.dropoffAddress ?? null,
             pickupDate: typeof booking.pickupDate === "number" ? booking.pickupDate : new Date(booking.pickupDate).getTime(),
             passengerCount: booking.passengerCount,
+            babyCount: booking.babyCount ?? 0,
             luggageCount: booking.luggageCount ?? 0,
             strollerCount: booking.strollerCount ?? 0,
             vehicleName: booking.vehicleName,
@@ -5345,6 +5356,7 @@ Total: $${input.totalPrice.toFixed(2)}`
             dropoffAddress: booking.dropoffAddress ?? null,
             pickupDate: typeof booking.pickupDate === "number" ? booking.pickupDate : new Date(booking.pickupDate).getTime(),
             passengerCount: booking.passengerCount,
+            babyCount: booking.babyCount ?? 0,
             luggageCount: booking.luggageCount ?? 0,
             strollerCount: booking.strollerCount ?? 0,
             vehicleName: booking.vehicleName,
@@ -5441,6 +5453,7 @@ Total: $${input.totalPrice.toFixed(2)}`
             dropoffAddress: booking.dropoffAddress ?? null,
             pickupDate: typeof booking.pickupDate === "number" ? booking.pickupDate : new Date(booking.pickupDate).getTime(),
             passengerCount: booking.passengerCount,
+            babyCount: booking.babyCount ?? 0,
             vehicleName: booking.vehicleName,
             totalPrice: booking.totalPrice,
             paymentMethod: booking.paymentMethod,
@@ -5469,6 +5482,7 @@ Total: $${input.totalPrice.toFixed(2)}`
       dropoffAddress: z2.string().nullable().optional(),
       pickupDate: z2.number().optional(),
       passengerCount: z2.number().min(0).max(7).optional(),
+      babyCount: z2.number().min(0).max(7).optional(),
       luggageCount: z2.number().min(0).max(20).optional(),
       strollerCount: z2.number().min(0).max(10).optional(),
       paymentMethod: z2.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direct_deposit"]).optional(),
@@ -5495,6 +5509,9 @@ Total: $${input.totalPrice.toFixed(2)}`
       if (input.passengerCount !== void 0 && input.passengerCount !== booking.passengerCount) {
         changes.push(`Passengers: ${booking.passengerCount} \u2192 ${input.passengerCount}`);
       }
+      if (input.babyCount !== void 0 && input.babyCount !== (booking.babyCount ?? 0)) {
+        changes.push(`Babies/Toddlers: ${booking.babyCount ?? 0} \u2192 ${input.babyCount}`);
+      }
       if (input.luggageCount !== void 0 && input.luggageCount !== booking.luggageCount) {
         changes.push(`Luggage: ${booking.luggageCount} \u2192 ${input.luggageCount}`);
       }
@@ -5519,6 +5536,7 @@ Total: $${input.totalPrice.toFixed(2)}`
         dropoffAddress: input.dropoffAddress ?? void 0,
         pickupDate: input.pickupDate,
         passengerCount: input.passengerCount,
+        babyCount: input.babyCount,
         luggageCount: input.luggageCount,
         strollerCount: input.strollerCount,
         paymentMethod: input.paymentMethod,
@@ -5793,6 +5811,7 @@ Pickup: ${new Date(booking.pickupDate).toLocaleString("en-AU", { timeZone: "Aust
             dropoffAddress: booking.dropoffAddress ?? null,
             pickupDate: typeof booking.pickupDate === "number" ? booking.pickupDate : new Date(booking.pickupDate).getTime(),
             passengerCount: booking.passengerCount,
+            babyCount: booking.babyCount ?? 0,
             vehicleName: booking.vehicleName,
             rearFacingSeats: booking.rearFacingSeats ?? 0,
             forwardFacingSeats: booking.forwardFacingSeats ?? 0,
@@ -5826,6 +5845,7 @@ Pickup: ${new Date(booking.pickupDate).toLocaleString("en-AU", { timeZone: "Aust
             dropoffAddress: booking.dropoffAddress ?? null,
             pickupDate: typeof booking.pickupDate === "number" ? booking.pickupDate : new Date(booking.pickupDate).getTime(),
             passengerCount: booking.passengerCount,
+            babyCount: booking.babyCount ?? 0,
             vehicleName: booking.vehicleName,
             totalPrice: booking.totalPrice,
             paymentMethod: input.paymentMethod,
@@ -6886,6 +6906,7 @@ async function startServer() {
                         dropoffAddress: updatedBooking.dropoffAddress,
                         pickupDate: updatedBooking.pickupDate,
                         passengerCount: updatedBooking.passengerCount,
+                        babyCount: updatedBooking.babyCount ?? 0,
                         vehicleName: updatedBooking.vehicleName,
                         totalPrice: updatedBooking.totalPrice ?? "0",
                         paymentMethod: "stripe_prepay",
@@ -6907,6 +6928,7 @@ async function startServer() {
                         dropoffAddress: updatedBooking.dropoffAddress,
                         pickupDate: updatedBooking.pickupDate,
                         passengerCount: updatedBooking.passengerCount,
+                        babyCount: updatedBooking.babyCount ?? 0,
                         vehicleName: updatedBooking.vehicleName,
                         totalPrice: updatedBooking.totalPrice ?? "0",
                         paymentMethod: "stripe_prepay"
@@ -6946,6 +6968,7 @@ async function startServer() {
                   dropoffAddress: booking.dropoffAddress,
                   pickupDate: booking.pickupDate,
                   passengerCount: booking.passengerCount,
+                  babyCount: booking.babyCount ?? 0,
                   vehicleName: booking.vehicleName,
                   totalPrice: booking.totalPrice ?? "0",
                   paymentMethod: booking.paymentMethod ?? "stripe_prepay",
