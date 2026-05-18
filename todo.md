@@ -895,3 +895,8 @@
 - [x] Add payment method display to all email templates (already existed)
 - [x] Update tests for luggage/stroller fields (verified: 189 passed, 2 pre-existing failures unrelated to our changes)
 - [x] Add clickable "Please rate your experience with us" link to invoice PDF leading to review section
+
+## Bug: Booking not showing in list and "Booking not found" on detail view
+- [x] Fix: Confirmed booking shows in calendar/cards but not in admin bookings list table (missing columns on Hostinger DB)
+- [x] Fix: Clicking booking from calendar shows "Booking not found" (same root cause - migration not applied on Hostinger)
+- [x] Add luggage/strollers column to admin dashboard booking list table

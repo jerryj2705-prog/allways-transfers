@@ -521,6 +521,7 @@ export default function AdminDashboard() {
                   <TableHead className="hidden md:table-cell">Service</TableHead>
                   <TableHead className="hidden lg:table-cell">Pickup Date</TableHead>
                   <TableHead className="hidden lg:table-cell">Passengers</TableHead>
+                  <TableHead className="hidden lg:table-cell">Luggage</TableHead>
                   <TableHead className="hidden lg:table-cell">Pets</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="hidden xl:table-cell">Payment</TableHead>
@@ -531,13 +532,13 @@ export default function AdminDashboard() {
               <TableBody>
                 {bookingsLoading ? (
                   <TableRow>
-                    <TableCell colSpan={10} className="text-center py-12 text-muted-foreground">
+                    <TableCell colSpan={11} className="text-center py-12 text-muted-foreground">
                       Loading bookings...
                     </TableCell>
                   </TableRow>
                 ) : !bookingsData?.bookings.length ? (
                   <TableRow>
-                    <TableCell colSpan={10} className="text-center py-12 text-muted-foreground">
+                    <TableCell colSpan={11} className="text-center py-12 text-muted-foreground">
                       No bookings found.
                     </TableCell>
                   </TableRow>
@@ -575,7 +576,12 @@ export default function AdminDashboard() {
                           {booking.passengerCount}
                         </TableCell>
                         <TableCell className="hidden lg:table-cell text-sm">
-                          {booking.numberOfPets ? booking.numberOfPets : "—"}
+                          {booking.luggageCount > 0 ? (
+                            <span>{booking.luggageCount}{booking.strollerCount > 0 ? <span className="text-muted-foreground"> ({booking.strollerCount}S)</span> : ""}</span>
+                          ) : "\u2014"}
+                        </TableCell>
+                        <TableCell className="hidden lg:table-cell text-sm">
+                          {booking.numberOfPets ? booking.numberOfPets : "\u2014"}
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline" className={`text-xs ${statusStyle}`}>

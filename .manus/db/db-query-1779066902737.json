@@ -1,0 +1,14 @@
+{
+  "query": "SELECT count(*) as total, sum(case when status = 'confirmed' then 1 else 0 end) as confirmed FROM bookings;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway05.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3HWZfK7Ep6HZCJY.9379f7ca03be --database 2tTLZKCNzV8jFwxBsLMjpn --execute SELECT count(*) as total, sum(case when status = 'confirmed' then 1 else 0 end) as confirmed FROM bookings;",
+  "rows": [
+    {
+      "total": "655",
+      "confirmed": "0"
+    }
+  ],
+  "messages": [],
+  "stdout": "total\tconfirmed\n655\t0\n",
+  "stderr": "",
+  "execution_time_ms": 1765
+}
