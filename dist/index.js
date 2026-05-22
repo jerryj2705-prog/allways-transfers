@@ -6274,7 +6274,7 @@ View proof: ${url}`
       const review = await getReviewByBookingId(input.bookingId);
       return { hasReview: !!review, review };
     }),
-    // Protected: submit a review (logged-in users only, for completed bookings)
+    // Protected: submit a review (any logged-in user with a booking can review — admin moderates)
     submit: protectedProcedure.input(z2.object({
       bookingId: z2.number(),
       rating: z2.number().min(1).max(5),
@@ -6283,7 +6283,6 @@ View proof: ${url}`
       const booking = await getBookingById(input.bookingId);
       if (!booking) throw new Error("Booking not found");
       if (booking.clientEmail !== ctx.user.email) throw new Error("You can only review your own bookings");
-      if (booking.status !== "completed" && booking.status !== "confirmed") throw new Error("You need a confirmed or completed booking before you can leave a review");
       const existing = await getReviewByBookingId(input.bookingId);
       if (existing) throw new Error("You have already reviewed this booking");
       const review = await createReview({

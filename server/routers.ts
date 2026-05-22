@@ -1975,7 +1975,7 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
         return { hasReview: !!review, review };
       }),
 
-    // Protected: submit a review (logged-in users only, for completed bookings)
+    // Protected: submit a review (any logged-in user with a booking can review — admin moderates)
     submit: protectedProcedure
       .input(z.object({
         bookingId: z.number(),
@@ -1987,7 +1987,6 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
         const booking = await getBookingById(input.bookingId);
         if (!booking) throw new Error("Booking not found");
         if (booking.clientEmail !== ctx.user.email) throw new Error("You can only review your own bookings");
-        if (booking.status !== "completed" && booking.status !== "confirmed") throw new Error("You need a confirmed or completed booking before you can leave a review");
 
         // Check if already reviewed
         const existing = await getReviewByBookingId(input.bookingId);

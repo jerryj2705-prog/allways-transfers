@@ -917,3 +917,4 @@
 - [x] Fix "Rate us" button visual errors (+P prefix) — style as proper button immediately after thank-you message
 - [x] Fix "Rate us" link pointing to home page — should link to allwaystransfers.com.au/#testimonials
 - [x] Fix review permission — allow confirmed bookings (not just completed) to leave reviews
+- [ ] Allow all logged-in users to leave reviews (remove booking status requirement) — admin moderates via dashboard
