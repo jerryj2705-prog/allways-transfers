@@ -672,15 +672,20 @@ export async function generateQuotePDF(booking: Booking, options?: QuoteOptions)
       }
 
       // ─── "Accept Quote" Button ───
-      const quoteUrl = `https://allwaystransfers.com.au/booking/${booking.referenceNumber}`;
+      // Link into the quote-conversion flow (/book?quote=REF). This pre-fills
+      // the booking form with THIS quote's exact saved values — including any
+      // custom/negotiated price — and converts the quote to a confirmed booking
+      // without recalculating the online price. (The read-only /booking/REF
+      // confirmation page does NOT trigger a conversion, so it must not be used.)
+      const quoteUrl = `https://allwaystransfers.com.au/book?quote=${booking.referenceNumber}`;
       y += 4;
       const btnText = "Accept Quote & Confirm Booking";
       const btnWidth = 240;
       const btnHeight = 22;
       const btnX = L + (pageWidth - btnWidth) / 2;
 
-      // Gold button background
-      doc.roundedRect(btnX, y, btnWidth, btnHeight, 4).fill(GOLD);
+      // Gold button background (whole button is a clickable link)
+      doc.roundedRect(btnX, y, btnWidth, btnHeight, 4).fill(GOLD).link(btnX, y, btnWidth, btnHeight, quoteUrl);
       // White text centred in button
       doc.fontSize(8).fillColor("#FFFFFF").font("Helvetica-Bold");
       doc.text(btnText, btnX, y + 6, {

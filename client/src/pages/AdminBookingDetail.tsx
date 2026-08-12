@@ -72,6 +72,7 @@ export default function AdminBookingDetail() {
   const [editStrollerCount, setEditStrollerCount] = useState(0);
   const [editPaymentMethod, setEditPaymentMethod] = useState<string>("cash_postpay");
   const [editSpecialRequests, setEditSpecialRequests] = useState("");
+  const [editTotalPrice, setEditTotalPrice] = useState<string>("");
 
   const utils = trpc.useUtils();
 
@@ -188,6 +189,7 @@ export default function AdminBookingDetail() {
       setEditStrollerCount(booking.strollerCount ?? 0);
       setEditPaymentMethod(booking.paymentMethod ?? "cash_postpay");
       setEditSpecialRequests(booking.specialRequests ?? "");
+      setEditTotalPrice(booking.totalPrice != null ? parseFloat(booking.totalPrice).toFixed(2) : "");
     }
   }, [booking, editOpen]);
 
@@ -248,6 +250,16 @@ export default function AdminBookingDetail() {
 
     const pickupTimestamp = fromLocalDateTimeValue(editPickupDate);
 
+    let parsedTotalPrice: number | undefined;
+    if (editTotalPrice.trim() !== "") {
+      const p = parseFloat(editTotalPrice);
+      if (Number.isNaN(p) || p < 0) {
+        toast.error("Please enter a valid price");
+        return;
+      }
+      parsedTotalPrice = p;
+    }
+
     adminModify.mutate({
       bookingId,
       pickupAddress: editPickupAddress.trim(),
@@ -259,6 +271,10 @@ export default function AdminBookingDetail() {
       strollerCount: editStrollerCount,
       paymentMethod: editPaymentMethod as any,
       specialRequests: editSpecialRequests.trim() || null,
+      totalPrice: parsedTotalPrice,
+      // Keep base price aligned with a manually set custom total so any
+      // breakdown/derived figures stay consistent for custom-priced quotes.
+      basePrice: parsedTotalPrice,
     });
   };
 
@@ -989,6 +1005,27 @@ export default function AdminBookingDetail() {
                   <SelectItem value="direct_deposit">Direct Deposit</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-total-price">Total Price (AUD)</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                <Input
+                  id="edit-total-price"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={editTotalPrice}
+                  onChange={(e) => setEditTotalPrice(e.target.value)}
+                  placeholder="0.00"
+                  className="pl-7"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Set a custom/negotiated price. This is the exact amount shown on the quote/invoice PDF,
+                charged via Stripe, and carried over when the quote is converted to a booking.
+              </p>
             </div>
 
             <div className="space-y-2">

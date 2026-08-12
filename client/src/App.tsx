@@ -14,6 +14,7 @@ const BookingForm = lazy(() => import("./pages/BookingForm"));
 const BookingConfirmation = lazy(() => import("./pages/BookingConfirmation"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const AdminBookingDetail = lazy(() => import("./pages/AdminBookingDetail"));
+const AdminCreateQuote = lazy(() => import("./pages/AdminCreateQuote"));
 const AdminPricing = lazy(() => import("./pages/AdminPricing"));
 const MyBookings = lazy(() => import("./pages/MyBookings"));
 const Contact = lazy(() => import("./pages/Contact"));
@@ -63,6 +64,7 @@ function Router() {
         <Route path="/receipt/:ref" component={Receipt} />
         <Route path="/admin" component={AdminDashboard} />
         <Route path="/admin/booking/:id" component={AdminBookingDetail} />
+        <Route path="/admin/create-quote" component={AdminCreateQuote} />
         <Route path="/admin/pricing" component={AdminPricing} />
         <Route path="/admin/enquiries" component={AdminEnquiries} />
         <Route path="/admin/calendar" component={AdminCalendar} />

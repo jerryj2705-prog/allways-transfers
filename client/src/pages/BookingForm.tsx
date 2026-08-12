@@ -386,6 +386,7 @@ export default function BookingForm() {
 
   const estimatedDistance = priceBreakdown?.distanceKm ?? 0;
   const isOutOfArea = priceBreakdown?.isOutOfArea ?? false;
+
   const isOutOfHours = pickupHour >= 19 || pickupHour < 7;
 
   const createBooking = trpc.bookings.create.useMutation({
@@ -431,6 +432,18 @@ export default function BookingForm() {
     { referenceNumber: quoteRef ?? "" },
     { enabled: !!quoteRef && !quoteLoaded }
   );
+
+  // When resuming from a quote, always show the exact price that was quoted
+  // (which may be a custom/negotiated amount) rather than the recalculated
+  // online estimate. The server preserves this stored price on conversion.
+  const quotedTotalPrice =
+    isResumeFromQuote && quoteData?.totalPrice != null
+      ? parseFloat(quoteData.totalPrice as unknown as string)
+      : null;
+  const displayTotalPrice =
+    quotedTotalPrice != null && !Number.isNaN(quotedTotalPrice)
+      ? quotedTotalPrice
+      : pricing.totalPrice;
 
   // Populate form fields from loaded quote
   useEffect(() => {
@@ -2398,11 +2411,13 @@ export default function BookingForm() {
                       </div>
                     )}
                     <div className="flex justify-between font-heading text-lg font-bold border-t border-border/50 pt-2">
-                      <span>Total Estimate</span>
-                      <span className="gold-text">${pricing.totalPrice.toFixed(2)}</span>
+                      <span>{isResumeFromQuote ? "Total (Quoted)" : "Total Estimate"}</span>
+                      <span className="gold-text">${displayTotalPrice.toFixed(2)}</span>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Final price may vary based on actual distance and duration.
+                      {isResumeFromQuote
+                        ? "This is the price quoted to you. It will not change on confirmation."
+                        : "Final price may vary based on actual distance and duration."}
                     </p>
                   </div>
                 </div>

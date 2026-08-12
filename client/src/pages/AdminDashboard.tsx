@@ -263,6 +263,10 @@ export default function AdminDashboard() {
                   Dashboard
                 </button>
                 <div className="h-px bg-border/50 mx-4 my-1" />
+                <button onClick={() => { setLocation("/admin/create-quote"); setMobileMenuOpen(false); }} className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-gold hover:bg-muted/50 transition-colors">
+                  <FileText className="w-4 h-4" />
+                  Create Quote
+                </button>
                 <button onClick={() => { setLocation("/admin/calendar"); setMobileMenuOpen(false); }} className="flex items-center gap-3 px-4 py-3 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
                   <CalendarDays className="w-4 h-4" />
                   Calendar
@@ -321,6 +325,10 @@ export default function AdminDashboard() {
           {/* Spacer */}
           <div style={{ flex: '1 1 0' }} />
           {/* Desktop nav buttons - hidden on mobile */}
+          <Button size="sm" onClick={() => setLocation("/admin/create-quote")} className="hidden lg:inline-flex gap-1 gold-gradient text-gold-foreground border-0 h-8 px-3 text-xs" style={{ flexShrink: 0 }}>
+            <FileText className="w-3.5 h-3.5" />
+            Create Quote
+          </Button>
           <Button variant="outline" size="sm" onClick={() => setLocation("/admin/calendar")} className="hidden lg:inline-flex gap-1 bg-background h-8 px-3 text-xs" style={{ flexShrink: 0 }}>
             <CalendarDays className="w-3.5 h-3.5" />
             Calendar

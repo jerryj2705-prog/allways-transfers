@@ -469,6 +469,8 @@ export async function updateBookingDetails(id: number, data: {
   paymentMethod?: string;
   specialRequests?: string | null;
   estimatedDuration?: number;
+  basePrice?: string;
+  totalPrice?: string;
 }) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -483,6 +485,8 @@ export async function updateBookingDetails(id: number, data: {
   if (data.paymentMethod !== undefined) updateData.paymentMethod = data.paymentMethod;
   if (data.specialRequests !== undefined) updateData.specialRequests = data.specialRequests;
   if (data.estimatedDuration !== undefined) updateData.estimatedDuration = data.estimatedDuration;
+  if (data.basePrice !== undefined) updateData.basePrice = data.basePrice;
+  if (data.totalPrice !== undefined) updateData.totalPrice = data.totalPrice;
   if (Object.keys(updateData).length === 0) throw new Error("No fields to update");
   await db.update(bookings).set(updateData).where(eq(bookings.id, id));
   return getBookingById(id);

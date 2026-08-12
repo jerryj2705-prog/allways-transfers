@@ -1090,6 +1090,8 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
         paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direct_deposit"]).optional(),
         specialRequests: z.string().nullable().optional(),
         estimatedDuration: z.number().min(15).max(1440).optional(),
+        totalPrice: z.number().min(0).max(1000000).optional(),
+        basePrice: z.number().min(0).max(1000000).optional(),
       }))
       .mutation(async ({ input }) => {
         const booking = await getBookingById(input.bookingId);
@@ -1134,6 +1136,12 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
           const oldDur = booking.estimatedDuration ?? 60;
           changes.push(`Duration: ${oldDur}min \u2192 ${input.estimatedDuration}min`);
         }
+        if (input.totalPrice !== undefined && input.totalPrice.toFixed(2) !== parseFloat(booking.totalPrice ?? "0").toFixed(2)) {
+          changes.push(`Total Price: $${parseFloat(booking.totalPrice ?? "0").toFixed(2)} \u2192 $${input.totalPrice.toFixed(2)}`);
+        }
+        if (input.basePrice !== undefined && input.basePrice.toFixed(2) !== parseFloat(booking.basePrice ?? "0").toFixed(2)) {
+          changes.push(`Base Price: $${parseFloat(booking.basePrice ?? "0").toFixed(2)} \u2192 $${input.basePrice.toFixed(2)}`);
+        }
 
         if (changes.length === 0) {
           return booking;
@@ -1150,9 +1158,154 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
           paymentMethod: input.paymentMethod,
           specialRequests: input.specialRequests,
           estimatedDuration: input.estimatedDuration,
+          basePrice: input.basePrice !== undefined ? input.basePrice.toFixed(2) : undefined,
+          totalPrice: input.totalPrice !== undefined ? input.totalPrice.toFixed(2) : undefined,
         });
 
         return updated;
+      }),
+
+    // Admin: manually create a quote with a custom price
+    adminCreateQuote: adminProcedure
+      .input(z.object({
+        clientName: z.string().min(1),
+        clientEmail: z.string().email(),
+        clientPhone: z.string().min(1),
+        serviceType: z.enum(["airport_transfer", "hourly_hire", "point_to_point", "special_events", "freight"]),
+        pickupAddress: z.string().min(1),
+        dropoffAddress: z.string().nullable().optional(),
+        pickupDate: z.number(),
+        passengerCount: z.number().min(0).max(7).default(1),
+        babyCount: z.number().min(0).max(7).default(0),
+        luggageCount: z.number().min(0).max(20).default(0),
+        strollerCount: z.number().min(0).max(10).default(0),
+        vehicleId: z.number(),
+        vehicleName: z.string().min(1),
+        totalPrice: z.number().min(0).max(1000000),
+        basePrice: z.number().min(0).max(1000000).optional(),
+        specialRequests: z.string().nullable().optional(),
+        sendEmail: z.boolean().default(false),
+        origin: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const basePriceVal = (input.basePrice ?? input.totalPrice).toFixed(2);
+        const totalPriceVal = input.totalPrice.toFixed(2);
+
+        let quote;
+        try {
+          quote = await createQuote({
+            clientName: input.clientName,
+            clientEmail: input.clientEmail,
+            clientPhone: input.clientPhone,
+            serviceType: input.serviceType,
+            pickupAddress: input.pickupAddress,
+            dropoffAddress: input.dropoffAddress ?? null,
+            pickupDate: input.pickupDate,
+            passengerCount: input.passengerCount,
+            babyCount: input.babyCount,
+            luggageCount: input.luggageCount,
+            strollerCount: input.strollerCount,
+            vehicleId: input.vehicleId,
+            vehicleName: input.vehicleName,
+            needsSupportVan: 0,
+            supportVanPrice: "0",
+            rearFacingSeats: 0,
+            forwardFacingSeats: 0,
+            boosterSeats: 0,
+            isPetFriendly: 0,
+            numberOfPets: null,
+            petDescription: null,
+            freightDescription: null,
+            freightWeight: null,
+            freightItemCount: null,
+            freightSpecialHandling: null,
+            routePreference: "fastest",
+            estimatedDistance: null,
+            estimatedDuration: null,
+            basePrice: basePriceVal,
+            totalPrice: totalPriceVal,
+            additionalPickupCount: 0,
+            additionalDropoffCount: 0,
+            additionalPickupAddresses: null,
+            additionalDropoffAddresses: null,
+            additionalStopsSurcharge: "0",
+            publicHolidaySurcharge: "0",
+            publicHolidayName: null,
+            airportTollSurcharge: "0",
+            airportTollDetails: null,
+            roadTollSurcharge: "0",
+            roadTollDetails: null,
+            paymentMethod: "cash_postpay",
+            paymentStatus: "unpaid",
+            specialRequests: input.specialRequests ?? null,
+            adminNotes: null,
+            termsAccepted: 0,
+          });
+        } catch (dbErr: any) {
+          const cause = dbErr?.cause;
+          const mysqlCode = cause?.code || cause?.errno || "unknown";
+          const mysqlMsg = cause?.sqlMessage || cause?.message || "no details";
+          console.error("[adminCreateQuote] DB INSERT failed:", { mysqlCode, mysqlMsg, fullError: String(dbErr) });
+          throw new Error(`Quote creation failed: ${mysqlCode} - ${mysqlMsg}`);
+        }
+
+        // Optionally email the quote to the client
+        if (input.sendEmail && input.origin) {
+          try {
+            let stripePaymentUrl: string | undefined;
+            try {
+              const { url } = await createQuoteCheckoutSession({
+                bookingReference: quote.referenceNumber,
+                bookingId: quote.id,
+                amount: input.totalPrice,
+                customerEmail: input.clientEmail,
+                customerName: input.clientName,
+                serviceDescription: input.serviceType.replace(/_/g, " "),
+                origin: input.origin,
+              });
+              stripePaymentUrl = url;
+            } catch (stripeErr) {
+              console.warn("[adminCreateQuote] Failed to create Stripe checkout for quote email:", stripeErr);
+            }
+
+            let bankDetailsData: BankDetails | null = null;
+            try { bankDetailsData = await getBankDetails(); } catch (bankErr) { /* ignore */ }
+
+            await sendQuoteEmail({
+              referenceNumber: quote.referenceNumber,
+              clientName: input.clientName,
+              clientEmail: input.clientEmail,
+              serviceType: input.serviceType,
+              pickupAddress: input.pickupAddress,
+              dropoffAddress: input.dropoffAddress ?? null,
+              pickupDate: input.pickupDate,
+              passengerCount: input.passengerCount,
+              babyCount: input.babyCount,
+              luggageCount: input.luggageCount,
+              strollerCount: input.strollerCount,
+              vehicleName: input.vehicleName,
+              totalPrice: totalPriceVal,
+              specialRequests: input.specialRequests ?? null,
+              additionalPickupCount: 0,
+              additionalDropoffCount: 0,
+              additionalPickupAddresses: [],
+              additionalDropoffAddresses: [],
+              publicHolidaySurcharge: 0,
+              publicHolidayName: null,
+              airportTollSurcharge: 0,
+              airportTollDetails: [],
+              roadTollSurcharge: 0,
+              roadTollDetails: [],
+              origin: input.origin,
+              stripePaymentUrl,
+              bankDetails: bankDetailsData,
+            });
+          } catch (emailError) {
+            console.warn("[adminCreateQuote] Failed to send quote email:", emailError);
+          }
+        }
+
+        return { referenceNumber: quote.referenceNumber, id: quote.id };
       }),
 
     // Admin: delete a booking
