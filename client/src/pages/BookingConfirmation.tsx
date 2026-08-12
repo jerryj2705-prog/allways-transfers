@@ -6,6 +6,7 @@ import { CheckCircle, XCircle, Copy, Home, Calendar, MapPin, Users, Car, CreditC
 import { toast } from "sonner";
 import { SERVICE_TYPES, PAYMENT_METHODS } from "@shared/types";
 import type { ServiceType, PaymentMethod } from "@shared/types";
+import { buildPriceBreakdown } from "@shared/priceBreakdown";
 import { useEffect, useMemo, useState, useRef } from "react";
 
 const LOGO_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/logo-white_476df209.png";
@@ -502,7 +503,21 @@ export default function BookingConfirmation() {
             )}
 
             <div className="border-t border-border/50 pt-4">
-              <div className="flex justify-between items-center">
+              <p className="text-xs font-medium tracking-widest uppercase text-primary mb-3">Price Breakdown</p>
+              <div className="space-y-2 text-sm">
+                {buildPriceBreakdown(booking).lines.map((line, idx) => (
+                  <div
+                    key={`price-line-${idx}`}
+                    className={`flex justify-between ${line.isDiscount ? "text-green-500" : ""}`}
+                  >
+                    <span className={line.isDiscount ? "" : "text-muted-foreground"}>{line.label}</span>
+                    <span>
+                      {line.isDiscount ? "-" : ""}${line.amount.toFixed(2)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <div className="flex justify-between items-center border-t border-border/50 pt-3 mt-3">
                 <span className="text-muted-foreground">Estimated Total</span>
                 <span className="font-heading text-xl font-bold gold-text">
                   ${parseFloat(booking.totalPrice ?? "0").toFixed(2)}

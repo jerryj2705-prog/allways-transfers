@@ -93,6 +93,15 @@ export const bookings = mysqlTable("bookings", {
   estimatedDistance: decimal("estimatedDistance", { precision: 10, scale: 2 }),
   estimatedDuration: int("estimatedDuration"),
   basePrice: decimal("basePrice", { precision: 10, scale: 2 }).notNull(),
+  // Itemised price components (stored so the breakdown always sums to the total)
+  distanceCharge: decimal("distanceCharge", { precision: 10, scale: 2 }).default("0"),
+  outOfHoursSurcharge: decimal("outOfHoursSurcharge", { precision: 10, scale: 2 }).default("0"),
+  outOfAreaSurcharge: decimal("outOfAreaSurcharge", { precision: 10, scale: 2 }).default("0"),
+  fuelLevySurcharge: decimal("fuelLevySurcharge", { precision: 10, scale: 2 }).default("0"),
+  petSurcharge: decimal("petSurcharge", { precision: 10, scale: 2 }).default("0"),
+  weightSurcharge: decimal("weightSurcharge", { precision: 10, scale: 2 }).default("0"),
+  cardSurcharge: decimal("cardSurcharge", { precision: 10, scale: 2 }).default("0"),
+  roundingDiscount: decimal("roundingDiscount", { precision: 10, scale: 2 }).default("0"),
   totalPrice: decimal("totalPrice", { precision: 10, scale: 2 }).notNull(),
   // Payment
   paymentMethod: mysqlEnum("paymentMethod", ["stripe_prepay", "square_postpay", "cash_postpay", "direct_deposit"]).notNull().default("cash_postpay"),

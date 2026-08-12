@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { SERVICE_TYPES, PAYMENT_METHODS } from "@shared/types";
 import type { ServiceType, PaymentMethod } from "@shared/types";
+import { buildPriceBreakdown } from "@shared/priceBreakdown";
 import { useRef } from "react";
 
 const LOGO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/logo-white_476df209.png";
@@ -319,6 +320,30 @@ export default function Receipt() {
                 )}
               </div>
             )}
+          </div>
+        </div>
+
+        {/* Price Breakdown */}
+        <div className="mb-8 print:mb-6">
+          <h2 className="text-xs text-muted-foreground uppercase tracking-wider mb-4">Price Breakdown</h2>
+          <div className="bg-card/50 border border-border/50 rounded-lg p-5 print:p-4 print:border-gray-300 space-y-2">
+            {buildPriceBreakdown(booking).lines.map((line, idx) => (
+              <div
+                key={`price-line-${idx}`}
+                className={`flex justify-between text-sm ${line.isDiscount ? "text-green-600 print:text-green-700" : ""}`}
+              >
+                <span className={line.isDiscount ? "" : "text-muted-foreground"}>{line.label}</span>
+                <span className="font-medium">
+                  {line.isDiscount ? "-" : ""}${line.amount.toFixed(2)}
+                </span>
+              </div>
+            ))}
+            <div className="flex justify-between items-center border-t border-border/50 pt-3 mt-1">
+              <span className="font-medium">Total Paid</span>
+              <span className="font-heading text-lg font-bold gold-text print:text-black">
+                ${parseFloat(booking.totalPrice ?? "0").toFixed(2)}
+              </span>
+            </div>
           </div>
         </div>
 

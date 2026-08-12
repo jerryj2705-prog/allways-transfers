@@ -1,6 +1,7 @@
 import PDFDocument from "pdfkit";
 import type { Booking } from "../drizzle/schema";
 import { getBankDetails } from "./db";
+import { buildPriceBreakdown } from "../shared/priceBreakdown";
 import { readFile } from "fs/promises";
 import { join } from "path";
 
@@ -288,7 +289,26 @@ export async function generateInvoicePDF(booking: Booking, options?: InvoiceOpti
       doc.moveTo(L, y).lineTo(R, y).strokeColor("#E5E5E5").lineWidth(0.5).stroke();
       y += 8;
 
-      // ─── Total Box (no detailed breakdown) ───
+      // ─── Itemised Price Breakdown ───
+      {
+        const { lines: breakdownLines } = buildPriceBreakdown(booking);
+        doc.fontSize(8).fillColor(GOLD).font("Helvetica-Bold");
+        doc.text("PRICE BREAKDOWN", L, y);
+        y += 12;
+        for (const line of breakdownLines) {
+          doc.fontSize(8).fillColor("#333333").font("Helvetica");
+          doc.text(line.label, L, y, { width: pageWidth - 90 });
+          const amountText = `${line.isDiscount ? "-" : ""}$${line.amount.toFixed(2)}`;
+          doc.fillColor(line.isDiscount ? GREEN : "#333333").font("Helvetica");
+          doc.text(amountText, R - 90, y, { width: 90, align: "right" });
+          y += 13;
+        }
+        y += 2;
+        doc.moveTo(L, y).lineTo(R, y).strokeColor("#E5E5E5").lineWidth(0.5).stroke();
+        y += 8;
+      }
+
+      // ─── Total Box ───
       const totalPrice = parseFloat(String(booking.totalPrice));
       doc.rect(L, y, pageWidth, 28).fill("#FFF8E7");
       doc.rect(L, y, pageWidth, 28).strokeColor(GOLD).lineWidth(0.5).stroke();
@@ -626,6 +646,25 @@ export async function generateQuotePDF(booking: Booking, options?: QuoteOptions)
       // ─── Divider ───
       doc.moveTo(L, y).lineTo(R, y).strokeColor("#E5E5E5").lineWidth(0.5).stroke();
       y += 8;
+
+      // ─── Itemised Price Breakdown ───
+      {
+        const { lines: breakdownLines } = buildPriceBreakdown(booking);
+        doc.fontSize(8).fillColor(GOLD).font("Helvetica-Bold");
+        doc.text("PRICE BREAKDOWN", L, y);
+        y += 12;
+        for (const line of breakdownLines) {
+          doc.fontSize(8).fillColor("#333333").font("Helvetica");
+          doc.text(line.label, L, y, { width: pageWidth - 90 });
+          const amountText = `${line.isDiscount ? "-" : ""}$${line.amount.toFixed(2)}`;
+          doc.fillColor(line.isDiscount ? GREEN : "#333333").font("Helvetica");
+          doc.text(amountText, R - 90, y, { width: 90, align: "right" });
+          y += 13;
+        }
+        y += 2;
+        doc.moveTo(L, y).lineTo(R, y).strokeColor("#E5E5E5").lineWidth(0.5).stroke();
+        y += 8;
+      }
 
       // ─── Estimated Total Box ───
       const totalPrice = parseFloat(String(booking.totalPrice));

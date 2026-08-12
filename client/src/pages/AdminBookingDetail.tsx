@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { SERVICE_TYPES, BOOKING_STATUSES, PAYMENT_METHODS } from "@shared/types";
 import type { ServiceType, BookingStatus, PaymentMethod } from "@shared/types";
+import { buildPriceBreakdown } from "@shared/priceBreakdown";
 
 const LOGO_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/logo-white_476df209.png";
 
@@ -272,9 +273,11 @@ export default function AdminBookingDetail() {
       paymentMethod: editPaymentMethod as any,
       specialRequests: editSpecialRequests.trim() || null,
       totalPrice: parsedTotalPrice,
-      // Keep base price aligned with a manually set custom total so any
-      // breakdown/derived figures stay consistent for custom-priced quotes.
-      basePrice: parsedTotalPrice,
+      // Only the total is overridden. The original base price and individual
+      // component charges are left untouched so the itemised breakdown stays
+      // intact; any difference between the components and a manually set custom
+      // total is shown as a reconciliation ("Price Adjustment" / "Discount")
+      // line by buildPriceBreakdown().
     });
   };
 
@@ -618,77 +621,17 @@ export default function AdminBookingDetail() {
               <CardContent className="p-6 space-y-3">
                 <p className="text-xs font-medium tracking-widest uppercase text-primary">Pricing</p>
                 <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">SUV Base</span>
-                    <span>${parseFloat(booking.basePrice ?? "0").toFixed(2)}</span>
-                  </div>
-                  {booking.needsSupportVan === 1 && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Support Van</span>
-                      <span>${parseFloat(booking.supportVanPrice ?? "0").toFixed(2)}</span>
+                  {buildPriceBreakdown(booking).lines.map((line, idx) => (
+                    <div
+                      key={`price-line-${idx}`}
+                      className={`flex justify-between ${line.isDiscount ? "text-green-500" : ""}`}
+                    >
+                      <span className={line.isDiscount ? "" : "text-muted-foreground"}>{line.label}</span>
+                      <span>
+                        {line.isDiscount ? "-" : ""}${line.amount.toFixed(2)}
+                      </span>
                     </div>
-                  )}
-                  {parseFloat(booking.additionalStopsSurcharge ?? "0") > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Additional Stops</span>
-                      <span>${parseFloat(booking.additionalStopsSurcharge ?? "0").toFixed(2)}</span>
-                    </div>
-                  )}
-                  {parseFloat(booking.publicHolidaySurcharge ?? "0") > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Public Holiday</span>
-                      <span>${parseFloat(booking.publicHolidaySurcharge ?? "0").toFixed(2)}</span>
-                    </div>
-                  )}
-                  {booking.publicHolidayName && (
-                    <div className="text-xs text-amber-400">
-                      Holiday: {booking.publicHolidayName}
-                    </div>
-                  )}
-                  {parseFloat(booking.airportTollSurcharge ?? "0") > 0 && (
-                    <>
-                      {(() => {
-                        try {
-                          const details = JSON.parse(booking.airportTollDetails || "[]");
-                          return details.map((toll: { airport: string; direction: string; amount: number }, idx: number) => (
-                            <div key={`airport-toll-${idx}`} className="flex justify-between text-amber-400">
-                              <span>{toll.airport} {toll.direction} toll</span>
-                              <span>${toll.amount.toFixed(2)}</span>
-                            </div>
-                          ));
-                        } catch {
-                          return (
-                            <div className="flex justify-between text-amber-400">
-                              <span>Airport Tolls</span>
-                              <span>${parseFloat(booking.airportTollSurcharge ?? "0").toFixed(2)}</span>
-                            </div>
-                          );
-                        }
-                      })()}
-                    </>
-                  )}
-                  {parseFloat(booking.roadTollSurcharge ?? "0") > 0 && (
-                    <>
-                      {(() => {
-                        try {
-                          const details = JSON.parse(booking.roadTollDetails || "[]");
-                          return details.map((toll: { road: string; amount: number }, idx: number) => (
-                            <div key={`road-toll-${idx}`} className="flex justify-between text-amber-400">
-                              <span>{toll.road} Toll</span>
-                              <span>${toll.amount.toFixed(2)}</span>
-                            </div>
-                          ));
-                        } catch {
-                          return (
-                            <div className="flex justify-between text-amber-400">
-                              <span>Road Tolls</span>
-                              <span>${parseFloat(booking.roadTollSurcharge ?? "0").toFixed(2)}</span>
-                            </div>
-                          );
-                        }
-                      })()}
-                    </>
-                  )}
+                  ))}
                   <div className="flex justify-between font-heading text-lg font-bold border-t border-border/50 pt-2">
                     <span>Total</span>
                     <span className="gold-text">${parseFloat(booking.totalPrice ?? "0").toFixed(2)}</span>
