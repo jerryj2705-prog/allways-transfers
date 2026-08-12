@@ -1,8 +1,8 @@
 /**
  * File Storage Helpers
  * 
- * Uses the Manus Forge API for file storage with CDN delivery.
- * Files are uploaded via multipart form-data and served from CloudFront CDN.
+ * Uses the Forge API for file storage with CDN delivery.
+ * Files are uploaded via multipart form-data and served from CDN.
  */
 
 const FORGE_API_URL = process.env.BUILT_IN_FORGE_API_URL ?? "";

@@ -4314,30 +4314,18 @@ async function storagePut(key, data, contentType) {
 // server/invoice.ts
 init_db();
 import PDFDocument from "pdfkit";
-import https from "https";
-import http from "http";
-var LOGO_URL2 = "https://files.manuscdn.com/user_upload_by_module/session_file/310519663486426022/jlnrNxKOAAbakZcE.png";
+import { readFile } from "fs/promises";
+import { join } from "path";
+var LOGO_PATH = join(process.cwd(), "client/public/logo.png");
 var cachedLogoBuffer = null;
 async function fetchLogoBuffer() {
   if (cachedLogoBuffer) return cachedLogoBuffer;
   try {
-    const buffer = await new Promise((resolve, reject) => {
-      const client = LOGO_URL2.startsWith("https") ? https : http;
-      client.get(LOGO_URL2, (res) => {
-        if (res.statusCode !== 200) {
-          reject(new Error(`Failed to fetch logo: ${res.statusCode}`));
-          return;
-        }
-        const chunks = [];
-        res.on("data", (chunk) => chunks.push(chunk));
-        res.on("end", () => resolve(Buffer.concat(chunks)));
-        res.on("error", reject);
-      }).on("error", reject);
-    });
+    const buffer = await readFile(LOGO_PATH);
     cachedLogoBuffer = buffer;
     return buffer;
   } catch (err) {
-    console.error("[Invoice] Failed to fetch logo:", err);
+    console.error("[Invoice] Failed to read logo:", err);
     return null;
   }
 }

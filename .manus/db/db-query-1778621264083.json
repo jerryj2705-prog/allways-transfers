@@ -1,9 +1,0 @@
-{
-  "query": "\nUPDATE pricing_settings \nSET settingKey = 'fuel_consumption_rate', \n    settingValue = '8.00', \n    label = 'Vehicle Consumption (L/100km)', \n    description = 'Average fuel consumption rate in litres per 100km. Used to calculate distance-based fuel levy.',\n    category = 'fuel',\n    updatedAt = NOW()\nWHERE id = 9;\n\nINSERT INTO pricing_settings (settingKey, settingValue, label, description, category, isActive) VALUES\n('fuel_price_per_litre', '2.50', 'Fuel Price ($/L)', 'Current fuel price per litre. Used with vehicle consumption to calculate distance-based fuel levy.', 'fuel', 1);\n",
-  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway05.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3HWZfK7Ep6HZCJY.9379f7ca03be --database 2tTLZKCNzV8jFwxBsLMjpn --execute \nUPDATE pricing_settings \nSET settingKey = 'fuel_consumption_rate', \n    settingValue = '8.00', \n    label = 'Vehicle Consumption (L/100km)', \n    description = 'Average fuel consumption rate in litres per 100km. Used to calculate distance-based fuel levy.',\n    category = 'fuel',\n    updatedAt = NOW()\nWHERE id = 9;\n\nINSERT INTO pricing_settings (settingKey, settingValue, label, description, category, isActive) VALUES\n('fuel_price_per_litre', '2.50', 'Fuel Price ($/L)', 'Current fuel price per litre. Used with vehicle consumption to calculate distance-based fuel levy.', 'fuel', 1);\n",
-  "rows": [],
-  "messages": [],
-  "stdout": "",
-  "stderr": "",
-  "execution_time_ms": 1997
-}

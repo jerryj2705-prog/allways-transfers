@@ -1,6 +1,6 @@
 /**
  * Standalone Auth Routes
- * Replaces Manus OAuth callback with direct auth endpoints.
+ * Direct authentication endpoints for the application.
  * The actual login/register logic is handled via tRPC procedures,
  * but we keep this file for any additional Express-level auth routes
  * (e.g., password reset callbacks in the future).

@@ -1,34 +1,22 @@
 import PDFDocument from "pdfkit";
 import type { Booking } from "../drizzle/schema";
 import { getBankDetails } from "./db";
-import https from "https";
-import http from "http";
+import { readFile } from "fs/promises";
+import { join } from "path";
 
-const LOGO_URL = "https://files.manuscdn.com/user_upload_by_module/session_file/310519663486426022/jlnrNxKOAAbakZcE.png";
+const LOGO_PATH = join(process.cwd(), "client/public/logo.png");
 
-// Cache the logo buffer so we only download once
+// Cache the logo buffer so we only read once
 let cachedLogoBuffer: Buffer | null = null;
 
 async function fetchLogoBuffer(): Promise<Buffer | null> {
   if (cachedLogoBuffer) return cachedLogoBuffer;
   try {
-    const buffer = await new Promise<Buffer>((resolve, reject) => {
-      const client = LOGO_URL.startsWith("https") ? https : http;
-      client.get(LOGO_URL, (res) => {
-        if (res.statusCode !== 200) {
-          reject(new Error(`Failed to fetch logo: ${res.statusCode}`));
-          return;
-        }
-        const chunks: Buffer[] = [];
-        res.on("data", (chunk: Buffer) => chunks.push(chunk));
-        res.on("end", () => resolve(Buffer.concat(chunks)));
-        res.on("error", reject);
-      }).on("error", reject);
-    });
+    const buffer = await readFile(LOGO_PATH);
     cachedLogoBuffer = buffer;
     return buffer;
   } catch (err) {
-    console.error("[Invoice] Failed to fetch logo:", err);
+    console.error("[Invoice] Failed to read logo:", err);
     return null;
   }
 }

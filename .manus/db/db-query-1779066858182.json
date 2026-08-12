@@ -1,9 +1,0 @@
-{
-  "query": "SELECT id, referenceNumber, clientName, status, paymentStatus FROM bookings WHERE clientName LIKE '%Emily%' OR status = 'confirmed' ORDER BY createdAt DESC LIMIT 5;",
-  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway05.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3HWZfK7Ep6HZCJY.9379f7ca03be --database 2tTLZKCNzV8jFwxBsLMjpn --execute SELECT id, referenceNumber, clientName, status, paymentStatus FROM bookings WHERE clientName LIKE '%Emily%' OR status = 'confirmed' ORDER BY createdAt DESC LIMIT 5;",
-  "rows": [],
-  "messages": [],
-  "stdout": "",
-  "stderr": "",
-  "execution_time_ms": 1795
-}

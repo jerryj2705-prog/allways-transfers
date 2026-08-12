@@ -80,14 +80,14 @@ import { useEffect, useRef } from "react";
 import { usePersistFn } from "@/hooks/usePersistFn";
 import { cn } from "@/lib/utils";
 
-// Google Maps API key - use direct key or fall back to Manus proxy
+// Google Maps API key - use direct key or fall back to proxy
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || import.meta.env.VITE_FRONTEND_FORGE_API_KEY;
 const FORGE_BASE_URL = import.meta.env.VITE_FRONTEND_FORGE_API_URL || "";
 
 // Determine the Maps script URL
 const MAPS_SCRIPT_BASE = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
   ? "https://maps.googleapis.com/maps/api/js"  // Direct Google Maps
-  : `${FORGE_BASE_URL}/v1/maps/proxy/maps/api/js`;  // Manus proxy (legacy)
+  : `${FORGE_BASE_URL}/v1/maps/proxy/maps/api/js`;  // Proxy fallback
 
 function loadMapScript() {
   return new Promise(resolve => {

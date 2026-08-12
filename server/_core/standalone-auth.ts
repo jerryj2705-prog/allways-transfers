@@ -1,6 +1,6 @@
 /**
  * Standalone Authentication Module
- * Replaces Manus OAuth with email/password auth using bcrypt + JWT
+ * Email/password authentication using bcrypt + JWT
  */
 
 import { COOKIE_NAME, SESSION_SHORT_MS } from "@shared/const";

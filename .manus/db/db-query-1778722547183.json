@@ -1,9 +1,0 @@
-{
-  "query": "ALTER TABLE `bookings` MODIFY COLUMN `paymentMethod` enum('stripe_prepay','square_postpay','cash_postpay','direct_deposit') NOT NULL DEFAULT 'cash_postpay';",
-  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway05.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3HWZfK7Ep6HZCJY.9379f7ca03be --database 2tTLZKCNzV8jFwxBsLMjpn --execute ALTER TABLE `bookings` MODIFY COLUMN `paymentMethod` enum('stripe_prepay','square_postpay','cash_postpay','direct_deposit') NOT NULL DEFAULT 'cash_postpay';",
-  "rows": [],
-  "messages": [],
-  "stdout": "",
-  "stderr": "",
-  "execution_time_ms": 1775
-}

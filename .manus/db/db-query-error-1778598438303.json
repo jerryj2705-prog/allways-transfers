@@ -1,8 +1,0 @@
-{
-  "query": "ALTER TABLE landmarks ADD COLUMN address VARCHAR(500) DEFAULT NULL AFTER category;",
-  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway05.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3HWZfK7Ep6HZCJY.9379f7ca03be --database 2tTLZKCNzV8jFwxBsLMjpn --execute ALTER TABLE landmarks ADD COLUMN address VARCHAR(500) DEFAULT NULL AFTER category;",
-  "returncode": 1,
-  "logs": [
-    "ERROR 1060 (42S21) at line 1: Duplicate column name 'address'"
-  ]
-}
