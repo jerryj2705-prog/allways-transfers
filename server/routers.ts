@@ -85,7 +85,7 @@ import { createCheckoutSession, createQuoteCheckoutSession } from "./stripe";
 import { notifyOwner } from "./_core/notification";
 import { sendBookingConfirmationEmail, sendCancellationConfirmationEmail, sendAdminNewBookingNotification, sendAdminCancellationNotification, sendPasswordResetEmail, sendQuoteEmail, sendQuoteReminderEmail, sendPaymentReceiptEmail } from "./email";
 import { storagePut } from "./storage";
-import { generateInvoicePDF } from "./invoice";
+import { generateInvoicePDF, generateQuotePDF } from "./invoice";
 import crypto from "crypto";
 import { lookupSuburb, estimateDistance, isOutOfArea, getAllSuburbNames, getAllLocationsWithType, calculateDistance, classifyLGA } from "@shared/suburbs";
 
@@ -947,6 +947,26 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
         return {
           data: pdfBuffer.toString("base64"),
           filename: `Invoice-${invoiceNumber || booking.referenceNumber}.pdf`,
+        };
+      }),
+
+    // Download quote PDF for a booking
+    downloadQuote: bookingLookupProcedure
+      .input(z.object({ referenceNumber: z.string() }))
+      .mutation(async ({ input }) => {
+        const booking = await getBookingByReference(input.referenceNumber);
+        if (!booking) throw new Error("Booking not found");
+        // Only allow quotes for bookings in "quote" status
+        if (booking.status !== "quote") throw new Error("Quote PDFs are only available for quotes");
+        // Fetch custom quote settings
+        const [footerMessage, abn] = await Promise.all([
+          getAppSetting("quote_footer_message"),
+          getAppSetting("invoice_abn"), // Use same ABN as invoices
+        ]);
+        const pdfBuffer = await generateQuotePDF(booking, { footerMessage, abn });
+        return {
+          data: pdfBuffer.toString("base64"),
+          filename: `Quote-${booking.referenceNumber}.pdf`,
         };
       }),
 

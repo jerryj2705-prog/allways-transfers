@@ -127,6 +127,30 @@ export default function AdminBookingDetail() {
     },
   });
 
+  const quoteMutation = trpc.bookings.downloadQuote.useMutation({
+    onSuccess: (result) => {
+      const byteCharacters = atob(result.data);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = result.filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success("Quote downloaded");
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to generate quote");
+    },
+  });
+
   const adminConvertQuote = trpc.bookings.adminConvertQuote.useMutation({
     onSuccess: () => {
       toast.success("Quote converted to booking successfully");
@@ -288,7 +312,18 @@ export default function AdminBookingDetail() {
                 Edit Details
               </Button>
             )}
-            {booking.status !== "quote" && (
+            {booking.status === "quote" ? (
+              <Button
+                variant="outline"
+                size="sm"
+                className="bg-transparent gap-1.5"
+                onClick={() => quoteMutation.mutate({ referenceNumber: booking.referenceNumber })}
+                disabled={quoteMutation.isPending}
+              >
+                {quoteMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileDown className="w-3.5 h-3.5" />}
+                Quote
+              </Button>
+            ) : (
               <Button
                 variant="outline"
                 size="sm"
