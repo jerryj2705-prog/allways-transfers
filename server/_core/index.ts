@@ -1,5 +1,6 @@
 import "dotenv/config";
 import express from "express";
+import compression from "compression";
 import { createServer } from "http";
 import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
@@ -12,6 +13,14 @@ import { getBookingById, getBookingByStripeSession, updateBookingPaymentStatus, 
 import { sendPaymentReceiptEmail, sendBookingConfirmationEmail, sendAdminNewBookingNotification } from "../email";
 import { generateInvoicePDF } from "../invoice";
 import { initCronJobs } from "../cron";
+
+// Verbose webhook logging (including request metadata) is opt-in via
+// DEBUG_WEBHOOKS so production logs don't accumulate customer PII.
+const webhookDebug =
+  process.env.DEBUG_WEBHOOKS === "true" || process.env.NODE_ENV === "development";
+function debugLog(...args: unknown[]) {
+  if (webhookDebug) console.log(...args);
+}
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -34,12 +43,18 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 
 async function startServer() {
   const app = express();
+  // Trust the reverse proxy (e.g. Hostinger/Nginx) so req.ip reflects the
+  // real client address and req.protocol correctly reports https. Required
+  // for accurate rate limiting and Secure cookie detection.
+  app.set("trust proxy", 1);
+  // Gzip/deflate responses to reduce payload size for HTML, JS, CSS and JSON.
+  app.use(compression());
   const server = createServer(app);
 
   // Stripe webhook must be registered BEFORE express.json() for raw body access
   app.post("/api/stripe/webhook", express.raw({ type: "application/json" }), async (req, res) => {
-    console.log(`[Webhook] Incoming webhook request. Content-Type: ${req.headers["content-type"]}, Body type: ${typeof req.body}, Body is Buffer: ${Buffer.isBuffer(req.body)}, Body length: ${req.body?.length || 0}`);
-    console.log(`[Webhook] Headers: stripe-signature=${req.headers["stripe-signature"] ? "present" : "MISSING"}, webhook-id=${req.headers["webhook-id"] ? "present" : "absent"}, webhook-signature=${req.headers["webhook-signature"] ? "present" : "absent"}`);
+    debugLog(`[Webhook] Incoming webhook request. Content-Type: ${req.headers["content-type"]}, Body type: ${typeof req.body}, Body is Buffer: ${Buffer.isBuffer(req.body)}, Body length: ${req.body?.length || 0}`);
+    debugLog(`[Webhook] Headers: stripe-signature=${req.headers["stripe-signature"] ? "present" : "MISSING"}, webhook-id=${req.headers["webhook-id"] ? "present" : "absent"}, webhook-signature=${req.headers["webhook-signature"] ? "present" : "absent"}`);
     const signature = req.headers["stripe-signature"] as string;
     try {
       const event = constructWebhookEvent(req.body, signature);
@@ -60,10 +75,10 @@ async function startServer() {
           const isQuotePayment = session.metadata?.is_quote_payment === "true";
           const paymentStatus = session.payment_status;
 
-          console.log(`[Webhook] checkout.session.completed details:`);
-          console.log(`[Webhook]   bookingId=${bookingId}, bookingReference=${bookingReference}`);
-          console.log(`[Webhook]   isQuotePayment=${isQuotePayment}, paymentStatus=${paymentStatus}`);
-          console.log(`[Webhook]   session.id=${session.id}, session.metadata=${JSON.stringify(session.metadata)}`);
+          debugLog(`[Webhook] checkout.session.completed details:`);
+          debugLog(`[Webhook]   bookingId=${bookingId}, bookingReference=${bookingReference}`);
+          debugLog(`[Webhook]   isQuotePayment=${isQuotePayment}, paymentStatus=${paymentStatus}`);
+          debugLog(`[Webhook]   session.id=${session.id}, session.metadata=${JSON.stringify(session.metadata)}`);
 
           if (bookingId && paymentStatus === "paid") {
             // If this is a quote payment from email, auto-convert quote to booking first
@@ -217,28 +232,42 @@ async function startServer() {
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   // Health check endpoint for diagnostics
   app.get("/api/health", async (req, res) => {
+    // Detailed diagnostics (DB host, schema info, error details) are only
+    // returned when a matching HEALTH_DIAG_TOKEN is supplied, so the public
+    // endpoint never leaks infrastructure details.
+    const diagToken = process.env.HEALTH_DIAG_TOKEN;
+    const showDiag = !!diagToken && req.query.token === diagToken;
     const { getDb } = await import("../db");
     try {
       const db = await getDb();
       if (!db) {
-        return res.json({ status: "error", message: "Database not initialized", dbUrl: process.env.DATABASE_URL ? 'SET' : 'NOT SET' });
+        return res
+          .status(503)
+          .json(showDiag
+            ? { status: "error", message: "Database not initialized", dbUrl: process.env.DATABASE_URL ? "SET" : "NOT SET" }
+            : { status: "error" });
       }
       const { sql } = await import("drizzle-orm");
-      const result = await db.execute(sql`SELECT 1 as ok`);
-      // Also check bookings table column count for diagnostics
+      await db.execute(sql`SELECT 1 as ok`);
+      if (!showDiag) {
+        return res.json({ status: "ok" });
+      }
+      // Diagnostic-only details
       let colCount = 0;
-      let dbHost = 'unknown';
+      let dbHost = "unknown";
       try {
         const cols = await db.execute(sql`SELECT COUNT(*) as cnt FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'bookings'`);
         colCount = cols[0]?.[0]?.cnt || cols[0]?.cnt || 0;
       } catch (e) { /* ignore */ }
       try {
-        const url = new URL(process.env.DATABASE_URL || '');
+        const url = new URL(process.env.DATABASE_URL || "");
         dbHost = url.hostname;
       } catch (e) { /* ignore */ }
       return res.json({ status: "ok", db: "connected", bookingsColumns: colCount, dbHost });
     } catch (err: any) {
-      return res.json({ status: "error", message: err.message, code: err.code });
+      return res
+        .status(503)
+        .json(showDiag ? { status: "error", message: err.message, code: err.code } : { status: "error" });
     }
   });
 

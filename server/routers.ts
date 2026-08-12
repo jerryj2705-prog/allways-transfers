@@ -2,6 +2,7 @@ import { COOKIE_NAME, SESSION_SHORT_MS, SESSION_LONG_MS } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, adminProcedure, router } from "./_core/trpc";
+import { rateLimit } from "./_core/rate-limit";
 import { hashPassword, verifyPassword, createSessionToken } from "./_core/standalone-auth";
 import { z } from "zod";
 import {
@@ -88,11 +89,31 @@ import { generateInvoicePDF } from "./invoice";
 import crypto from "crypto";
 import { lookupSuburb, estimateDistance, isOutOfArea, getAllSuburbNames, getAllLocationsWithType, calculateDistance, classifyLGA } from "@shared/suburbs";
 
+// Rate-limited public procedures for sensitive auth endpoints (brute-force /
+// abuse protection). Keyed per client IP with independent budgets.
+const loginProcedure = publicProcedure.use(
+  rateLimit({ windowMs: 15 * 60 * 1000, max: 10, prefix: "login", message: "Too many login attempts. Please try again later." }),
+);
+const registerProcedure = publicProcedure.use(
+  rateLimit({ windowMs: 60 * 60 * 1000, max: 5, prefix: "register", message: "Too many registration attempts. Please try again later." }),
+);
+const forgotPasswordProcedure = publicProcedure.use(
+  rateLimit({ windowMs: 60 * 60 * 1000, max: 5, prefix: "forgot-password", message: "Too many password reset requests. Please try again later." }),
+);
+const resetPasswordProcedure = publicProcedure.use(
+  rateLimit({ windowMs: 60 * 60 * 1000, max: 10, prefix: "reset-password", message: "Too many attempts. Please try again later." }),
+);
+// Public booking lookups are keyed by an unguessable reference (capability
+// token). A rate limit adds defense-in-depth against brute-force enumeration.
+const bookingLookupProcedure = publicProcedure.use(
+  rateLimit({ windowMs: 15 * 60 * 1000, max: 60, prefix: "booking-lookup", message: "Too many requests. Please try again later." }),
+);
+
 export const appRouter = router({
   system: systemRouter,
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
-    login: publicProcedure
+    login: loginProcedure
       .input(z.object({
         email: z.string().email("Valid email is required"),
         password: z.string().min(1, "Password is required"),
@@ -117,7 +138,7 @@ export const appRouter = router({
         ctx.res.cookie(COOKIE_NAME, token, { ...cookieOptions, maxAge: sessionDuration });
         return { success: true, user: { id: user.id, name: user.name, email: user.email, role: user.role } };
       }),
-    register: publicProcedure
+    register: registerProcedure
       .input(z.object({
         name: z.string().min(1, "Name is required"),
         email: z.string().email("Valid email is required"),
@@ -209,7 +230,7 @@ export const appRouter = router({
         ctx.res.cookie(COOKIE_NAME, token, { ...cookieOptions, maxAge: sessionDuration });
         return { success: true, user: { id: user.id, name: user.name, email: user.email, role: user.role } };
       }),
-    forgotPassword: publicProcedure
+    forgotPassword: forgotPasswordProcedure
       .input(z.object({
         email: z.string().email("Invalid email address"),
         origin: z.string().min(1, "Origin is required"),
@@ -245,7 +266,7 @@ export const appRouter = router({
 
         return { success: true, message: "If an account with that email exists, a password reset link has been sent." };
       }),
-    resetPassword: publicProcedure
+    resetPassword: resetPasswordProcedure
       .input(z.object({
         token: z.string().min(1, "Reset token is required"),
         password: z.string().min(8, "Password must be at least 8 characters"),
@@ -901,14 +922,14 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
         return { ...booking, checkoutUrl };
       }),
 
-    getByReference: publicProcedure
+    getByReference: bookingLookupProcedure
       .input(z.object({ referenceNumber: z.string() }))
       .query(async ({ input }) => {
         return getBookingByReference(input.referenceNumber);
       }),
 
     // Download invoice PDF for a booking
-    downloadInvoice: publicProcedure
+    downloadInvoice: bookingLookupProcedure
       .input(z.object({ referenceNumber: z.string() }))
       .mutation(async ({ input }) => {
         const booking = await getBookingByReference(input.referenceNumber);

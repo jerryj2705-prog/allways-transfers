@@ -1,6 +1,6 @@
-const CACHE_NAME = 'awt-admin-v1';
+const CACHE_NAME = 'awt-v2';
 const STATIC_ASSETS = [
-  '/admin',
+  '/',
   '/manifest.json',
 ];
 
@@ -58,7 +58,7 @@ self.addEventListener('fetch', (event) => {
         .catch(() => {
           // Fallback to cache if offline
           return caches.match(request).then((cached) => {
-            return cached || caches.match('/admin');
+            return cached || caches.match('/');
           });
         })
     );

@@ -1,6 +1,7 @@
 import { eq, desc, and, or, like, sql, isNull, gte, lte, ne } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
+import crypto from "crypto";
 import { InsertUser, users, vehicles, bookings, pricingSettings, enquiries, publicHolidays, passwordResetTokens, landmarks, emailLogs, type InsertBooking, type Booking, type PricingSetting, type InsertEnquiry, type Enquiry, type InsertPublicHoliday, type PublicHoliday, type Landmark, type InsertLandmark, type InsertEmailLog, type EmailLog } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import { lookupSuburb } from "@shared/suburbs";
@@ -160,8 +161,8 @@ export async function createUserWithPassword(data: {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  // Generate a unique openId for backward compatibility
-  const openId = `local_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+  // Generate a unique openId for backward compatibility (secure random)
+  const openId = `local_${Date.now()}_${crypto.randomBytes(6).toString("hex")}`;
 
   await db.insert(users).values({
     openId,
@@ -282,11 +283,24 @@ export async function getVehicleById(id: number) {
 
 // ─── Booking Queries ───
 
+// Unambiguous uppercase alphabet (no 0/O/1/I) for readable, secure references.
+const REF_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+/**
+ * Generate a booking reference using a cryptographically secure RNG.
+ * Format: `CB-XXXXXXXXXXXXXXXX` (16 random chars from a 32-symbol alphabet
+ * → 32^16 ≈ 1.2e24 combinations), fitting the varchar(20) column. This
+ * makes references non-enumerable/unguessable, unlike the previous
+ * `Math.random()` + timestamp scheme.
+ */
 function generateReferenceNumber(): string {
-  const prefix = "CB";
-  const timestamp = Date.now().toString(36).toUpperCase();
-  const random = Math.random().toString(36).substring(2, 6).toUpperCase();
-  return `${prefix}-${timestamp}-${random}`.substring(0, 20);
+  const length = 16;
+  const bytes = crypto.randomBytes(length);
+  let out = "";
+  for (let i = 0; i < length; i++) {
+    out += REF_ALPHABET[bytes[i] % REF_ALPHABET.length];
+  }
+  return `CB-${out}`;
 }
 
 export async function createBooking(data: Omit<InsertBooking, "referenceNumber" | "id" | "createdAt" | "updatedAt" | "status">) {

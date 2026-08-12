@@ -1,14 +1,14 @@
 {
-  "name": "All Ways Transfers - Admin",
-  "short_name": "AWT Admin",
-  "description": "Admin dashboard for All Ways Transfers chauffeur booking system",
-  "start_url": "/admin",
+  "name": "All Ways Transfers",
+  "short_name": "All Ways",
+  "description": "Prebooked private chauffeur transfers — book airport, corporate and event transfers with All Ways Transfers.",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "any",
   "background_color": "#1a1108",
   "theme_color": "#d4a843",
-  "categories": ["business", "productivity"],
+  "categories": ["travel", "business"],
   "icons": [
     {
       "src": "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/icon-72x72_36a23ad1.png",

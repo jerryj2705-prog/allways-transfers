@@ -2,6 +2,14 @@ import Stripe from "stripe";
 
 let _stripe: Stripe | null = null;
 
+// Verbose webhook diagnostics are opt-in via DEBUG_WEBHOOKS to avoid noisy /
+// sensitive logs in production. Never log secrets, signatures or PII here.
+const webhookDebug =
+  process.env.DEBUG_WEBHOOKS === "true" || process.env.NODE_ENV === "development";
+function debugLog(...args: unknown[]) {
+  if (webhookDebug) console.log(...args);
+}
+
 export function getStripe(): Stripe {
   if (!_stripe) {
     const secretKey = process.env.STRIPE_SECRET_KEY;
@@ -118,12 +126,11 @@ export function constructWebhookEvent(
     console.error("[Stripe Webhook] STRIPE_WEBHOOK_SECRET is not configured in environment");
     throw new Error("STRIPE_WEBHOOK_SECRET is not configured");
   }
-  console.log(`[Stripe Webhook] Verifying signature. Secret starts with: ${webhookSecret.substring(0, 10)}...`);
-  console.log(`[Stripe Webhook] Signature header: ${signature ? String(signature).substring(0, 50) + "..." : "MISSING"}`);
-  console.log(`[Stripe Webhook] Payload length: ${payload.length} bytes`);
+  debugLog(`[Stripe Webhook] Verifying signature. Signature header: ${signature ? "present" : "MISSING"}`);
+  debugLog(`[Stripe Webhook] Payload length: ${payload.length} bytes`);
   try {
     const event = stripe.webhooks.constructEvent(payload, signature, webhookSecret);
-    console.log(`[Stripe Webhook] Signature verified successfully. Event: ${event.type} (${event.id})`);
+    debugLog(`[Stripe Webhook] Signature verified successfully. Event: ${event.type} (${event.id})`);
     return event;
   } catch (err: any) {
     console.error(`[Stripe Webhook] Signature verification FAILED: ${err.message}`);

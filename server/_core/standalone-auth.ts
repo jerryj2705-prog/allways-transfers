@@ -118,8 +118,27 @@ export async function authenticateRequest(req: Request): Promise<User> {
     throw ForbiddenError("User not found");
   }
 
-  // Update last signed in
-  await db.updateUserLastSignedIn(user.id);
+  // Update "last signed in" at most once per user per throttle window instead
+  // of on every request, and do it in the background so it never blocks the
+  // response or adds a DB write to every authenticated call.
+  maybeTouchLastSignedIn(user.id);
 
   return user;
+}
+
+// Throttle last-signed-in updates: userId -> last write timestamp (ms).
+const LAST_SIGNED_IN_THROTTLE_MS = 15 * 60 * 1000; // 15 minutes
+const lastSignedInWrites = new Map<number, number>();
+
+function maybeTouchLastSignedIn(userId: number): void {
+  if (process.env.NODE_ENV === "test") return;
+  const now = Date.now();
+  const last = lastSignedInWrites.get(userId) ?? 0;
+  if (now - last < LAST_SIGNED_IN_THROTTLE_MS) return;
+  lastSignedInWrites.set(userId, now);
+  // Fire-and-forget; a failed timestamp update must not fail the request.
+  Promise.resolve(db.updateUserLastSignedIn(userId)).catch(() => {
+    // Allow a retry on the next request if this write failed.
+    lastSignedInWrites.delete(userId);
+  });
 }

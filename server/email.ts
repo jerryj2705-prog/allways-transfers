@@ -15,6 +15,63 @@ function getResend(): Resend {
 }
 
 /**
+ * Escape HTML-special characters to prevent HTML/email injection when
+ * interpolating user-supplied values into HTML email templates.
+ */
+export function escapeHtml(value: unknown): string {
+  if (value === null || value === undefined) return "";
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+/**
+ * Return a deep copy of an email-data object with all string values
+ * HTML-escaped, so free-text user input (names, addresses, special
+ * requests, etc.) cannot inject markup into the rendered email.
+ *
+ * `skipKeys` lists fields that must remain raw because they are used to
+ * build URLs or route the message (e.g. origin, reset URLs, email
+ * addresses used in the `to:` field, reference numbers).
+ */
+function sanitizeEmailData<T>(data: T, skipKeys: string[] = []): T {
+  const skip = new Set(skipKeys);
+  const walk = (val: unknown, key?: string): unknown => {
+    if (typeof val === "string") {
+      return key && skip.has(key) ? val : escapeHtml(val);
+    }
+    if (Buffer.isBuffer(val)) {
+      return val;
+    }
+    if (Array.isArray(val)) {
+      return val.map((item) => walk(item, key));
+    }
+    if (val && typeof val === "object") {
+      const out: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(val)) {
+        out[k] = skip.has(k) ? v : walk(v, k);
+      }
+      return out;
+    }
+    return val;
+  };
+  return walk(data) as T;
+}
+
+// Keys that must stay raw (used for URLs, routing, or safe identifiers).
+const EMAIL_SKIP_KEYS = [
+  "origin",
+  "stripePaymentUrl",
+  "resetUrl",
+  "referenceNumber",
+  "clientEmail",
+  "email",
+];
+
+/**
  * Send an email via Resend and log the result to the email_logs table.
  */
 async function sendAndLog(params: {
@@ -303,6 +360,7 @@ function buildTollsHtml(data: BookingEmailData): string {
 }
 
 export async function sendBookingConfirmationEmail(data: BookingEmailData & { invoicePdf?: Buffer | null }): Promise<boolean> {
+  data = sanitizeEmailData(data, EMAIL_SKIP_KEYS);
   if (process.env.VITEST || process.env.NODE_ENV === "test") {
     console.log(`[Email] Skipping email send in test environment for ${data.referenceNumber}`);
     return true;
@@ -548,6 +606,7 @@ export interface QuoteEmailData {
 }
 
 export async function sendQuoteEmail(data: QuoteEmailData): Promise<boolean> {
+  data = sanitizeEmailData(data, EMAIL_SKIP_KEYS);
   if (process.env.VITEST || process.env.NODE_ENV === "test") {
     console.log(`[Email] Skipping email send in test environment for ${data.referenceNumber}`);
     return true;
@@ -767,6 +826,7 @@ export interface CancellationEmailData {
 }
 
 export async function sendCancellationConfirmationEmail(data: CancellationEmailData): Promise<boolean> {
+  data = sanitizeEmailData(data, EMAIL_SKIP_KEYS);
   if (process.env.VITEST || process.env.NODE_ENV === "test") {
     console.log(`[Email] Skipping email send in test environment for ${data.referenceNumber}`);
     return true;
@@ -893,6 +953,7 @@ export async function sendCancellationConfirmationEmail(data: CancellationEmailD
 const ADMIN_EMAIL = ENV.adminEmail || "admin@allwaystransfers.com.au";
 
 export async function sendAdminNewBookingNotification(data: BookingEmailData): Promise<boolean> {
+  data = sanitizeEmailData(data, EMAIL_SKIP_KEYS);
   if (process.env.VITEST || process.env.NODE_ENV === "test") {
     console.log(`[Email] Skipping admin notification in test environment for ${data.referenceNumber}`);
     return true;
@@ -1081,6 +1142,7 @@ export async function sendAdminNewBookingNotification(data: BookingEmailData): P
 // ─── Admin Notification: Booking Cancelled ───
 
 export async function sendAdminCancellationNotification(data: CancellationEmailData): Promise<boolean> {
+  data = sanitizeEmailData(data, EMAIL_SKIP_KEYS);
   if (process.env.VITEST || process.env.NODE_ENV === "test") {
     console.log(`[Email] Skipping admin cancellation notification in test environment for ${data.referenceNumber}`);
     return true;
@@ -1219,6 +1281,7 @@ export interface PasswordResetEmailData {
 }
 
 export async function sendPasswordResetEmail(data: PasswordResetEmailData): Promise<boolean> {
+  data = sanitizeEmailData(data, EMAIL_SKIP_KEYS);
   if (process.env.VITEST || process.env.NODE_ENV === "test") {
     console.log(`[Email] Skipping password reset email in test environment for ${data.email}`);
     return true;
@@ -1295,6 +1358,7 @@ export interface PaymentReceiptEmailData {
 }
 
 export async function sendPaymentReceiptEmail(data: PaymentReceiptEmailData & { invoicePdf?: Buffer | null }): Promise<boolean> {
+  data = sanitizeEmailData(data, EMAIL_SKIP_KEYS);
   if (process.env.VITEST || process.env.NODE_ENV === "test") {
     console.log(`[Email] Skipping email send in test environment for ${data.referenceNumber}`);
     return true;
@@ -1473,6 +1537,7 @@ export interface QuoteReminderEmailData {
 }
 
 export async function sendQuoteReminderEmail(data: QuoteReminderEmailData): Promise<boolean> {
+  data = sanitizeEmailData(data, EMAIL_SKIP_KEYS);
   if (process.env.VITEST || process.env.NODE_ENV === "test") {
     console.log(`[Email] Skipping quote reminder in test environment for ${data.referenceNumber}`);
     return true;
@@ -1598,6 +1663,7 @@ export interface QuoteExpiredEmailData {
 }
 
 export async function sendQuoteExpiredEmail(data: QuoteExpiredEmailData): Promise<boolean> {
+  data = sanitizeEmailData(data, EMAIL_SKIP_KEYS);
   if (process.env.VITEST || process.env.NODE_ENV === "test") {
     console.log(`[Email] Skipping quote expired email in test environment for ${data.referenceNumber}`);
     return true;
@@ -1681,6 +1747,7 @@ export interface PaymentReminderEmailData {
 }
 
 export async function sendDirectDepositPaymentReminderEmail(data: PaymentReminderEmailData): Promise<boolean> {
+  data = sanitizeEmailData(data, EMAIL_SKIP_KEYS);
   if (process.env.VITEST || process.env.NODE_ENV === "test") {
     console.log(`[Email] Skipping payment reminder in test environment for ${data.referenceNumber}`);
     return true;
