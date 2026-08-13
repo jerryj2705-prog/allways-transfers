@@ -446,14 +446,14 @@ export async function generateInvoicePDF(booking: Booking, options?: InvoiceOpti
 interface QuoteOptions {
   footerMessage?: string | null;
   abn?: string | null;
-  quoteValidDays?: number; // Default 7 days
+  quoteValidDays?: number; // Default 2 days (expires 2 days before pickup)
 }
 
 export async function generateQuotePDF(booking: Booking, options?: QuoteOptions): Promise<Buffer> {
   const opts: QuoteOptions = options || {};
   const abnValue = opts.abn?.trim() || "18 715 944 056";
   const footerMessage = opts.footerMessage;
-  const validDays = opts.quoteValidDays ?? 7;
+  const validDays = opts.quoteValidDays ?? 2;
   
   return new Promise(async (resolve, reject) => {
     try {
