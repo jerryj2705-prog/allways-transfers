@@ -603,6 +603,7 @@ export interface QuoteEmailData {
     accountName: string;
     referenceInstructions?: string;
   } | null;
+  pdfBuffer?: Buffer;
 }
 
 export async function sendQuoteEmail(data: QuoteEmailData): Promise<boolean> {
@@ -804,6 +805,9 @@ export async function sendQuoteEmail(data: QuoteEmailData): Promise<boolean> {
     subject: `Your Quote — ${data.referenceNumber}`,
     html: wrapInTemplate(bodyContent),
     bookingReference: data.referenceNumber,
+    attachments: data.pdfBuffer
+      ? [{ filename: `Quote-${data.referenceNumber}.pdf`, content: data.pdfBuffer }]
+      : undefined,
   });
   return success;
 }

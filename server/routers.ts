@@ -789,6 +789,13 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
               console.warn("[Quote] Failed to fetch bank details:", bankErr);
             }
 
+            let quotePdfBuffer: Buffer | undefined;
+            try {
+              quotePdfBuffer = await generateQuotePDF(quote);
+            } catch (pdfErr) {
+              console.warn("[Quote] Failed to generate PDF for email:", pdfErr);
+            }
+
             await sendQuoteEmail({
               referenceNumber: quote.referenceNumber,
               clientName: input.clientName,
@@ -817,6 +824,7 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
               origin: input.origin,
               stripePaymentUrl,
               bankDetails: bankDetailsData,
+              pdfBuffer: quotePdfBuffer,
             });
           } catch (emailError) {
             console.warn("[Quote] Failed to send quote email:", emailError);
@@ -1320,6 +1328,13 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
             let bankDetailsData: BankDetails | null = null;
             try { bankDetailsData = await getBankDetails(); } catch (bankErr) { /* ignore */ }
 
+            let adminQuotePdfBuffer: Buffer | undefined;
+            try {
+              adminQuotePdfBuffer = await generateQuotePDF(quote);
+            } catch (pdfErr) {
+              console.warn("[adminCreateQuote] Failed to generate PDF for email:", pdfErr);
+            }
+
             await sendQuoteEmail({
               referenceNumber: quote.referenceNumber,
               clientName: input.clientName,
@@ -1348,6 +1363,7 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
               origin: input.origin,
               stripePaymentUrl,
               bankDetails: bankDetailsData,
+              pdfBuffer: adminQuotePdfBuffer,
             });
           } catch (emailError) {
             console.warn("[adminCreateQuote] Failed to send quote email:", emailError);
