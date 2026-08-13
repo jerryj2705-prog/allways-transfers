@@ -83,6 +83,8 @@ export default function AdminCreateQuote() {
     if (!vehicleId) return toast.error("Please select a vehicle");
     if (!pickupAddress.trim()) return toast.error("Pickup address is required");
     if (!pickupDate) return toast.error("Pickup date/time is required");
+    if (fromLocalDateTimeValue(pickupDate) < Date.now())
+      return toast.error("Pickup date must be in the future");
 
     const price = parseFloat(totalPrice);
     if (Number.isNaN(price) || price < 0) return toast.error("Please enter a valid total price");

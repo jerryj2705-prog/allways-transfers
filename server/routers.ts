@@ -391,6 +391,11 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
           throw new Error("You must accept the terms and conditions");
         }
 
+        // Pickup date must be in the future (never before the booking is made)
+        if (input.pickupDate < Date.now()) {
+          throw new Error("Pickup date must be in the future");
+        }
+
         // Enforce minimum hours for hourly hire
         if (input.serviceType === "hourly_hire") {
           const settings = await getAllPricingSettings();
@@ -685,6 +690,11 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
         })
       )
       .mutation(async ({ input }) => {
+        // Pickup date must be in the future (never before the quote is created)
+        if (input.pickupDate < Date.now()) {
+          throw new Error("Pickup date must be in the future");
+        }
+
         let quote;
         try {
         quote = await createQuote({
@@ -1222,6 +1232,11 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
         origin: z.string().optional(),
       }))
       .mutation(async ({ input }) => {
+        // Pickup date must be in the future (never before the quote is created)
+        if (input.pickupDate < Date.now()) {
+          throw new Error("Pickup date must be in the future");
+        }
+
         const basePriceVal = (input.basePrice ?? input.totalPrice).toFixed(2);
         const totalPriceVal = input.totalPrice.toFixed(2);
 
