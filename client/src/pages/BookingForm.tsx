@@ -208,6 +208,13 @@ export default function BookingForm() {
 
   const [step, setStep] = useState(isPreSelected ? 1 : 0);
 
+  // Scroll to the top whenever the user moves between form steps, so each step
+  // starts at the top of the page instead of wherever the previous step left
+  // the scroll position.
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [step]);
+
   // Form state
   const [serviceType, setServiceTypeRaw] = useState<ServiceType | "">(isPreSelected ? preSelectedService : "");
   const isFreight = serviceType === "freight";
