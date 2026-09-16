@@ -663,7 +663,6 @@ export interface PriceBreakdown {
   roadTollSurcharge: number;
   roadTollDetails: { road: string; amount: number }[];
   supportVanPrice: number;
-  squareSurcharge: number;
   roundingDiscount: number;
   subtotal: number;
   totalPrice: number;
@@ -935,13 +934,10 @@ export async function calculatePrice(params: {
   // Support van
   const supportVanPrice = params.needsSupportVan ? getVal("rate_support_van") : 0;
 
-  // Subtotal before payment surcharge
+  // Subtotal (final price — no payment surcharge applies)
   const subtotal = Math.round((basePrice + distanceCharge + outOfHoursSurcharge + outOfAreaSurcharge + fuelLevySurcharge + additionalStopsSurcharge + publicHolidaySurcharge + petSurcharge + weightSurcharge + airportTollSurcharge + roadTollSurcharge + supportVanPrice) * 100) / 100;
 
-  // Square 2% surcharge
-  const squareSurcharge = params.paymentMethod === "square_postpay" ? Math.round(subtotal * 0.02 * 100) / 100 : 0;
-
-  const rawTotal = Math.round((subtotal + squareSurcharge) * 100) / 100;
+  const rawTotal = subtotal;
 
   // Round down to nearest $5 for all bookings
   const totalPrice = Math.floor(rawTotal / 5) * 5;
@@ -968,7 +964,6 @@ export async function calculatePrice(params: {
     roadTollSurcharge,
     roadTollDetails,
     supportVanPrice,
-    squareSurcharge,
     roundingDiscount,
     subtotal,
     totalPrice,

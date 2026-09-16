@@ -365,7 +365,7 @@ export default function Contact() {
                   <AccordionItem value="pricing-2" className="border-gray-800">
                     <AccordionTrigger className="text-base">What payment methods do you accept?</AccordionTrigger>
                     <AccordionContent className="text-muted-foreground leading-relaxed">
-                      We offer three payment options: <strong className="text-foreground">Pre-pay by Credit Card</strong> — pay securely online via Stripe when you book, <strong className="text-foreground">Pay Driver by Card</strong> — pay the driver directly by credit card on the day (a 2% card processing surcharge applies), or <strong className="text-foreground">Pay Driver by Cash</strong> — pay the driver in cash on the day. Please have the correct amount ready, as the driver is not required to carry change.
+                      We offer three payment options: <strong className="text-foreground">Pre-pay by Credit Card</strong> — pay securely online via Stripe when you book, <strong className="text-foreground">Pay Driver by Card</strong> — pay the driver directly by credit card on the day, or <strong className="text-foreground">Pay Driver by Cash</strong> — pay the driver in cash on the day. Please have the correct amount ready, as the driver is not required to carry change.
                     </AccordionContent>
                   </AccordionItem>
                   <AccordionItem value="pricing-3" className="border-gray-800">

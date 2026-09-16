@@ -57,8 +57,8 @@ export const PAYMENT_METHODS = {
   },
   square_postpay: {
     label: "Pay Driver by Card",
-    description: "Pay the driver directly by credit card on the day. A 2% card processing surcharge applies.",
-    surcharge: 0.02,
+    description: "Pay the driver directly by credit card on the day.",
+    surcharge: 0,
   },
   cash_postpay: {
     label: "Pay Driver by Cash",

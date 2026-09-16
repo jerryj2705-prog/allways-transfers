@@ -50,7 +50,6 @@ export interface BookingLike {
   roadTollDetails?: string | { road: string; amount: number }[] | null;
   supportVanPrice?: string | number | null;
   needsSupportVan?: number | boolean | null;
-  cardSurcharge?: string | number | null;
   roundingDiscount?: string | number | null;
   totalPrice?: string | number | null;
 }
@@ -158,10 +157,6 @@ export function buildPriceBreakdown(booking: BookingLike): PriceBreakdownResult 
   // Support van
   const supportVan = num(booking.supportVanPrice);
   if (supportVan > 0) lines.push({ label: "Support Van", amount: supportVan });
-
-  // Card surcharge (Square 2%)
-  const card = num(booking.cardSurcharge);
-  if (card > 0) lines.push({ label: "Card Surcharge (2%)", amount: card });
 
   // Rounding discount
   const rounding = num(booking.roundingDiscount);

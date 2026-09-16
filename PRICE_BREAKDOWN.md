@@ -27,7 +27,6 @@ for example:
 - Airport tolls
 - Road tolls
 - Support van
-- Card surcharge (2%)
 - Rounding discount
 
 **Only about half of these were actually being stored** with the booking. So the
@@ -37,7 +36,7 @@ the handful that happened to be saved — and those never added up to the total.
 ## What we fixed
 
 1. **We now store every component.** Eight charges that used to be thrown away
-   (distance, out-of-hours, out-of-area, fuel levy, pet, weight, card surcharge
+   (distance, out-of-hours, out-of-area, fuel levy, pet, weight
    and rounding) are now saved with each new booking and quote.
 
 2. **One shared "breakdown builder".** We built a single piece of logic that
@@ -82,7 +81,7 @@ figures still add up. All **new** bookings and quotes show the full itemised lis
 
 - 8 new columns were added to the `bookings` table:
   `distanceCharge`, `outOfHoursSurcharge`, `outOfAreaSurcharge`,
-  `fuelLevySurcharge`, `petSurcharge`, `weightSurcharge`, `cardSurcharge`,
+  `fuelLevySurcharge`, `petSurcharge`, `weightSurcharge`,
   `roundingDiscount` (all `DECIMAL(10,2)`, default `0`).
 - The shared logic lives in `shared/priceBreakdown.ts` (`buildPriceBreakdown`).
 - The database migration was applied to production via

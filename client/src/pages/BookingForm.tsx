@@ -374,7 +374,6 @@ export default function BookingForm() {
     roadTollSurcharge: 0,
     roadTollDetails: [] as { road: string; amount: number }[],
     supportVanPrice: 0,
-    squareSurcharge: 0,
     roundingDiscount: 0,
     subtotal: 0,
     totalPrice: 0,
@@ -597,7 +596,6 @@ export default function BookingForm() {
       fuelLevySurcharge: pricing.fuelLevySurcharge,
       petSurcharge: pricing.petSurcharge,
       weightSurcharge: pricing.weightSurcharge,
-      cardSurcharge: pricing.squareSurcharge,
       roundingDiscount: pricing.roundingDiscount,
       specialRequests: specialRequests || undefined,
       routePreference,
@@ -668,7 +666,6 @@ export default function BookingForm() {
       fuelLevySurcharge: pricing.fuelLevySurcharge,
       petSurcharge: pricing.petSurcharge,
       weightSurcharge: pricing.weightSurcharge,
-      cardSurcharge: pricing.squareSurcharge,
       roundingDiscount: pricing.roundingDiscount,
       specialRequests: specialRequests || undefined,
       routePreference,
@@ -2257,9 +2254,6 @@ export default function BookingForm() {
                     })()}
                     <p className="font-medium">{paymentMethod ? PAYMENT_METHODS[paymentMethod].label : ""}</p>
                   </div>
-                  {paymentMethod === "square_postpay" && (
-                    <p className="text-xs text-amber-400">Includes 2% card processing surcharge</p>
-                  )}
                   {paymentMethod === "cash_postpay" && (
                     <p className="text-xs text-muted-foreground">Please prepare the exact amount</p>
                   )}
@@ -2412,12 +2406,6 @@ export default function BookingForm() {
                       <div className="flex justify-between text-sm">
                         <span>Support Van</span>
                         <span>+${pricing.supportVanPrice.toFixed(2)}</span>
-                      </div>
-                    )}
-                    {pricing.squareSurcharge > 0 && (
-                      <div className="flex justify-between text-sm text-amber-400">
-                        <span>Card Surcharge (2%)</span>
-                        <span>+${pricing.squareSurcharge.toFixed(2)}</span>
                       </div>
                     )}
                     {pricing.roundingDiscount > 0 && (

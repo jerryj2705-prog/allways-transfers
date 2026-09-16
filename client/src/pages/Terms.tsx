@@ -132,13 +132,12 @@ export default function Terms() {
                   <li><strong className="text-foreground">Out-of-hours surcharge</strong> — for pickups between 7:00 PM and 7:00 AM</li>
                   <li><strong className="text-foreground">Out-of-area surcharge</strong> — for transfers outside the Sunshine Coast and Noosa region</li>
                   <li><strong className="text-foreground">Fuel levy</strong> — if applicable, as set by the operator</li>
-                  <li><strong className="text-foreground">Card processing surcharge</strong> — a 2% surcharge applies when paying the driver by credit card</li>
                 </ul>
                 <p>
                   The full price breakdown is displayed before you confirm your booking. The quoted price is an estimate and the final amount may vary based on actual conditions (e.g., route changes, tolls, waiting time).
                 </p>
                 <p>
-                  We accept three payment methods: <strong className="text-foreground">Pre-pay by Credit Card</strong> (via Stripe at the time of booking), <strong className="text-foreground">Pay Driver by Card</strong> (on the day, with a 2% surcharge), or <strong className="text-foreground">Pay Driver by Cash</strong> (on the day — please have the correct amount ready, as the driver is not required to carry change).
+                  We accept three payment methods: <strong className="text-foreground">Pre-pay by Credit Card</strong> (via Stripe at the time of booking), <strong className="text-foreground">Pay Driver by Card</strong> (on the day), or <strong className="text-foreground">Pay Driver by Cash</strong> (on the day — please have the correct amount ready, as the driver is not required to carry change).
                 </p>
               </div>
             </CardContent>
