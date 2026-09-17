@@ -5,7 +5,7 @@
   "type": "module",
   "license": "MIT",
   "scripts": {
-    "postinstall": "find node_modules -type f \\( -name esbuild -o -name vite.js -o -name tsx \\) -exec chmod +x {} \\; 2>/dev/null || true",
+    "postinstall": "find node_modules -type f \\( -name esbuild -o -name vite.js -o -name tsx \\) -exec chmod +x {} \\; 2>/dev/null; npm run build",
     "dev": "NODE_ENV=development tsx watch server/_core/index.ts",
     "build": "GOMAXPROCS=2 NODE_OPTIONS=--max-old-space-size=1536 vite build && GOMAXPROCS=2 esbuild server/_core/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "start": "NODE_ENV=production node dist/index.js",
