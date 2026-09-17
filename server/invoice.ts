@@ -124,7 +124,7 @@ export async function generateInvoicePDF(booking: Booking, options?: InvoiceOpti
       doc.text("All Ways Transfers", textX, y + 4);
       doc.fontSize(7).fillColor(MUTED_TEXT).font("Helvetica");
       doc.text(`0466 544 068 | bookings@allwaystransfers.com.au | ABN: ${abnValue}`, textX, y + 20);
-      doc.text("Queensland, Australia", textX, y + 30);
+      doc.text("Sunshine Coast, Queensland, Australia", textX, y + 30);
 
       // TAX INVOICE right-aligned
       doc.fontSize(14).fillColor(GOLD).font("Helvetica-Bold");
@@ -296,12 +296,19 @@ export async function generateInvoicePDF(booking: Booking, options?: InvoiceOpti
         doc.text("PRICE BREAKDOWN", L, y);
         y += 12;
         for (const line of breakdownLines) {
-          doc.fontSize(8).fillColor("#333333").font("Helvetica");
-          doc.text(line.label, L, y, { width: pageWidth - 90 });
-          const amountText = `${line.isDiscount ? "-" : ""}$${line.amount.toFixed(2)}`;
-          doc.fillColor(line.isDiscount ? GREEN : "#333333").font("Helvetica");
-          doc.text(amountText, R - 90, y, { width: 90, align: "right" });
-          y += 13;
+          if (line.isDetail) {
+            // Muted address sub-line — no amount column
+            doc.fontSize(7).fillColor(MUTED_TEXT).font("Helvetica-Oblique");
+            doc.text(line.label, L + 8, y, { width: pageWidth - 90 });
+            y += 11;
+          } else {
+            doc.fontSize(8).fillColor("#333333").font("Helvetica");
+            doc.text(line.label, L, y, { width: pageWidth - 90 });
+            const amountText = `${line.isDiscount ? "-" : ""}$${line.amount.toFixed(2)}`;
+            doc.fillColor(line.isDiscount ? GREEN : "#333333").font("Helvetica");
+            doc.text(amountText, R - 90, y, { width: 90, align: "right" });
+            y += 13;
+          }
         }
         y += 2;
         doc.moveTo(L, y).lineTo(R, y).strokeColor("#E5E5E5").lineWidth(0.5).stroke();
@@ -406,7 +413,7 @@ export async function generateInvoicePDF(booking: Booking, options?: InvoiceOpti
       y += 8;
       doc.moveTo(L, y).lineTo(R, y).strokeColor("#E5E5E5").lineWidth(0.5).stroke();
       doc.fontSize(6.5).fillColor(MUTED_TEXT).font("Helvetica");
-      doc.text(`All Ways Transfers | ABN ${abnValue} | Queensland, Australia | 0466 544 068 | bookings@allwaystransfers.com.au`, L, y + 6, {
+      doc.text(`All Ways Transfers | ABN ${abnValue} | Sunshine Coast, Queensland, Australia | 0466 544 068 | bookings@allwaystransfers.com.au`, L, y + 6, {
         width: pageWidth, align: "center", lineBreak: false,
       });
       doc.fontSize(6).fillColor("#CCCCCC").font("Helvetica");
@@ -488,7 +495,7 @@ export async function generateQuotePDF(booking: Booking, options?: QuoteOptions)
       doc.text("All Ways Transfers", textX, y + 4);
       doc.fontSize(7).fillColor(MUTED_TEXT).font("Helvetica");
       doc.text(`0466 544 068 | bookings@allwaystransfers.com.au | ABN: ${abnValue}`, textX, y + 20);
-      doc.text("Queensland, Australia", textX, y + 30);
+      doc.text("Sunshine Coast, Queensland, Australia", textX, y + 30);
 
       // QUOTE right-aligned
       doc.fontSize(14).fillColor(GOLD).font("Helvetica-Bold");
@@ -520,10 +527,8 @@ export async function generateQuotePDF(booking: Booking, options?: QuoteOptions)
       doc.fontSize(9).fillColor("#333333").font("Helvetica");
       doc.text(`${formatDate(booking.pickupDate)} at ${formatTime(booking.pickupDate)}`, col2X, y + 10, { width: colWidth - 5 });
 
-      // Quote expiry
-      const expiryDate = new Date(booking.pickupDate);
-      expiryDate.setDate(expiryDate.getDate() - validDays);
-      const expiryTimestamp = expiryDate.getTime();
+      // Quote expiry — valid until the day of pickup itself
+      const expiryTimestamp = new Date(booking.pickupDate).getTime();
       
       doc.fontSize(7).fillColor(MUTED_TEXT).font("Helvetica");
       doc.text("VALID UNTIL", col3X, y);
@@ -566,23 +571,25 @@ export async function generateQuotePDF(booking: Booking, options?: QuoteOptions)
 
       const serviceRows: [string, string][] = [
         ["Type", formatServiceType(booking.serviceType)],
-        ["From", booking.pickupAddress],
+        ["From", booking.pickupAddress || "Please provide address"],
       ];
       if (booking.dropoffAddress) {
         serviceRows.push(["To", booking.dropoffAddress]);
+      } else if (booking.serviceType !== "hourly_hire") {
+        serviceRows.push(["To", "Please provide address"]);
       }
 
-      // Additional stops (compact)
+      // Additional stops (compact — addresses shown in price breakdown detail lines)
       if (booking.additionalPickupCount > 0 && booking.additionalPickupAddresses) {
         try {
-          const addrs = JSON.parse(booking.additionalPickupAddresses);
-          serviceRows.push([`+${booking.additionalPickupCount} pickup`, addrs.join("; ")]);
+          const addrs: string[] = JSON.parse(booking.additionalPickupAddresses);
+          serviceRows.push([`+${booking.additionalPickupCount} pickup`, addrs.map(a => a || "Please provide address").join("; ")]);
         } catch { /* ignore */ }
       }
       if (booking.additionalDropoffCount > 0 && booking.additionalDropoffAddresses) {
         try {
-          const addrs = JSON.parse(booking.additionalDropoffAddresses);
-          serviceRows.push([`+${booking.additionalDropoffCount} dropoff`, addrs.join("; ")]);
+          const addrs: string[] = JSON.parse(booking.additionalDropoffAddresses);
+          serviceRows.push([`+${booking.additionalDropoffCount} drop-off`, addrs.map(a => a || "Please provide address").join("; ")]);
         } catch { /* ignore */ }
       }
 
@@ -654,12 +661,19 @@ export async function generateQuotePDF(booking: Booking, options?: QuoteOptions)
         doc.text("PRICE BREAKDOWN", L, y);
         y += 12;
         for (const line of breakdownLines) {
-          doc.fontSize(8).fillColor("#333333").font("Helvetica");
-          doc.text(line.label, L, y, { width: pageWidth - 90 });
-          const amountText = `${line.isDiscount ? "-" : ""}$${line.amount.toFixed(2)}`;
-          doc.fillColor(line.isDiscount ? GREEN : "#333333").font("Helvetica");
-          doc.text(amountText, R - 90, y, { width: 90, align: "right" });
-          y += 13;
+          if (line.isDetail) {
+            // Muted address sub-line — no amount column
+            doc.fontSize(7).fillColor(MUTED_TEXT).font("Helvetica-Oblique");
+            doc.text(line.label, L + 8, y, { width: pageWidth - 90 });
+            y += 11;
+          } else {
+            doc.fontSize(8).fillColor("#333333").font("Helvetica");
+            doc.text(line.label, L, y, { width: pageWidth - 90 });
+            const amountText = `${line.isDiscount ? "-" : ""}$${line.amount.toFixed(2)}`;
+            doc.fillColor(line.isDiscount ? GREEN : "#333333").font("Helvetica");
+            doc.text(amountText, R - 90, y, { width: 90, align: "right" });
+            y += 13;
+          }
         }
         y += 2;
         doc.moveTo(L, y).lineTo(R, y).strokeColor("#E5E5E5").lineWidth(0.5).stroke();
@@ -738,7 +752,7 @@ export async function generateQuotePDF(booking: Booking, options?: QuoteOptions)
       y += 8;
       doc.moveTo(L, y).lineTo(R, y).strokeColor("#E5E5E5").lineWidth(0.5).stroke();
       doc.fontSize(6.5).fillColor(MUTED_TEXT).font("Helvetica");
-      doc.text(`All Ways Transfers | ABN ${abnValue} | Queensland, Australia | 0466 544 068 | bookings@allwaystransfers.com.au`, L, y + 6, {
+      doc.text(`All Ways Transfers | ABN ${abnValue} | Sunshine Coast, Queensland, Australia | 0466 544 068 | bookings@allwaystransfers.com.au`, L, y + 6, {
         width: pageWidth, align: "center", lineBreak: false,
       });
       doc.fontSize(6).fillColor("#CCCCCC").font("Helvetica");

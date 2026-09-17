@@ -529,14 +529,14 @@ export default function BookingForm() {
     switch (step) {
       case 0: return serviceType !== "";
       case 1: {
-        const baseValid = !!(pickupAddress && pickupSuburb && pickupDate && pickupTime && passengerCount >= (isVanStandalone ? 0 : 1));
-        // Validate additional pickup addresses are filled
-        const pickupAddrsValid = additionalPickupCount === 0 || (
+        // In quote mode street addresses are optional — suburb/landmark is enough
+        const baseValid = !!(pickupSuburb && pickupDate && pickupTime && passengerCount >= (isVanStandalone ? 0 : 1));
+        // Additional stop address fields are always optional in quote mode
+        const pickupAddrsValid = isQuoteMode || additionalPickupCount === 0 || (
           additionalPickupAddresses.length === additionalPickupCount &&
           additionalPickupAddresses.every(a => a.trim().length > 0)
         );
-        // Validate additional dropoff addresses are filled
-        const dropoffAddrsValid = additionalDropoffCount === 0 || (
+        const dropoffAddrsValid = isQuoteMode || additionalDropoffCount === 0 || (
           additionalDropoffAddresses.length === additionalDropoffCount &&
           additionalDropoffAddresses.every(a => a.trim().length > 0)
         );
@@ -544,7 +544,9 @@ export default function BookingForm() {
           const minHrs = parseInt(pricingSettings?.find(s => s.settingKey === "min_hourly_hours")?.settingValue || "3", 10);
           return baseValid && hireHours >= minHrs && pickupAddrsValid && dropoffAddrsValid;
         }
-        return baseValid && !!(dropoffAddress && dropoffSuburb) && pickupAddrsValid && dropoffAddrsValid;
+        // In quote mode dropoff suburb is also enough (no street address required)
+        const dropoffValid = isQuoteMode ? !!dropoffSuburb : !!(dropoffAddress && dropoffSuburb);
+        return baseValid && dropoffValid && pickupAddrsValid && dropoffAddrsValid;
       }
       case 2: return (vehicleSelection === "van" ? !!van : !!suv) && (!isPetFriendly || petDescription.trim().length > 0) && (!isFreight || (freightDescription.trim().length > 0 && freightWeight !== ""));
       case 3: return clientName && clientEmail && clientPhone;
@@ -849,10 +851,12 @@ export default function BookingForm() {
 
               {/* Pickup Address */}
               <div className="space-y-2">
-                <Label htmlFor="pickup" className="text-sm font-medium">Pickup Address</Label>
+                <Label htmlFor="pickup" className="text-sm font-medium">
+                  Pickup Address{isQuoteMode && <span className="text-muted-foreground font-normal"> (optional)</span>}
+                </Label>
                 <Input
                   id="pickup"
-                  placeholder="Enter street address"
+                  placeholder={isQuoteMode ? "Street address (optional)" : "Enter street address"}
                   value={pickupAddress}
                   onChange={(e) => setPickupAddress(e.target.value)}
                   className="h-12"
@@ -877,10 +881,12 @@ export default function BookingForm() {
                   />
 
                   <div className="space-y-2">
-                    <Label htmlFor="dropoff" className="text-sm font-medium">Drop-off Address</Label>
+                    <Label htmlFor="dropoff" className="text-sm font-medium">
+                      Drop-off Address{isQuoteMode && <span className="text-muted-foreground font-normal"> (optional)</span>}
+                    </Label>
                     <Input
                       id="dropoff"
-                      placeholder="Enter street address"
+                      placeholder={isQuoteMode ? "Street address (optional)" : "Enter street address"}
                       value={dropoffAddress}
                       onChange={(e) => setDropoffAddress(e.target.value)}
                       className="h-12"
@@ -1256,9 +1262,11 @@ export default function BookingForm() {
                   <div className="space-y-3 pl-4 border-l-2 border-primary/30">
                     {Array.from({ length: additionalPickupCount }, (_, i) => (
                       <div key={`extra-pickup-${i}`} className="space-y-1">
-                        <Label className="text-xs font-medium text-muted-foreground">Additional Pickup #{i + 1} Address</Label>
+                        <Label className="text-xs font-medium text-muted-foreground">
+                          Additional Pickup #{i + 1} Address{isQuoteMode && <span className="font-normal"> (optional)</span>}
+                        </Label>
                         <Input
-                          placeholder="Enter full address for this pickup"
+                          placeholder={isQuoteMode ? "Address (optional)" : "Enter full address for this pickup"}
                           value={additionalPickupAddresses[i] || ""}
                           onChange={(e) => {
                             const updated = [...additionalPickupAddresses];
@@ -1315,9 +1323,11 @@ export default function BookingForm() {
                   <div className="space-y-3 pl-4 border-l-2 border-amber-400/30">
                     {Array.from({ length: additionalDropoffCount }, (_, i) => (
                       <div key={`extra-dropoff-${i}`} className="space-y-1">
-                        <Label className="text-xs font-medium text-muted-foreground">Additional Drop-off #{i + 1} Address</Label>
+                        <Label className="text-xs font-medium text-muted-foreground">
+                          Additional Drop-off #{i + 1} Address{isQuoteMode && <span className="font-normal"> (optional)</span>}
+                        </Label>
                         <Input
-                          placeholder="Enter full address for this drop-off"
+                          placeholder={isQuoteMode ? "Address (optional)" : "Enter full address for this drop-off"}
                           value={additionalDropoffAddresses[i] || ""}
                           onChange={(e) => {
                             const updated = [...additionalDropoffAddresses];

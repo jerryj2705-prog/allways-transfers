@@ -18,6 +18,7 @@ export interface BreakdownLine {
   label: string;
   amount: number; // always a positive magnitude
   isDiscount?: boolean; // true → shown as a subtraction (e.g. -$5.00)
+  isDetail?: boolean;   // true → address sub-line; shown in muted style, no amount column
 }
 
 export interface PriceBreakdownResult {
@@ -38,6 +39,8 @@ export interface BookingLike {
   additionalStopsSurcharge?: string | number | null;
   additionalPickupCount?: number | null;
   additionalDropoffCount?: number | null;
+  additionalPickupAddresses?: string | null;
+  additionalDropoffAddresses?: string | null;
   publicHolidaySurcharge?: string | number | null;
   publicHolidayName?: string | null;
   petSurcharge?: string | number | null;
@@ -99,14 +102,33 @@ export function buildPriceBreakdown(booking: BookingLike): PriceBreakdownResult 
   const fuel = num(booking.fuelLevySurcharge);
   if (fuel > 0) lines.push({ label: "Fuel Levy", amount: fuel });
 
-  // Additional stops
+  // Additional stops — show surcharge total + one detail line per address
   const stops = num(booking.additionalStopsSurcharge);
   if (stops > 0) {
-    const count = (booking.additionalPickupCount ?? 0) + (booking.additionalDropoffCount ?? 0);
+    const pickupCount = booking.additionalPickupCount ?? 0;
+    const dropoffCount = booking.additionalDropoffCount ?? 0;
+    const count = pickupCount + dropoffCount;
     lines.push({
       label: count > 0 ? `Additional Stops (${count} stop${count !== 1 ? "s" : ""})` : "Additional Stops",
       amount: stops,
     });
+    // Detail lines — zero amount, indented label, one per address
+    if (pickupCount > 0 && booking.additionalPickupAddresses) {
+      try {
+        const addrs: string[] = JSON.parse(booking.additionalPickupAddresses);
+        addrs.forEach((addr, i) => {
+          lines.push({ label: `  ↳ Pickup stop ${i + 1}: ${addr || "Please provide address"}`, amount: 0, isDetail: true });
+        });
+      } catch { /* ignore */ }
+    }
+    if (dropoffCount > 0 && booking.additionalDropoffAddresses) {
+      try {
+        const addrs: string[] = JSON.parse(booking.additionalDropoffAddresses);
+        addrs.forEach((addr, i) => {
+          lines.push({ label: `  ↳ Drop-off stop ${i + 1}: ${addr || "Please provide address"}`, amount: 0, isDetail: true });
+        });
+      } catch { /* ignore */ }
+    }
   }
 
   // Public holiday
