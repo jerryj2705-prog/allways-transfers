@@ -838,13 +838,23 @@ export default function Home() {
                   <p className="text-sm text-muted-foreground">Passengers, limited luggage</p>
                 </div>
               </div>
-              <Button
-                size="lg"
-                onClick={() => setLocation("/book")}
-                className="gold-gradient text-gold-foreground border-0 hover:opacity-90 transition-opacity font-semibold"
-              >
-                Book This Vehicle
-              </Button>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Button
+                  size="lg"
+                  variant="outline"
+                  onClick={() => setLocation("/book?mode=quote")}
+                  className="bg-transparent border-amber-400/40 text-amber-400 hover:bg-amber-400/10 hover:text-amber-300 font-semibold"
+                >
+                  Get a Quote
+                </Button>
+                <Button
+                  size="lg"
+                  onClick={() => setLocation("/book")}
+                  className="gold-gradient text-gold-foreground border-0 hover:opacity-90 transition-opacity font-semibold"
+                >
+                  Book This Vehicle
+                </Button>
+              </div>
             </div>
           </div>
 
@@ -878,13 +888,23 @@ export default function Home() {
                   </p>
                 </div>
               </div>
-              <Button
-                size="lg"
-                onClick={() => setLocation("/book?vehicle=van")}
-                className="gold-gradient text-gold-foreground border-0 hover:opacity-90 transition-opacity font-semibold"
-              >
-                Book Now
-              </Button>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Button
+                  size="lg"
+                  variant="outline"
+                  onClick={() => setLocation("/book?vehicle=van&mode=quote")}
+                  className="bg-transparent border-amber-400/40 text-amber-400 hover:bg-amber-400/10 hover:text-amber-300 font-semibold"
+                >
+                  Get a Quote
+                </Button>
+                <Button
+                  size="lg"
+                  onClick={() => setLocation("/book?vehicle=van")}
+                  className="gold-gradient text-gold-foreground border-0 hover:opacity-90 transition-opacity font-semibold"
+                >
+                  Book Now
+                </Button>
+              </div>
             </div>
             <div className="order-1 lg:order-2 relative rounded-2xl overflow-hidden shadow-xl border border-border/30">
               <img
@@ -995,13 +1015,23 @@ export default function Home() {
                   transfers to Gold Coast, Toowoomba, Bundaberg, and beyond.
                 </p>
               </div>
-              <Button
-                size="lg"
-                onClick={() => setLocation("/book")}
-                className="gold-gradient text-gold-foreground border-0 hover:opacity-90 transition-opacity font-semibold"
-              >
-                Book a Transfer
-              </Button>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Button
+                  size="lg"
+                  variant="outline"
+                  onClick={() => setLocation("/book?mode=quote")}
+                  className="bg-transparent border-amber-400/40 text-amber-400 hover:bg-amber-400/10 hover:text-amber-300 font-semibold"
+                >
+                  Get a Quote
+                </Button>
+                <Button
+                  size="lg"
+                  onClick={() => setLocation("/book")}
+                  className="gold-gradient text-gold-foreground border-0 hover:opacity-90 transition-opacity font-semibold"
+                >
+                  Book a Transfer
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -1022,13 +1052,23 @@ export default function Home() {
                 Prebook your private transfer today. Fixed prices, professional drivers,
                 and luxury comfort across the Sunshine Coast and Brisbane.
               </p>
-              <Button
-                size="lg"
-                onClick={() => setLocation("/book")}
-                className="bg-background text-foreground hover:bg-background/90 text-base px-8 py-6 font-semibold"
-              >
-                Book Your Ride Now
-              </Button>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Button
+                  size="lg"
+                  variant="outline"
+                  onClick={() => setLocation("/book?mode=quote")}
+                  className="bg-transparent border-gold-foreground/30 text-gold-foreground hover:bg-gold-foreground/10 text-base px-8 py-6 font-semibold"
+                >
+                  Get a Quote
+                </Button>
+                <Button
+                  size="lg"
+                  onClick={() => setLocation("/book")}
+                  className="bg-background text-foreground hover:bg-background/90 text-base px-8 py-6 font-semibold"
+                >
+                  Book Your Ride Now
+                </Button>
+              </div>
             </div>
           </div>
         </div>
