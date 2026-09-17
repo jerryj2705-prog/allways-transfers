@@ -108,6 +108,7 @@ function getEstimatedDurationMinutes(booking: CalendarBooking): number {
   }
   switch (booking.serviceType) {
     case "airport_transfer": return 90;
+    case "sunshine_coast_airport_transfer": return 90;
     case "point_to_point": return 60;
     case "hourly_hire": return 180;
     case "special_events": return 240;

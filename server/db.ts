@@ -699,6 +699,7 @@ export async function calculatePrice(params: {
   // Base price for selected service
   const serviceKeyMap: Record<string, string> = {
     airport_transfer: "base_airport_transfer",
+    sunshine_coast_airport_transfer: "base_sunshine_coast_airport_transfer",
     hourly_hire: "base_hourly_hire",
     point_to_point: "base_point_to_point",
     special_events: "base_special_events",

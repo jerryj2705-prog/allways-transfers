@@ -38,7 +38,8 @@ const STATUS_ICONS: Record<string, React.ElementType> = {
 };
 
 const SERVICE_LABELS: Record<string, string> = {
-  airport_transfer: "Airport Transfer",
+  airport_transfer: "Brisbane Airport Transfer",
+  sunshine_coast_airport_transfer: "Sunshine Coast Airport Transfer",
   hourly_hire: "Hourly Hire",
   point_to_point: "Point to Point",
   special_events: "Special Events",

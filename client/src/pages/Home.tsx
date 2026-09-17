@@ -16,6 +16,8 @@ const LOGO_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZ
 const FLEET_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/fleet-kia-carnival_d4324bff.webp";
 const VAN_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/merc-vito-van_7c33cf4f.png";
 const AIRPORT_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/plane-tarmac_12935ebb.png";
+// Placeholder for Sunshine Coast Airport Transfer — swap to the real image (PlaneOnTarmack.png) when provided.
+const SCT_AIRPORT_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/plane-tarmac_12935ebb.png";
 const CHAUFFEUR_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/chauffeur_433d77f4.jpg";
 const WEDDING_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/wedding_92293137.png";
 const P2P_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/private-jet_ee739796.png";
@@ -30,10 +32,17 @@ const AREAS_MAP_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/
 const services = [
   {
     icon: Plane,
-    title: "Airport Transfer",
-    description: "Seamless pickup and drop-off to and from Sunshine Coast and Brisbane airports with flight tracking.",
+    title: "Brisbane Airport Transfer",
+    description: "Seamless door-to-door transfers to and from Brisbane Airport (BNE) with real-time flight tracking.",
     image: AIRPORT_IMG,
     priceKey: "base_airport_transfer",
+  },
+  {
+    icon: Plane,
+    title: "Sunshine Coast Airport Transfer",
+    description: "Convenient transfers to and from Sunshine Coast Airport (MCY) \u2014 your local airport, stress-free.",
+    image: SCT_AIRPORT_IMG,
+    priceKey: "base_sunshine_coast_airport_transfer",
   },
   {
     icon: Clock,
@@ -272,7 +281,8 @@ function TestimonialsSection() {
 
   const serviceLabel = (type: string) => {
     const map: Record<string, string> = {
-      airport_transfer: "Airport Transfer",
+      airport_transfer: "Brisbane Airport Transfer",
+      sunshine_coast_airport_transfer: "Sunshine Coast Airport Transfer",
       hourly_hire: "Hourly Hire",
       point_to_point: "Point to Point",
       special_events: "Special Events",
@@ -717,7 +727,8 @@ export default function Home() {
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {services.map((service) => {
-              const serviceKey = service.title === "Airport Transfer" ? "airport_transfer"
+              const serviceKey = service.title === "Brisbane Airport Transfer" ? "airport_transfer"
+                : service.title === "Sunshine Coast Airport Transfer" ? "sunshine_coast_airport_transfer"
                 : service.title === "Hourly Hire" ? "hourly_hire"
                 : service.title === "Point to Point" ? "point_to_point"
                 : "special_events";

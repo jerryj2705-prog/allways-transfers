@@ -23,6 +23,8 @@ import type { PaymentMethod } from "@shared/types";
 
 const LOGO_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/logo-white_476df209.png";
 const SVC_AIRPORT_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/aircraft-highway_9944f3aa.png";
+// Placeholder for Sunshine Coast Airport Transfer — swap to the real image (PlaneOnTarmack.png) when provided.
+const SVC_SCT_AIRPORT_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/aircraft-highway_9944f3aa.png";
 const SVC_HOURLY_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/lady-in-limo_de251852.png";
 const SVC_P2P_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/roads-spaghetti_814c9a5d.png";
 const SVC_EVENTS_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/crowd-event_baea8a77.jpg";
@@ -30,6 +32,7 @@ const SVC_FREIGHT_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/31051966348642602
 
 const SERVICE_IMAGES: Record<string, string> = {
   airport_transfer: SVC_AIRPORT_IMG,
+  sunshine_coast_airport_transfer: SVC_SCT_AIRPORT_IMG,
   hourly_hire: SVC_HOURLY_IMG,
   point_to_point: SVC_P2P_IMG,
   special_events: SVC_EVENTS_IMG,
@@ -316,6 +319,7 @@ export default function BookingForm() {
 
   const SERVICE_PRICE_KEYS: Record<string, string> = {
     airport_transfer: "base_airport_transfer",
+    sunshine_coast_airport_transfer: "base_sunshine_coast_airport_transfer",
     hourly_hire: "base_hourly_hire",
     point_to_point: "base_point_to_point",
     special_events: "base_special_events",
@@ -900,7 +904,7 @@ export default function BookingForm() {
               )}
 
               {/* Route Preference — always shown for point-to-point, airport transfer, and freight services */}
-              {(serviceType === "point_to_point" || serviceType === "airport_transfer" || serviceType === "freight") ? (
+              {(serviceType === "point_to_point" || serviceType === "airport_transfer" || serviceType === "sunshine_coast_airport_transfer" || serviceType === "freight") ? (
                 <div className="p-4 rounded-lg bg-secondary/50 space-y-3">
                   <div className="flex items-center gap-2">
                     <Navigation className="w-4 h-4 text-primary" />
@@ -2100,7 +2104,7 @@ export default function BookingForm() {
                         <p className="font-medium text-amber-400">Secondary area surcharge applies</p>
                       </div>
                     )}
-                    {(serviceType === "point_to_point" || serviceType === "airport_transfer" || serviceType === "freight") && (
+                    {(serviceType === "point_to_point" || serviceType === "airport_transfer" || serviceType === "sunshine_coast_airport_transfer" || serviceType === "freight") && (
                       <div>
                         <p className="text-muted-foreground">Route</p>
                         <p className={`font-medium flex items-center gap-1 ${

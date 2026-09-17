@@ -19,6 +19,7 @@ const LOGO_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZ
 
 const CATEGORY_ICONS: Record<string, React.ElementType> = {
   base_airport_transfer: Plane,
+  base_sunshine_coast_airport_transfer: Plane,
   base_hourly_hire: Clock,
   base_point_to_point: Route,
   base_special_events: Star,

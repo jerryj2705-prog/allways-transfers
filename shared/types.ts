@@ -10,8 +10,13 @@ export * from "./_core/errors";
 
 export const SERVICE_TYPES = {
   airport_transfer: {
-    label: "Airport Transfer",
-    description: "Reliable pickup and drop-off to and from the airport",
+    label: "Brisbane Airport Transfer",
+    description: "Reliable pickup and drop-off to and from Brisbane Airport (BNE)",
+    icon: "Plane",
+  },
+  sunshine_coast_airport_transfer: {
+    label: "Sunshine Coast Airport Transfer",
+    description: "Seamless pickup and drop-off to and from Sunshine Coast Airport (MCY)",
     icon: "Plane",
   },
   hourly_hire: {

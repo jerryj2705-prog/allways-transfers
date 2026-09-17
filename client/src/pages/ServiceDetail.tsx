@@ -13,7 +13,7 @@ const P2P_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZK
 const WEDDING_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/wedding_92293137.png";
 const FREIGHT_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663486426022/2tTLZKCNzV8jFwxBsLMjpn/freight-van_bff50b19.jpg";
 
-type ServiceKey = "airport_transfer" | "hourly_hire" | "point_to_point" | "special_events" | "freight";
+type ServiceKey = "airport_transfer" | "sunshine_coast_airport_transfer" | "hourly_hire" | "point_to_point" | "special_events" | "freight";
 
 const SERVICE_DATA: Record<ServiceKey, {
   title: string;
@@ -28,32 +28,70 @@ const SERVICE_DATA: Record<ServiceKey, {
   highlights: string[];
 }> = {
   airport_transfer: {
-    title: "Airport Transfer",
-    tagline: "SEAMLESS AIRPORT CONNECTIONS",
+    title: "Brisbane Airport Transfer",
+    tagline: "SEAMLESS BRISBANE AIRPORT CONNECTIONS",
     icon: Plane,
     image: AIRPORT_IMG,
     priceKey: "base_airport_transfer",
-    heroDescription: "Reliable, stress-free pickup and drop-off to and from Sunshine Coast Airport and Brisbane Airport. We track your flight so we're always there when you land.",
+    heroDescription: "Reliable, stress-free pickup and drop-off to and from Brisbane Airport (BNE). We track your flight so we're always there when you land.",
     sections: [
       {
         title: "How It Works",
         icon: Check,
-        content: "Book your transfer online with your flight details. We monitor your flight in real time — if your flight is delayed, we adjust automatically. Your chauffeur will be waiting in the arrivals hall with a name board, ready to assist with your luggage and escort you to your luxury vehicle. For departures, we pick you up from your door with plenty of time to spare.",
+        content: "Book your Brisbane Airport transfer online with your flight details. We monitor your flight in real time — if your flight is delayed, we adjust automatically. Your chauffeur will be waiting in the arrivals hall with a name board, ready to assist with your luggage and escort you to your luxury vehicle. For departures, we pick you up from your door with plenty of time to spare.",
       },
       {
         title: "What's Included",
         icon: Shield,
-        content: "Every airport transfer includes meet-and-greet service, flight tracking, luggage assistance, complimentary bottled water, phone chargers, and a clean, air-conditioned luxury SUV. There are no hidden fees — the price you see is the price you pay, regardless of traffic or delays.",
+        content: "Every Brisbane Airport transfer includes meet-and-greet service, flight tracking, luggage assistance, complimentary bottled water, phone chargers, and a clean, air-conditioned luxury SUV. There are no hidden fees — the price you see is the price you pay, regardless of traffic or delays.",
       },
       {
         title: "Coverage Area",
         icon: MapPin,
-        content: "We service Sunshine Coast Airport (MCY) and Brisbane Airport (BNE) with transfers to and from all Sunshine Coast suburbs, Noosa, Hinterland areas, and Brisbane CBD. Long-distance transfers to the Gold Coast and beyond are also available on request.",
+        content: "We service Brisbane Airport (BNE) — both the domestic and international terminals — with transfers to and from all Sunshine Coast suburbs, Noosa, Hinterland areas, and Brisbane CBD. Long-distance transfers to the Gold Coast and beyond are also available on request.",
       },
       {
         title: "Perfect For",
         icon: Users,
         content: "Business travellers needing a reliable connection, families arriving with children and luggage, holiday-makers heading to Noosa or the Sunshine Coast, and anyone who values a calm, professional start or end to their journey.",
+      },
+    ],
+    highlights: [
+      "Real-time flight tracking",
+      "Meet & greet at arrivals",
+      "Luggage assistance included",
+      "Fixed prices — no surge",
+      "Child seats available",
+      "Pet-friendly on request",
+    ],
+  },
+  sunshine_coast_airport_transfer: {
+    title: "Sunshine Coast Airport Transfer",
+    tagline: "YOUR LOCAL AIRPORT, STRESS-FREE",
+    icon: Plane,
+    image: AIRPORT_IMG,
+    priceKey: "base_sunshine_coast_airport_transfer",
+    heroDescription: "Reliable, on-time transfers to and from Sunshine Coast Airport (MCY). Your local airport — no stress, no hassle, just professional service from your door.",
+    sections: [
+      {
+        title: "How It Works",
+        icon: Check,
+        content: "Book your Sunshine Coast Airport transfer online with your flight details. We monitor your flight in real time — if your flight is delayed, we adjust automatically. Your chauffeur will be waiting to assist with your luggage and escort you to your luxury vehicle. For departures, we pick you up from your door with plenty of time to spare for check-in at MCY.",
+      },
+      {
+        title: "What's Included",
+        icon: Shield,
+        content: "Every Sunshine Coast Airport transfer includes meet-and-greet service, flight tracking, luggage assistance, complimentary bottled water, phone chargers, and a clean, air-conditioned luxury SUV. There are no hidden fees — the price you see is the price you pay, regardless of traffic or delays.",
+      },
+      {
+        title: "Coverage Area",
+        icon: MapPin,
+        content: "We service Sunshine Coast Airport (MCY) at Marcoola with transfers to and from all Sunshine Coast suburbs, Noosa, Maroochydore, Mooloolaba, Caloundra, and the Hinterland. Transfers further afield to Brisbane and the Gold Coast are also available on request.",
+      },
+      {
+        title: "Perfect For",
+        icon: Users,
+        content: "Locals flying out of their nearest airport, business travellers needing a reliable connection, families arriving with children and luggage, and holiday-makers heading to Noosa or the Sunshine Coast beaches.",
       },
     ],
     highlights: [
@@ -221,7 +259,7 @@ const SERVICE_DATA: Record<ServiceKey, {
   },
 };
 
-const VALID_KEYS = new Set<string>(["airport_transfer", "hourly_hire", "point_to_point", "special_events", "freight"]);
+const VALID_KEYS = new Set<string>(["airport_transfer", "sunshine_coast_airport_transfer", "hourly_hire", "point_to_point", "special_events", "freight"]);
 
 export default function ServiceDetail() {
   const params = useParams<{ serviceType: string }>();
