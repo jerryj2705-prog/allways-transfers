@@ -774,7 +774,10 @@ export default function BookingForm() {
                           ? "ring-2 ring-primary shadow-lg"
                           : "hover:shadow-md border-border/50"
                       }`}
-                      onClick={() => setServiceType(key)}
+                      onClick={() => {
+                        setServiceType(key);
+                        setStep(1);
+                      }}
                     >
                       {svcImage && (
                         <div className="relative h-36 overflow-hidden">
