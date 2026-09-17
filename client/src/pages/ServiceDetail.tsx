@@ -317,6 +317,13 @@ export default function ServiceDetail() {
               Back to Home
             </button>
             <Button
+              variant="outline"
+              onClick={() => navigate(`/book?service=${serviceKey}&mode=quote`)}
+              className="bg-transparent border-amber-400/40 text-amber-400 hover:bg-amber-400/10 hover:text-amber-300"
+            >
+              Get a Quote
+            </Button>
+            <Button
               onClick={() => navigate(`/book?service=${serviceKey}`)}
               className="gold-gradient text-gold-foreground border-0 hover:opacity-90"
             >
@@ -346,7 +353,14 @@ export default function ServiceDetail() {
                   <a href="/terms" onClick={() => setMobileMenuOpen(false)} className="px-3 py-2.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-secondary/50 transition-colors">Terms</a>
                   <a href="/my-bookings" onClick={() => setMobileMenuOpen(false)} className="px-3 py-2.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-secondary/50 transition-colors">My Bookings</a>
                 </nav>
-                <div className="p-4 border-t border-border/50">
+                <div className="p-4 border-t border-border/50 space-y-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => { setMobileMenuOpen(false); navigate(`/book?service=${serviceKey}&mode=quote`); }}
+                    className="w-full bg-transparent border-amber-400/40 text-amber-400 hover:bg-amber-400/10 hover:text-amber-300"
+                  >
+                    Get a Quote
+                  </Button>
                   <Button
                     onClick={() => { setMobileMenuOpen(false); navigate(`/book?service=${serviceKey}`); }}
                     className="w-full gold-gradient text-gold-foreground border-0 hover:opacity-90"
@@ -455,6 +469,13 @@ export default function ServiceDetail() {
             >
               <ArrowLeft className="w-4 h-4" />
               Go Back
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => navigate(`/book?service=${serviceKey}&mode=quote`)}
+              className="gap-2 bg-transparent border-amber-400/40 text-amber-400 hover:bg-amber-400/10 hover:text-amber-300 px-8 py-6 text-base font-semibold"
+            >
+              Get a Quote
             </Button>
             <Button
               onClick={() => navigate(`/book?service=${serviceKey}`)}
