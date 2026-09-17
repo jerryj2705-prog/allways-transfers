@@ -725,7 +725,7 @@ export default function Home() {
               we provide the perfect transport solution across the Sunshine Coast and Brisbane.
             </p>
           </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             {services.map((service) => {
               const serviceKey = service.title === "Brisbane Airport Transfer" ? "airport_transfer"
                 : service.title === "Sunshine Coast Airport Transfer" ? "sunshine_coast_airport_transfer"
@@ -739,7 +739,7 @@ export default function Home() {
                 onClick={() => setLocation(`/services/${serviceKey}`)}
               >
                 {service.image && (
-                  <div className="relative h-40 overflow-hidden">
+                  <div className="relative h-36 overflow-hidden">
                     <img
                       src={service.image}
                       alt={service.title}
@@ -748,12 +748,12 @@ export default function Home() {
                     <div className="absolute inset-0 bg-gradient-to-t from-card to-transparent" />
                   </div>
                 )}
-                <CardContent className="p-6 space-y-4">
-                  <div className="w-12 h-12 rounded-lg gold-gradient flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <service.icon className="w-6 h-6 text-gold-foreground" />
+                <CardContent className="p-4 space-y-3">
+                  <div className="w-10 h-10 rounded-lg gold-gradient flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <service.icon className="w-5 h-5 text-gold-foreground" />
                   </div>
-                  <h3 className="font-heading text-lg text-card-foreground">{service.title}</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
+                  <h3 className="font-heading text-base text-card-foreground">{service.title}</h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
                     {service.description}
                   </p>
                   {(service as any).minHoursKey && (() => {
