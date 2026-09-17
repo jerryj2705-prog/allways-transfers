@@ -681,7 +681,7 @@ export default function Home() {
                 Personalised
                 <span className="gold-text block mt-2">Luxury</span>
               </h1>
-              <p style={{ fontFamily: "'Dancing Script', cursive" }} className="text-3xl md:text-4xl text-gray-400 leading-tight">
+              <p style={{ fontFamily: "'Dancing Script', cursive" }} className="text-4xl md:text-5xl lg:text-6xl text-gray-400 leading-tight tracking-wide">
                 Exceptional Service
               </p>
               <p className="text-lg md:text-xl text-white/70 max-w-lg leading-relaxed">
