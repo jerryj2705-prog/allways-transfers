@@ -681,12 +681,23 @@ export default function Home() {
                 Personalised
                 <span className="gold-text block mt-2">Luxury</span>
               </h1>
+              <p style={{ fontFamily: "'Dancing Script', cursive" }} className="text-3xl md:text-4xl text-gray-400 leading-tight">
+                Exceptional Service
+              </p>
               <p className="text-lg md:text-xl text-white/70 max-w-lg leading-relaxed">
                 24/7* prebooked private transfers across the Sunshine Coast and Brisbane.
                 Fixed prices, luxury vehicles, child seats, and pet-friendly options.
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-4">
+              <Button
+                size="lg"
+                variant="outline"
+                onClick={() => setLocation("/book?mode=quote")}
+                className="text-base px-8 py-6 border-amber-400/50 text-amber-400 hover:border-amber-400 hover:bg-amber-400/10 transition-colors bg-transparent font-semibold"
+              >
+                Get a Quote
+              </Button>
               <Button
                 size="lg"
                 onClick={() => setLocation("/book")}
