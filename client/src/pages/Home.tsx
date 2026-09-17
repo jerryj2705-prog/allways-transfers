@@ -35,6 +35,7 @@ const services = [
     description: "Seamless door-to-door transfers to and from Brisbane Airport (BNE) with real-time flight tracking.",
     image: AIRPORT_IMG,
     priceKey: "base_airport_transfer",
+    startingPriceKey: "starting_price_airport",
   },
   {
     icon: Plane,
@@ -42,6 +43,7 @@ const services = [
     description: "Convenient transfers to and from Sunshine Coast Airport (MCY) \u2014 your local airport, stress-free.",
     image: SCT_AIRPORT_IMG,
     priceKey: "base_sunshine_coast_airport_transfer",
+    startingPriceKey: "starting_price_sunshine_coast",
   },
   {
     icon: Clock,
@@ -51,6 +53,7 @@ const services = [
     image: CHAUFFEUR_IMG,
     priceKey: "base_hourly_hire",
     priceLabel: "per hour",
+    startingPriceKey: "starting_price_hourly",
   },
   {
     icon: MapPin,
@@ -58,6 +61,7 @@ const services = [
     description: "Direct, comfortable transfers between any two locations \u2014 including long-distance rides.",
     image: P2P_IMG,
     priceKey: "base_point_to_point",
+    startingPriceKey: "starting_price_point_to_point",
   },
   {
     icon: Star,
@@ -65,6 +69,7 @@ const services = [
     description: "Weddings, corporate events, funerals, and other special occasions with impeccable service.",
     image: WEDDING_IMG,
     priceKey: "base_special_events",
+    startingPriceKey: "starting_price_special_events",
   },
 ];
 
@@ -755,6 +760,14 @@ export default function Home() {
                   <p className="text-xs text-muted-foreground leading-relaxed">
                     {service.description}
                   </p>
+                  {(service as any).startingPriceKey && (() => {
+                    const price = getBasePrice((service as any).startingPriceKey);
+                    return price ? (
+                      <p className="text-sm font-semibold text-primary">
+                        From ${price}{(service as any).priceLabel ? ` ${(service as any).priceLabel}` : ""}
+                      </p>
+                    ) : null;
+                  })()}
                   {(service as any).minHoursKey && (() => {
                     const minSetting = pricingSettings?.find(s => s.settingKey === (service as any).minHoursKey);
                     const minHrs = minSetting ? parseInt(minSetting.settingValue, 10) : null;
