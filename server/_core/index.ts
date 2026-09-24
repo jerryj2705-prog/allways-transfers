@@ -56,18 +56,32 @@ async function startServer() {
     debugLog(`[Webhook] Incoming webhook request. Content-Type: ${req.headers["content-type"]}, Body type: ${typeof req.body}, Body is Buffer: ${Buffer.isBuffer(req.body)}, Body length: ${req.body?.length || 0}`);
     debugLog(`[Webhook] Headers: stripe-signature=${req.headers["stripe-signature"] ? "present" : "MISSING"}, webhook-id=${req.headers["webhook-id"] ? "present" : "absent"}, webhook-signature=${req.headers["webhook-signature"] ? "present" : "absent"}`);
     const signature = req.headers["stripe-signature"] as string;
+    let event;
     try {
-      const event = constructWebhookEvent(req.body, signature);
+      event = constructWebhookEvent(req.body, signature);
+    } catch (err: any) {
+      // Signature verification failed — respond 400 so Stripe knows it was rejected.
+      console.error("[Webhook] Signature verification failed:", err.message);
+      return res.status(400).send(`Webhook Error: ${err.message}`);
+    }
 
-      // Handle test events
-      if (event.id.startsWith("evt_test_")) {
-        console.log("[Webhook] Test event detected, returning verification response");
-        return res.json({ verified: true });
-      }
+    // Handle test events
+    if (event.id.startsWith("evt_test_")) {
+      console.log("[Webhook] Test event detected, returning verification response");
+      return res.json({ verified: true });
+    }
 
-      console.log(`[Webhook] Received event: ${event.type} (${event.id})`);
+    // Acknowledge receipt immediately so Stripe never times out while we do the
+    // heavy work (quote conversion, PDF generation, emails). Stripe only needs a
+    // fast 2xx to consider delivery successful; the actual processing runs after.
+    res.json({ received: true });
 
-      switch (event.type) {
+    // Process the event asynchronously with full error isolation.
+    void (async () => {
+      try {
+        console.log(`[Webhook] Received event: ${event.type} (${event.id})`);
+
+        switch (event.type) {
         case "checkout.session.completed": {
           const session = event.data.object as any;
           const bookingId = session.metadata?.booking_id;
@@ -218,13 +232,13 @@ async function startServer() {
         }
         default:
           console.log(`[Webhook] Unhandled event type: ${event.type}`);
+        }
+      } catch (err: any) {
+        // Processing failed after we already acknowledged Stripe. Log it so it can
+        // be investigated/retried manually; Stripe still sees a successful delivery.
+        console.error("[Webhook] Async processing error:", err.message);
       }
-
-      res.json({ received: true });
-    } catch (err: any) {
-      console.error("[Webhook] Error:", err.message);
-      res.status(400).send(`Webhook Error: ${err.message}`);
-    }
+    })();
   });
 
   // Configure body parser with larger size limit for file uploads
