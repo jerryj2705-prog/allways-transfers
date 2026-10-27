@@ -459,6 +459,9 @@ export async function getBookingByStripeSession(stripeSessionId: string) {
 }
 
 export async function updateBookingDetails(id: number, data: {
+  clientName?: string;
+  clientEmail?: string;
+  clientPhone?: string;
   pickupAddress?: string;
   dropoffAddress?: string;
   pickupDate?: number;
@@ -489,6 +492,9 @@ export async function updateBookingDetails(id: number, data: {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const updateData: Record<string, unknown> = {};
+  if (data.clientName !== undefined) updateData.clientName = data.clientName;
+  if (data.clientEmail !== undefined) updateData.clientEmail = data.clientEmail;
+  if (data.clientPhone !== undefined) updateData.clientPhone = data.clientPhone;
   if (data.pickupAddress !== undefined) updateData.pickupAddress = data.pickupAddress;
   if (data.dropoffAddress !== undefined) updateData.dropoffAddress = data.dropoffAddress;
   if (data.pickupDate !== undefined) updateData.pickupDate = data.pickupDate;

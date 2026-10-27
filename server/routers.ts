@@ -1130,6 +1130,9 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
     adminModify: adminProcedure
       .input(z.object({
         bookingId: z.number(),
+        clientName: z.string().trim().min(1).optional(),
+        clientEmail: z.string().trim().email().optional(),
+        clientPhone: z.string().trim().min(1).optional(),
         pickupAddress: z.string().optional(),
         dropoffAddress: z.string().nullable().optional(),
         pickupDate: z.number().optional(),
@@ -1159,12 +1162,22 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
         const booking = await getBookingById(input.bookingId);
         if (!booking) throw new Error("Booking not found");
 
-        // If changing pickup date, must be in the future
-        if (input.pickupDate && input.pickupDate < Date.now()) {
+        // If changing pickup date, must be in the future (unchanged dates are
+        // allowed so admins can still edit client details on past bookings)
+        if (input.pickupDate && input.pickupDate !== booking.pickupDate && input.pickupDate < Date.now()) {
           throw new Error("New pickup date must be in the future");
         }
 
         const changes: string[] = [];
+        if (input.clientName && input.clientName !== booking.clientName) {
+          changes.push(`Client Name: ${booking.clientName} \u2192 ${input.clientName}`);
+        }
+        if (input.clientEmail && input.clientEmail !== booking.clientEmail) {
+          changes.push(`Client Email: ${booking.clientEmail} \u2192 ${input.clientEmail}`);
+        }
+        if (input.clientPhone && input.clientPhone !== booking.clientPhone) {
+          changes.push(`Client Phone: ${booking.clientPhone} \u2192 ${input.clientPhone}`);
+        }
         if (input.pickupAddress && input.pickupAddress !== booking.pickupAddress) {
           changes.push(`Pickup: ${booking.pickupAddress} \u2192 ${input.pickupAddress}`);
         }
@@ -1251,6 +1264,9 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
         const fx = (v: number | undefined) => (v !== undefined ? v.toFixed(2) : undefined);
 
         const updated = await updateBookingDetails(input.bookingId, {
+          clientName: input.clientName,
+          clientEmail: input.clientEmail,
+          clientPhone: input.clientPhone,
           pickupAddress: input.pickupAddress,
           dropoffAddress: input.dropoffAddress ?? undefined,
           pickupDate: input.pickupDate,

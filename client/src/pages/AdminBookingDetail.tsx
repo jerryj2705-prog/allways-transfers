@@ -88,6 +88,9 @@ export default function AdminBookingDetail() {
   const [convertPaymentMethod, setConvertPaymentMethod] = useState<"stripe_prepay" | "square_postpay" | "cash_postpay">("cash_postpay");
 
   // Edit form state
+  const [editClientName, setEditClientName] = useState("");
+  const [editClientEmail, setEditClientEmail] = useState("");
+  const [editClientPhone, setEditClientPhone] = useState("");
   const [editPickupAddress, setEditPickupAddress] = useState("");
   const [editDropoffAddress, setEditDropoffAddress] = useState("");
   const [editPickupDate, setEditPickupDate] = useState("");
@@ -211,6 +214,9 @@ export default function AdminBookingDetail() {
   // Populate edit form when booking loads or dialog opens
   useEffect(() => {
     if (booking && editOpen) {
+      setEditClientName(booking.clientName ?? "");
+      setEditClientEmail(booking.clientEmail ?? "");
+      setEditClientPhone(booking.clientPhone ?? "");
       setEditPickupAddress(booking.pickupAddress);
       setEditDropoffAddress(booking.dropoffAddress ?? "");
       setEditPickupDate(toLocalDateTimeValue(booking.pickupDate));
@@ -296,6 +302,18 @@ export default function AdminBookingDetail() {
   };
 
   const handleEditSave = () => {
+    if (!editClientName.trim()) {
+      toast.error("Client name is required");
+      return;
+    }
+    if (!editClientEmail.trim()) {
+      toast.error("Client email is required");
+      return;
+    }
+    if (!editClientPhone.trim()) {
+      toast.error("Client phone is required");
+      return;
+    }
     if (!editPickupAddress.trim()) {
       toast.error("Pickup address is required");
       return;
@@ -315,6 +333,9 @@ export default function AdminBookingDetail() {
 
     adminModify.mutate({
       bookingId,
+      clientName: editClientName.trim(),
+      clientEmail: editClientEmail.trim(),
+      clientPhone: editClientPhone.trim(),
       pickupAddress: editPickupAddress.trim(),
       dropoffAddress: editDropoffAddress.trim() || null,
       pickupDate: pickupTimestamp,
@@ -932,15 +953,53 @@ export default function AdminBookingDetail() {
 
       {/* Edit Booking Dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Booking Details</DialogTitle>
             <DialogDescription>
-              Modify the trip details for booking {booking.referenceNumber}. Changes will be saved immediately.
+              Modify the client and trip details for booking {booking.referenceNumber}. Changes will be saved immediately.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-2">
+            <div className="space-y-4">
+              <p className="text-sm font-semibold">Client Details</p>
+              <div className="space-y-2">
+                <Label htmlFor="edit-client-name">Client Name</Label>
+                <Input
+                  id="edit-client-name"
+                  value={editClientName}
+                  onChange={(e) => setEditClientName(e.target.value)}
+                  placeholder="Full name"
+                />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-client-email">Email</Label>
+                  <Input
+                    id="edit-client-email"
+                    type="email"
+                    value={editClientEmail}
+                    onChange={(e) => setEditClientEmail(e.target.value)}
+                    placeholder="name@example.com"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-client-phone">Phone</Label>
+                  <Input
+                    id="edit-client-phone"
+                    type="tel"
+                    value={editClientPhone}
+                    onChange={(e) => setEditClientPhone(e.target.value)}
+                    placeholder="04xx xxx xxx"
+                  />
+                </div>
+              </div>
+              <div className="border-t pt-2">
+                <p className="text-sm font-semibold">Trip Details</p>
+              </div>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="edit-pickup-date">Pickup Date & Time (AEST)</Label>
               <Input
