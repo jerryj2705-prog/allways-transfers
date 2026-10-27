@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -47,6 +48,29 @@ function fromLocalDateTimeValue(value: string): number {
   return d.getTime() - 10 * 60 * 60 * 1000;
 }
 
+// Every editable price component. Each maps to a decimal column on the booking.
+// `isDiscount` components are subtracted from the calculated total.
+const PRICE_COMPONENTS: { key: string; label: string; isDiscount?: boolean }[] = [
+  { key: "basePrice", label: "Base Price" },
+  { key: "distanceCharge", label: "Distance Charge" },
+  { key: "outOfHoursSurcharge", label: "Out-of-Hours Surcharge" },
+  { key: "outOfAreaSurcharge", label: "Out-of-Area Surcharge" },
+  { key: "fuelLevySurcharge", label: "Fuel Levy" },
+  { key: "additionalStopsSurcharge", label: "Additional Stops" },
+  { key: "publicHolidaySurcharge", label: "Public Holiday Surcharge" },
+  { key: "petSurcharge", label: "Pet Surcharge" },
+  { key: "weightSurcharge", label: "Weight Surcharge" },
+  { key: "airportTollSurcharge", label: "Airport Tolls" },
+  { key: "roadTollSurcharge", label: "Road Tolls" },
+  { key: "supportVanPrice", label: "Support Van" },
+  { key: "roundingDiscount", label: "Rounding Discount", isDiscount: true },
+];
+
+function pcNum(v: string | undefined): number {
+  const n = parseFloat(v ?? "");
+  return Number.isFinite(n) ? n : 0;
+}
+
 export default function AdminBookingDetail() {
   const params = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
@@ -74,6 +98,12 @@ export default function AdminBookingDetail() {
   const [editPaymentMethod, setEditPaymentMethod] = useState<string>("cash_postpay");
   const [editSpecialRequests, setEditSpecialRequests] = useState("");
   const [editTotalPrice, setEditTotalPrice] = useState<string>("");
+
+  // Edit Price dialog state
+  const [priceEditOpen, setPriceEditOpen] = useState(false);
+  const [priceValues, setPriceValues] = useState<Record<string, string>>({});
+  const [useCustomTotal, setUseCustomTotal] = useState(false);
+  const [customTotal, setCustomTotal] = useState<string>("");
 
   const utils = trpc.useUtils();
 
@@ -194,6 +224,28 @@ export default function AdminBookingDetail() {
     }
   }, [booking, editOpen]);
 
+  // Populate the Edit Price form when the dialog opens
+  useEffect(() => {
+    if (booking && priceEditOpen) {
+      const vals: Record<string, string> = {};
+      for (const c of PRICE_COMPONENTS) {
+        const raw = (booking as any)[c.key];
+        vals[c.key] = raw != null ? parseFloat(raw).toFixed(2) : "0.00";
+      }
+      setPriceValues(vals);
+      // Determine whether the stored total matches the component sum.
+      const sum =
+        PRICE_COMPONENTS.reduce(
+          (s, c) => s + (c.isDiscount ? -pcNum(vals[c.key]) : pcNum(vals[c.key])),
+          0
+        );
+      const storedTotal = booking.totalPrice != null ? parseFloat(booking.totalPrice) : 0;
+      const matches = Math.abs(Math.round((sum - storedTotal) * 100) / 100) < 0.01;
+      setUseCustomTotal(!matches);
+      setCustomTotal(storedTotal.toFixed(2));
+    }
+  }, [booking, priceEditOpen]);
+
   if (authLoading || isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -279,6 +331,42 @@ export default function AdminBookingDetail() {
       // total is shown as a reconciliation ("Price Adjustment" / "Discount")
       // line by buildPriceBreakdown().
     });
+  };
+
+  // Live calculated total from the Edit Price form values
+  const calculatedPriceTotal = PRICE_COMPONENTS.reduce(
+    (s, c) => s + (c.isDiscount ? -pcNum(priceValues[c.key]) : pcNum(priceValues[c.key])),
+    0
+  );
+
+  const handlePriceSave = () => {
+    // Validate each component
+    const payload: Record<string, number> = {};
+    for (const c of PRICE_COMPONENTS) {
+      const n = parseFloat(priceValues[c.key] ?? "");
+      if (Number.isNaN(n) || n < 0) {
+        toast.error(`Please enter a valid amount for ${c.label}`);
+        return;
+      }
+      payload[c.key] = n;
+    }
+
+    // Determine the total to store
+    let total = calculatedPriceTotal;
+    if (useCustomTotal) {
+      const t = parseFloat(customTotal);
+      if (Number.isNaN(t) || t < 0) {
+        toast.error("Please enter a valid total price");
+        return;
+      }
+      total = t;
+    }
+
+    adminModify.mutate({
+      bookingId,
+      ...payload,
+      totalPrice: Math.round(total * 100) / 100,
+    } as any);
   };
 
   return (
@@ -619,7 +707,18 @@ export default function AdminBookingDetail() {
             {/* Pricing */}
             <Card className="border-border/50">
               <CardContent className="p-6 space-y-3">
-                <p className="text-xs font-medium tracking-widest uppercase text-primary">Pricing</p>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-medium tracking-widest uppercase text-primary">Pricing</p>
+                  {canEdit && (
+                    <button
+                      onClick={() => setPriceEditOpen(true)}
+                      className="text-xs text-primary hover:text-primary/80 flex items-center gap-1 transition-colors"
+                    >
+                      <Pencil className="w-3 h-3" />
+                      Edit Price
+                    </button>
+                  )}
+                </div>
                 <div className="space-y-2 text-sm">
                   {buildPriceBreakdown(booking).lines.map((line, idx) => (
                     <div
@@ -993,6 +1092,98 @@ export default function AdminBookingDetail() {
               className="gold-gradient text-gold-foreground border-0 hover:opacity-90"
             >
               {adminModify.isPending ? "Saving..." : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Price Dialog */}
+      <Dialog open={priceEditOpen} onOpenChange={setPriceEditOpen}>
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Price</DialogTitle>
+            <DialogDescription>
+              Adjust any price component for {booking.status === "quote" ? "quote" : "booking"} {booking.referenceNumber}.
+              Edit these before sending the {booking.status === "quote" ? "quote" : "booking"} to the client — the changes flow
+              through to the breakdown, the quote/invoice PDF and the amount charged.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2">
+            {PRICE_COMPONENTS.map((c) => (
+              <div key={c.key} className="flex items-center justify-between gap-4">
+                <Label htmlFor={`price-${c.key}`} className="text-sm">
+                  {c.label}
+                  {c.isDiscount && <span className="text-muted-foreground"> (subtracted)</span>}
+                </Label>
+                <div className="relative w-36 shrink-0">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                  <Input
+                    id={`price-${c.key}`}
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={priceValues[c.key] ?? ""}
+                    onChange={(e) => setPriceValues((prev) => ({ ...prev, [c.key]: e.target.value }))}
+                    className="pl-7"
+                  />
+                </div>
+              </div>
+            ))}
+
+            <div className="flex items-center justify-between border-t border-border/50 pt-3 font-medium">
+              <span>Calculated total</span>
+              <span className="gold-text">${calculatedPriceTotal.toFixed(2)}</span>
+            </div>
+
+            <div className="flex items-center gap-2 pt-1">
+              <Checkbox
+                id="use-custom-total"
+                checked={useCustomTotal}
+                onCheckedChange={(v) => {
+                  const on = v === true;
+                  setUseCustomTotal(on);
+                  if (!on) setCustomTotal(calculatedPriceTotal.toFixed(2));
+                }}
+              />
+              <Label htmlFor="use-custom-total" className="text-sm cursor-pointer">
+                Use a custom total (negotiated price)
+              </Label>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="price-total">Total Price (AUD)</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                <Input
+                  id="price-total"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  disabled={!useCustomTotal}
+                  value={useCustomTotal ? customTotal : calculatedPriceTotal.toFixed(2)}
+                  onChange={(e) => setCustomTotal(e.target.value)}
+                  className="pl-7"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {useCustomTotal
+                  ? "Any difference from the calculated total is shown as a Price Adjustment / Discount line on the breakdown and PDF."
+                  : "The total follows the sum of the components above. Tick the box to enter a custom negotiated total."}
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPriceEditOpen(false)} className="bg-transparent">
+              Cancel
+            </Button>
+            <Button
+              onClick={handlePriceSave}
+              disabled={adminModify.isPending}
+              className="gold-gradient text-gold-foreground border-0 hover:opacity-90"
+            >
+              {adminModify.isPending ? "Saving..." : "Save Price"}
             </Button>
           </DialogFooter>
         </DialogContent>

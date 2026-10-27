@@ -1142,6 +1142,18 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
         estimatedDuration: z.number().min(15).max(1440).optional(),
         totalPrice: z.number().min(0).max(1000000).optional(),
         basePrice: z.number().min(0).max(1000000).optional(),
+        distanceCharge: z.number().min(0).max(1000000).optional(),
+        outOfHoursSurcharge: z.number().min(0).max(1000000).optional(),
+        outOfAreaSurcharge: z.number().min(0).max(1000000).optional(),
+        fuelLevySurcharge: z.number().min(0).max(1000000).optional(),
+        additionalStopsSurcharge: z.number().min(0).max(1000000).optional(),
+        publicHolidaySurcharge: z.number().min(0).max(1000000).optional(),
+        petSurcharge: z.number().min(0).max(1000000).optional(),
+        weightSurcharge: z.number().min(0).max(1000000).optional(),
+        airportTollSurcharge: z.number().min(0).max(1000000).optional(),
+        roadTollSurcharge: z.number().min(0).max(1000000).optional(),
+        supportVanPrice: z.number().min(0).max(1000000).optional(),
+        roundingDiscount: z.number().min(0).max(1000000).optional(),
       }))
       .mutation(async ({ input }) => {
         const booking = await getBookingById(input.bookingId);
@@ -1193,9 +1205,50 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
           changes.push(`Base Price: $${parseFloat(booking.basePrice ?? "0").toFixed(2)} \u2192 $${input.basePrice.toFixed(2)}`);
         }
 
+        // Audit entries for every other editable price component.
+        const PRICE_COMPONENT_LABELS: { key: keyof typeof input; label: string }[] = [
+          { key: "distanceCharge", label: "Distance Charge" },
+          { key: "outOfHoursSurcharge", label: "Out-of-Hours Surcharge" },
+          { key: "outOfAreaSurcharge", label: "Out-of-Area Surcharge" },
+          { key: "fuelLevySurcharge", label: "Fuel Levy" },
+          { key: "additionalStopsSurcharge", label: "Additional Stops" },
+          { key: "publicHolidaySurcharge", label: "Public Holiday Surcharge" },
+          { key: "petSurcharge", label: "Pet Surcharge" },
+          { key: "weightSurcharge", label: "Weight Surcharge" },
+          { key: "airportTollSurcharge", label: "Airport Tolls" },
+          { key: "roadTollSurcharge", label: "Road Tolls" },
+          { key: "supportVanPrice", label: "Support Van" },
+          { key: "roundingDiscount", label: "Rounding Discount" },
+        ];
+        for (const { key, label } of PRICE_COMPONENT_LABELS) {
+          const val = input[key] as number | undefined;
+          if (val === undefined) continue;
+          const oldVal = parseFloat((booking as any)[key] ?? "0").toFixed(2);
+          if (val.toFixed(2) !== oldVal) {
+            changes.push(`${label}: $${oldVal} \u2192 $${val.toFixed(2)}`);
+          }
+        }
+
         if (changes.length === 0) {
           return booking;
         }
+
+        // GOTCHA: buildPriceBreakdown shows the itemised airportTollDetails /
+        // roadTollDetails JSON amounts instead of the surcharge total. When the
+        // admin edits a toll total, clear the matching details JSON so the edited
+        // total is what displays everywhere.
+        const airportTollDetails =
+          input.airportTollSurcharge !== undefined &&
+          input.airportTollSurcharge.toFixed(2) !== parseFloat(booking.airportTollSurcharge ?? "0").toFixed(2)
+            ? null
+            : undefined;
+        const roadTollDetails =
+          input.roadTollSurcharge !== undefined &&
+          input.roadTollSurcharge.toFixed(2) !== parseFloat(booking.roadTollSurcharge ?? "0").toFixed(2)
+            ? null
+            : undefined;
+
+        const fx = (v: number | undefined) => (v !== undefined ? v.toFixed(2) : undefined);
 
         const updated = await updateBookingDetails(input.bookingId, {
           pickupAddress: input.pickupAddress,
@@ -1208,8 +1261,22 @@ paymentMethod: z.enum(["stripe_prepay", "square_postpay", "cash_postpay", "direc
           paymentMethod: input.paymentMethod,
           specialRequests: input.specialRequests,
           estimatedDuration: input.estimatedDuration,
-          basePrice: input.basePrice !== undefined ? input.basePrice.toFixed(2) : undefined,
-          totalPrice: input.totalPrice !== undefined ? input.totalPrice.toFixed(2) : undefined,
+          basePrice: fx(input.basePrice),
+          distanceCharge: fx(input.distanceCharge),
+          outOfHoursSurcharge: fx(input.outOfHoursSurcharge),
+          outOfAreaSurcharge: fx(input.outOfAreaSurcharge),
+          fuelLevySurcharge: fx(input.fuelLevySurcharge),
+          additionalStopsSurcharge: fx(input.additionalStopsSurcharge),
+          publicHolidaySurcharge: fx(input.publicHolidaySurcharge),
+          petSurcharge: fx(input.petSurcharge),
+          weightSurcharge: fx(input.weightSurcharge),
+          airportTollSurcharge: fx(input.airportTollSurcharge),
+          roadTollSurcharge: fx(input.roadTollSurcharge),
+          supportVanPrice: fx(input.supportVanPrice),
+          roundingDiscount: fx(input.roundingDiscount),
+          airportTollDetails,
+          roadTollDetails,
+          totalPrice: fx(input.totalPrice),
         });
 
         return updated;
