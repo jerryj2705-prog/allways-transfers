@@ -52,6 +52,8 @@ const PAYMENT_ICONS: Record<PaymentMethod, React.ElementType> = {
   direct_deposit: Building2,
 };
 
+const PREFERRED_PAYMENT_KEYS = new Set<PaymentMethod>(["cash_postpay", "square_postpay"]);
+
 const STEPS = [
   "Service Type",
   "Trip Details",
@@ -1961,12 +1963,15 @@ export default function BookingForm() {
                   const Icon = PAYMENT_ICONS[key];
                   const selected = paymentMethod === key;
 
+                  const isPreferred = PREFERRED_PAYMENT_KEYS.has(key);
                   return (
                     <div key={key}>
                       <Card
                         className={`cursor-pointer transition-all duration-200 ${
                           selected
                             ? "ring-2 ring-primary shadow-lg"
+                            : isPreferred
+                            ? "border-amber-500/40 bg-amber-500/5 hover:shadow-md hover:border-amber-500/60"
                             : "hover:shadow-md border-border/50"
                         }`}
                         onClick={() => setPaymentMethod(key)}
@@ -1974,13 +1979,18 @@ export default function BookingForm() {
                         <CardContent className="p-6">
                           <div className="flex items-start gap-4">
                             <div className={`w-12 h-12 rounded-lg flex items-center justify-center shrink-0 ${
-                              selected ? "gold-gradient" : "bg-muted"
+                              selected ? "gold-gradient" : isPreferred ? "bg-amber-500/15" : "bg-muted"
                             }`}>
-                              <Icon className={`w-6 h-6 ${selected ? "text-gold-foreground" : "text-muted-foreground"}`} />
+                              <Icon className={`w-6 h-6 ${selected ? "text-gold-foreground" : isPreferred ? "text-amber-400" : "text-muted-foreground"}`} />
                             </div>
                             <div className="flex-1 space-y-1">
-                              <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2 flex-wrap">
                                 <h3 className="font-heading text-lg font-semibold">{method.label}</h3>
+                                {isPreferred && (
+                                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                                    ★ Preferred
+                                  </span>
+                                )}
                                 {method.surcharge > 0 && (
                                   <span className="text-sm text-amber-400 font-medium">+{(method.surcharge * 100).toFixed(0)}% surcharge</span>
                                 )}
